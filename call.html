@@ -138,8 +138,6 @@
                     call.on('stream', (stream) => {
                         if (remoteVideoRef.current) {
                             remoteVideoRef.current.srcObject = stream;
-                            
-                            // AUTO-START HACK: Forzamos muted al inicio
                             remoteVideoRef.current.muted = true;
                             remoteVideoRef.current.setAttribute('autoplay', '');
                             remoteVideoRef.current.setAttribute('playsinline', '');
@@ -147,13 +145,10 @@
                             remoteVideoRef.current.play().then(() => {
                                 setGuestConnected(true);
                                 setStatus('ONLINE');
-                                // Intentamos habilitar audio automáticamente tras el arranque visual
                                 setTimeout(() => {
                                     if (remoteVideoRef.current) {
                                         remoteVideoRef.current.muted = false;
-                                        remoteVideoRef.current.play().catch(() => {
-                                            console.log("Audio requiere interacción manual");
-                                        });
+                                        remoteVideoRef.current.play().catch(() => {});
                                     }
                                 }, 1000);
                             }).catch(e => setStatus("BLOQUEO DE NAVEGADOR"));
@@ -236,11 +231,58 @@
             const [micMuted, setMicMuted] = useState(false);
             const [camOff, setCamOff] = useState(false);
             const [receivingVideo, setReceivingVideo] = useState(false);
+            const [facingMode, setFacingMode] = useState('user'); 
+            
             const localVideoRef = useRef(null);
             const returnMediaRef = useRef(null);
             const peer = useRef(null);
             const mqttClient = useRef(null);
             const localStream = useRef(null);
+
+            // FUNCIÓN CORREGIDA: Switch Camera sin cortar audio
+            const switchCamera = async () => {
+                const nextMode = facingMode === 'user' ? 'environment' : 'user';
+                setFacingMode(nextMode);
+                
+                if (localStream.current) {
+                    // 1. Buscamos el track de video actual y lo detenemos (el de audio NO se toca)
+                    const videoTrack = localStream.current.getVideoTracks()[0];
+                    if (videoTrack) videoTrack.stop();
+                    
+                    const res = { '360': [640,360], '720': [1280,720], '1080': [1920,1080] };
+                    
+                    try {
+                        // 2. Pedimos SOLO video nuevo
+                        const newVideoState = await navigator.mediaDevices.getUserMedia({ 
+                            video: { width: res[quality][0], height: res[quality][1], facingMode: nextMode }
+                        });
+                        
+                        const newVideoTrack = newVideoState.getVideoTracks()[0];
+
+                        // 3. Reemplazamos el track de video en nuestro stream local
+                        localStream.current.removeTrack(videoTrack);
+                        localStream.current.addTrack(newVideoTrack);
+
+                        // 4. Actualizamos el elemento de video local
+                        if (localVideoRef.current) localVideoRef.current.srcObject = localStream.current;
+                        
+                        // 5. Avisamos a PeerJS que el track cambió sin colgar la llamada
+                        Object.values(peer.current.connections).forEach(connArray => {
+                            connArray.forEach(connection => {
+                                if (connection.peerConnection) {
+                                    const senders = connection.peerConnection.getSenders();
+                                    const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+                                    if (videoSender) {
+                                        videoSender.replaceTrack(newVideoTrack);
+                                    }
+                                }
+                            });
+                        });
+                    } catch (e) {
+                        console.error("Error al girar cámara:", e);
+                    }
+                }
+            };
 
             useEffect(() => {
                 if (!joined) return;
@@ -252,7 +294,7 @@
                     try {
                         const res = { '360': [640,360], '720': [1280,720], '1080': [1920,1080] };
                         const s = await navigator.mediaDevices.getUserMedia({ 
-                            video: { width: res[quality][0], height: res[quality][1], facingMode: "user" }, 
+                            video: { width: res[quality][0], height: res[quality][1], facingMode: facingMode }, 
                             audio: { echoCancellation: true, noiseSuppression: true } 
                         });
                         localStream.current = s;
@@ -262,7 +304,6 @@
                         peer.current = new Peer(`sc_guest_${baseId}`, PEER_CONFIG);
                         
                         peer.current.on('open', () => {
-                            // LLAMADA DIRECTA A AMBOS SIN ESPERAR
                             peer.current.call(`sc_dir_${baseId}`, localStream.current);
                             peer.current.call(`sc_obs_${baseId}`, localStream.current);
                         });
@@ -304,16 +345,16 @@
                         <video ref={returnMediaRef} autoPlay playsInline></video>
                         <div className="pip-label">PROGRAMA 👆</div>
                     </div>
-                    <video ref={el => { if(el) el.srcObject = localStream.current }} className="guest-video" muted autoPlay playsInline></video>
+                    <video ref={localVideoRef} className="guest-video" style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }} muted autoPlay playsInline></video>
                     <div className="guest-overlay">
                         <div className="text-[10px] font-bold text-gray-400 uppercase mr-2 tracking-widest">{roomName}</div>
                         <div className={`mic-btn ${micMuted?'off':'on'}`} onClick={toggleMic}>{micMuted ? '🔇' : '🎤'}</div>
                         <div className={`mic-btn ${camOff?'off':'on'}`} onClick={toggleCam}>{camOff ? '🚫' : '📷'}</div>
+                        <div className="mic-btn" style={{ background: '#3b82f6' }} onClick={switchCamera}>🔄</div>
                     </div>
                 </div>
             );
         };
-
         const App = () => {
             const [mode, setMode] = useState(null); const [roomName, setRoomName] = useState('');
             useEffect(() => {
