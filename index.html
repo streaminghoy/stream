@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StreamVideo V2.0 (Stable Core)</title>
+    
+    <!-- LIBRERÍAS BASE -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- PEER JS (WebRTC P2P) y MQTT (Estado de Sala) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body { background-color: #050505; color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; }
+
+        /* --- SISTEMA DE DIAGNÓSTICO --- */
+        #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #050505; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+        #error-console { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #7f1d1d; color: white; padding: 20px; font-family: monospace; z-index: 10000; overflow: auto; white-space: pre-wrap; }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: #ec4899; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- LOBBY --- */
+        .lobby-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
+        .glass-box { background: #111; padding: 40px; border-radius: 12px; border: 1px solid #333; box-shadow: 0 20px 50px rgba(0,0,0,0.8); max-width: 400px; width: 100%; text-align: center; }
+        input.auth-input { width: 100%; background: #000; border: 2px solid #333; color: white; padding: 15px; border-radius: 6px; font-size: 1.2rem; text-align: center; font-weight: bold; margin-bottom: 20px; outline: none; text-transform: uppercase; }
+        input.auth-input:focus { border-color: #ec4899; }
+        .btn { width: 100%; padding: 15px; font-weight: 900; font-size: 1rem; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-main { background: #ec4899; color: white; }
+        .btn-main:hover:not(:disabled) { background: #db2777; }
+
+        /* --- DASHBOARD UI --- */
+        .dashboard-layout { display: flex; flex-direction: column; height: 100vh; background: #0f172a; }
+        .top-bar { padding: 15px 30px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        
+        .main-content { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
+        @media(min-width: 768px) { .main-content { flex-direction: row; } }
+
+        /* COLUMNAS */
+        .tx-panel { width: 100%; background: #1e293b; border-right: 1px solid #334155; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; }
+        @media(min-width: 768px) { .tx-panel { width: 350px; flex-shrink: 0; } }
+        
+        .rx-panel { flex: 1; padding: 25px; background: #0b0f19; overflow-y: auto; }
+        
+        .chat-panel { width: 100%; background: #0f172a; border-left: 1px solid #334155; display: flex; flex-direction: column; }
+        @media(min-width: 768px) { .chat-panel { width: 300px; flex-shrink: 0; } }
+
+        /* TX PREVIEW */
+        .video-preview { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden; border: 2px solid #334155; margin-bottom: 15px; position: relative; }
+        .video-preview video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); /* Mirror effect */ }
+        .preview-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+
+        /* RESPONSIVE & MOBILE CAM MODE */
+        @media (max-width: 1024px), (max-height: 600px) {
+            .video-preview.is-live {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                z-index: 9999; border-radius: 0; border: none; margin: 0; background: #000;
+            }
+            .video-preview.is-live video {
+                object-fit: contain; 
+            }
+            .video-preview.is-live .preview-tag {
+                top: 20px; right: 20px; font-size: 1rem; padding: 5px 15px; background: rgba(239, 68, 68, 0.8);
+            }
+            .mobile-floating-stop {
+                display: flex !important;
+                position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+                width: 80%; max-width: 350px; z-index: 10000;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+                font-size: 1.2rem; padding: 20px;
+            }
+            .desktop-stop-btn { display: none !important; }
+        }
+        .mobile-floating-stop { display: none; }
+
+        /* CONTROLS */
+        .control-label { font-size: 0.7rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: block; margin-top: 10px; }
+        select { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 0.85rem; outline: none; margin-bottom: 5px; cursor: pointer; }
+        select:focus { border-color: #ec4899; }
+        select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .tx-btn { width: 100%; padding: 15px; font-size: 1.1rem; font-weight: 900; text-transform: uppercase; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px;}
+        .tx-btn.idle { background: #ec4899; color: white; }
+        .tx-btn.idle:hover { background: #db2777; }
+        .tx-btn.active { background: #ef4444; color: white; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+
+        /* RX CARDS */
+        .rx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .rx-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; transition: 0.2s; display: flex; flex-direction: column; }
+        
+        .rx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .rx-name { font-size: 1.2rem; font-weight: 900; color: white; display: flex; align-items: center; gap: 8px; }
+        
+        .rx-btn { padding: 12px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 0.8rem; text-transform: uppercase; transition: 0.2s; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .rx-btn.copy { background: #3b82f6; color: white; }
+        .rx-btn.copy:hover { background: #2563eb; }
+        .rx-btn.disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+        /* LED STATUS */
+        .led { width: 10px; height: 10px; border-radius: 50%; background: #333; display: inline-block; }
+        .led.red { background: #ef4444; box-shadow: 0 0 10px #ef4444; animation: pulseRed 1.5s infinite; }
+        .led.green { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+
+        /* CHAT UI */
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { background: #1e293b; padding: 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.3; border: 1px solid #334155; }
+        .chat-msg .sender { font-weight: 900; color: #ec4899; text-transform: uppercase; }
+        .chat-msg .time { color: #64748b; font-size: 0.65rem; float: right; }
+        .chat-msg .text { margin-top: 4px; color: #cbd5e1; word-break: break-word; }
+        
+        .chat-input-area { padding: 15px; background: #1e293b; border-top: 1px solid #334155; }
+        .chat-input-area form { display: flex; gap: 8px; }
+        .chat-input-area input { flex: 1; background: #000; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 0.8rem; outline: none; }
+        .chat-input-area input:focus { border-color: #ec4899; }
+        .chat-input-area button { background: #ec4899; color: white; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .chat-input-area button:hover { background: #db2777; }
+
+        /* OBS VIEW */
+        .obs-container { width: 100vw; height: 100vh; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;}
+        .obs-video { width: 100%; height: 100%; object-fit: contain; }
+        .obs-overlay { position: absolute; top: 20px; left: 20px; color: white; font-family: monospace; font-size: 14px; text-shadow: 1px 1px 2px black; opacity: 0.7; z-index: 10;}
+
+        @keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <!-- PANTALLA DE CARGA Y DIAGNÓSTICO -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <h2 style="font-size: 20px; font-weight: bold; font-family: sans-serif;">CARGANDO SISTEMA...</h2>
+        <div id="loading-status" style="color: #888; font-family: sans-serif; font-size: 14px; margin-top: 10px;">Iniciando entorno React...</div>
+    </div>
+    <div id="error-console"></div>
+
+    <script>
+        function logError(msg) {
+            const consoleDiv = document.getElementById('error-console');
+            const loader = document.getElementById('loading-screen');
+            if(loader) loader.style.display = 'none';
+            consoleDiv.style.display = 'block';
+            consoleDiv.innerHTML += `🛑 ERROR DETECTADO:\n\n${msg}\n\nPosibles causas:\n1. Si estás usando un archivo local (file://), ábrelo en un servidor.\n2. Denegaste los permisos de cámara.\n`;
+        }
+        window.onerror = function(message, source, lineno, colno, error) {
+            logError(`${message} (Línea ${lineno})`);
+        };
+    </script>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const PEER_CONFIG = { 
+            config: { 
+                'iceServers': [
+                    { url: 'stun:stun.l.google.com:19302' },
+                    { url: 'stun:global.stun.twilio.com:3478' }
+                ] 
+            } 
+        };
+        const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+
+        // Configuración de Resoluciones y Bitrates (Video)
+        const VIDEO_PROFILES = {
+            '480': { w: 854, h: 480, bps: 1000000, label: '480p SD (Bajo Recurso)' },
+            '720': { w: 1280, h: 720, bps: 2500000, label: '720p HD (Estándar)' },
+            '1080': { w: 1920, h: 1080, bps: 5000000, label: '1080p FHD (Alta Calidad)' },
+            '4k': { w: 3840, h: 2160, bps: 12000000, label: '4K UHD (Extremo)' }
+        };
+
+        // --- COMPONENTE OBS (RECEPTOR PURO) ---
+        const ObsReceiver = ({ room, target }) => {
+            const [status, setStatus] = useState('INICIANDO...');
+            const videoRef = useRef(null);
+            const peerRef = useRef(null);
+            const callRef = useRef(null);
+            const watchdogRef = useRef(null);
+
+            useEffect(() => {
+                const myPeerId = `obs_${room}_${Math.random().toString(16).slice(2)}`;
+                const peer = new Peer(myPeerId, PEER_CONFIG);
+                peerRef.current = peer;
+
+                peer.on('open', () => {
+                    setStatus('CONECTANDO P2P...');
+                    connectToTarget();
+                });
+
+                peer.on('error', (err) => {
+                    setStatus(`ERROR: ${err.type}`);
+                    setTimeout(connectToTarget, 5000); 
+                });
+
+                return () => {
+                    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+                    peer.destroy();
+                };
+            }, [room, target]);
+
+            const connectToTarget = () => {
+                if (!peerRef.current || peerRef.current.disconnected) return;
+                
+                setStatus('LLAMANDO A LA CÁMARA...');
+                if (watchdogRef.current) clearTimeout(watchdogRef.current);
+                
+                let dummyStream = new MediaStream();
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const dest = audioCtx.createMediaStreamDestination();
+                    dummyStream.addTrack(dest.stream.getAudioTracks()[0]);
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 4; canvas.height = 4;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, 4, 4);
+                    const canvasStream = canvas.captureStream(1); 
+                    dummyStream.addTrack(canvasStream.getVideoTracks()[0]);
+                } catch(e) {
+                    console.warn("Error creando Dummy Stream, usando fallback", e);
+                }
+                
+                const call = peerRef.current.call(target, dummyStream, {
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
+                
+                callRef.current = call;
+
+                watchdogRef.current = setTimeout(() => {
+                    setStatus('TIEMPO AGOTADO. REINTENTANDO...');
+                    if (callRef.current) callRef.current.close();
+                    setTimeout(connectToTarget, 2000);
+                }, 10000);
+
+                call.on('stream', (remoteStream) => {
+                    if (watchdogRef.current) clearTimeout(watchdogRef.current); 
+                    setStatus('SINCRONIZANDO...');
+                    
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = remoteStream;
+                        
+                        setTimeout(() => {
+                            const playPromise = videoRef.current.play();
+                            if (playPromise !== undefined) {
+                                playPromise.then(() => {
+                                    setStatus('AL AIRE 🔴');
+                                }).catch(error => {
+                                    console.log("Auto-play prevenido por navegador estricto", error);
+                                    videoRef.current.muted = true;
+                                    videoRef.current.play().catch(e => console.error("Fallo definitivo de play", e));
+                                    setStatus('AL AIRE 🔴 (AUDIO SILENCIADO)');
+                                });
+                            } else {
+                                setStatus('AL AIRE 🔴');
+                            }
+                        }, 500);
+                    }
+                });
+
+                call.on('close', () => {
+                    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+                    setStatus('DESCONECTADO. REINTENTANDO...');
+                    setTimeout(connectToTarget, 3000);
+                });
+                
+                call.on('error', () => {
+                    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+                    setStatus('ERROR DE ENLACE');
+                    setTimeout(connectToTarget, 3000);
+                });
+            };
+
+            return (
+                <div className="obs-container" onClick={() => {
+                    if (videoRef.current) { videoRef.current.muted = false; videoRef.current.play(); setStatus('AL AIRE 🔴'); }
+                }}>
+                    <div className="obs-overlay">STREAMVIDEO OBS LINK | ESTADO: {status}</div>
+                    <video ref={videoRef} className="obs-video" autoPlay playsInline></video>
+                </div>
+            );
+        };
+
+        // --- DASHBOARD PRINCIPAL ---
+        const Dashboard = ({ initialRoom }) => {
+            const [inRoom, setInRoom] = useState(false);
+            const [isConnecting, setIsConnecting] = useState(false);
+            const [roomCode, setRoomCode] = useState(initialRoom || '');
+            const [stationName, setStationName] = useState('');
+            
+            const [status, setStatus] = useState('OFFLINE');
+            const [audioDevices, setAudioDevices] = useState([]);
+            const [videoDevices, setVideoDevices] = useState([]);
+            
+            const [isEmitting, setIsEmitting] = useState(false);
+            const [selectedAudio, setSelectedAudio] = useState('');
+            const [selectedVideo, setSelectedVideo] = useState('');
+            const [selectedRes, setSelectedRes] = useState('720');
+            
+            const [activeStations, setActiveStations] = useState({});
+            const [messages, setMessages] = useState([]);
+            const [chatInput, setChatInput] = useState('');
+            
+            const peerRef = useRef(null);
+            const mqttClientRef = useRef(null);
+            const txStreamRef = useRef(null);
+            const localVideoRef = useRef(null);
+            const messagesEndRef = useRef(null);
+            const roomInfo = useRef({ code: '', name: '', peerId: '' });
+
+            const resRef = useRef(VIDEO_PROFILES['720']);
+            useEffect(() => { resRef.current = VIDEO_PROFILES[selectedRes]; }, [selectedRes]);
+
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+            useEffect(() => { roomInfo.current = { code: roomCode, name: stationName, peerId: peerRef.current?.id }; }, [roomCode, stationName, inRoom]);
+
+            const loadDevices = async (forcePrompt = false) => {
+                try {
+                    if (forcePrompt || (audioDevices.length === 0 && videoDevices.length === 0)) {
+                        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                        tempStream.getTracks().forEach(t => t.stop());
+                    }
+                    
+                    const devs = await navigator.mediaDevices.enumerateDevices();
+                    const audios = devs.filter(d => d.kind === 'audioinput');
+                    const videos = devs.filter(d => d.kind === 'videoinput');
+                    
+                    setAudioDevices(audios);
+                    setVideoDevices(videos);
+                    
+                    if (audios.length > 0) setSelectedAudio(prev => (prev && audios.find(a => a.deviceId === prev)) ? prev : audios[0].deviceId);
+                    if (videos.length > 0) setSelectedVideo(prev => (prev && videos.find(v => v.deviceId === prev)) ? prev : videos[0].deviceId);
+                } catch(e) {
+                    console.error("Permisos denegados:", e);
+                    if(forcePrompt) alert("⚠️ ALERTA DE PERMISOS\nDebes permitir el acceso a cámara y micrófono.");
+                }
+            };
+
+            useEffect(() => {
+                loadDevices(false);
+                if(!initialRoom) setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
+            }, []);
+
+            // --- INGRESO A LA SALA ---
+            const joinRoom = async () => {
+                // FIX V2.0: Prevenir múltiples clics
+                if (isConnecting || inRoom) return;
+                
+                const safeRoom = roomCode.trim().toUpperCase();
+                const safeName = stationName.trim().toUpperCase();
+                
+                if (!safeRoom || !safeName) return alert("Completa ambos campos.");
+                
+                setIsConnecting(true);
+                setRoomCode(safeRoom);
+                setStationName(safeName);
+
+                setStatus('CARGANDO HARDWARE...');
+                await loadDevices(true); 
+                setStatus('CONECTANDO RED...');
+                
+                const myPeerId = `vid_${safeRoom}_${Math.random().toString(16).slice(2)}`;
+                peerRef.current = new Peer(myPeerId, PEER_CONFIG);
+
+                peerRef.current.on('open', (id) => {
+                    setStatus('ONLINE');
+                    setIsConnecting(false);
+                    setInRoom(true);
+                    roomInfo.current.peerId = id;
+                    
+                    // FIX V2.0: Asegurar inicialización única de MQTT
+                    if (!mqttClientRef.current) {
+                        initMQTT(id, safeRoom, safeName);
+                    }
+                });
+
+                peerRef.current.on('call', (call) => {
+                    if (txStreamRef.current) {
+                        call.answer(txStreamRef.current);
+                        
+                        setTimeout(() => {
+                            if (call.peerConnection && call.peerConnection.connectionState === 'connected') {
+                                const senders = call.peerConnection.getSenders();
+                                const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+                                if (videoSender) {
+                                    try {
+                                        const params = videoSender.getParameters();
+                                        if (params) {
+                                            if (!params.encodings) params.encodings = [{}];
+                                            if (params.encodings.length > 0) {
+                                                params.encodings[0].maxBitrate = resRef.current.bps; 
+                                                videoSender.setParameters(params).catch(e=>console.warn("Bitrate hack error", e));
+                                            }
+                                        }
+                                    } catch(e) {}
+                                }
+                            }
+                        }, 1500);
+                    } else {
+                        call.close();
+                    }
+                });
+
+                peerRef.current.on('error', (err) => {
+                    setStatus('ERROR DE RED: ' + err.type);
+                    setIsConnecting(false);
+                });
+            };
+
+            // --- MQTT: PRESENCIA Y CHAT (V4 - ULTRA CLEAN) ---
+            const initMQTT = (myPeerId, currentRoom, currentName) => {
+                if (mqttClientRef.current) {
+                    mqttClientRef.current.end(true); // Cerrar cliente anterior por seguridad
+                }
+
+                // FIX V2.0: Canal v4 para borrar historial fantasma
+                const topicEmitters = `sc_video_v4/${currentRoom}/emitters`; 
+                const topicChat = `sc_video_v4/${currentRoom}/chat`;
+                const myTopic = `${topicEmitters}/${myPeerId}`;
+                
+                mqttClientRef.current = mqtt.connect(MQTT_BROKER, { 
+                    clientId: `mqv_${myPeerId}`,
+                    will: {
+                        topic: myTopic,
+                        payload: JSON.stringify({ offline: true, name: currentName }),
+                        retain: true,
+                        qos: 1
+                    }
+                });
+
+                mqttClientRef.current.on('connect', () => {
+                    mqttClientRef.current.subscribe(`${topicEmitters}/+`);
+                    mqttClientRef.current.subscribe(topicChat);
+                    
+                    const payload = { 
+                        isEmitting: false, 
+                        name: currentName, 
+                        res: VIDEO_PROFILES[selectedRes].label, 
+                        offline: false 
+                    };
+                    mqttClientRef.current.publish(myTopic, JSON.stringify(payload), { retain: true });
+                });
+
+                mqttClientRef.current.on('message', (t, msg) => {
+                    try {
+                        if (t === topicChat) {
+                            const chatPayload = JSON.parse(msg.toString());
+                            setMessages(prev => {
+                                // FIX V2.0: Evita duplicar mensajes de chat localmente
+                                if (prev.some(m => m.id === chatPayload.id)) return prev;
+                                return [...prev, chatPayload].slice(-50);
+                            });
+                            return;
+                        }
+                        
+                        const payload = JSON.parse(msg.toString());
+                        const senderPeerId = t.split('/').pop();
+                        
+                        if (senderPeerId === myPeerId) return;
+
+                        setActiveStations(prev => {
+                            const newState = { ...prev };
+                            
+                            // Llave única y normalizada
+                            const uniqueKey = payload.name ? payload.name.trim().toUpperCase() : senderPeerId;
+                            
+                            if (payload.offline) {
+                                delete newState[uniqueKey];
+                                // Limpieza profunda por peerId
+                                Object.keys(newState).forEach(k => {
+                                    if (newState[k].peerId === senderPeerId) {
+                                        delete newState[k];
+                                    }
+                                });
+                            } else {
+                                newState[uniqueKey] = { ...payload, peerId: senderPeerId };
+                            }
+                            
+                            return newState;
+                        });
+                    } catch(e) {}
+                });
+            };
+
+            const publishMyState = (emitting) => {
+                if (mqttClientRef.current?.connected && peerRef.current?.id) {
+                    const topic = `sc_video_v4/${roomCode}/emitters/${peerRef.current.id}`;
+                    const payload = { 
+                        isEmitting: emitting, 
+                        name: stationName, 
+                        res: VIDEO_PROFILES[selectedRes].label, 
+                        offline: false 
+                    };
+                    mqttClientRef.current.publish(topic, JSON.stringify(payload), { retain: true });
+                }
+            };
+
+            const sendChatMessage = (e) => {
+                e.preventDefault();
+                if (!chatInput.trim() || !mqttClientRef.current?.connected) return;
+                const chatPayload = { id: Date.now(), sender: stationName, text: chatInput.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+                mqttClientRef.current.publish(`sc_video_v4/${roomCode}/chat`, JSON.stringify(chatPayload));
+                setChatInput('');
+            };
+
+            // --- TX (MI EMISIÓN) ---
+            const toggleTx = async () => {
+                if (isEmitting) {
+                    if (txStreamRef.current) txStreamRef.current.getTracks().forEach(t => t.stop());
+                    txStreamRef.current = null;
+                    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+                    setIsEmitting(false);
+                    publishMyState(false);
+                } else {
+                    try {
+                        setStatus('PREPARANDO CÁMARA...');
+                        const profile = VIDEO_PROFILES[selectedRes];
+                        
+                        const stream = await navigator.mediaDevices.getUserMedia({ 
+                            audio: { 
+                                deviceId: selectedAudio ? { exact: selectedAudio } : undefined,
+                                echoCancellation: false, noiseSuppression: false, autoGainControl: false
+                            },
+                            video: {
+                                deviceId: selectedVideo ? { exact: selectedVideo } : undefined,
+                                width: { ideal: profile.w },
+                                height: { ideal: profile.h }
+                            }
+                        });
+                        
+                        txStreamRef.current = stream;
+                        if (localVideoRef.current) {
+                            localVideoRef.current.srcObject = stream;
+                        }
+                        
+                        setIsEmitting(true);
+                        setStatus('AL AIRE (TX)');
+                        publishMyState(true);
+
+                    } catch(e) {
+                        alert("Error al capturar hardware. Revisa permisos o si la cámara está siendo usada por OBS u otro programa.");
+                        setStatus('ERROR DE CÁMARA');
+                    }
+                }
+            };
+
+            const copyObsUrl = (targetId) => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('mode', 'obs');
+                url.searchParams.set('room', roomCode);
+                url.searchParams.set('target', targetId);
+                
+                navigator.clipboard.writeText(url.toString()).then(() => {
+                    alert("¡URL Copiada!\nPégala en OBS Studio como 'Origen de Navegador' (Browser Source).");
+                }).catch(() => {
+                    alert(`No se pudo copiar automáticamente. Copia este texto manualmente:\n\n${url.toString()}`);
+                });
+            };
+
+            useEffect(() => {
+                const handleUnload = () => {
+                    const info = roomInfo.current;
+                    if (mqttClientRef.current?.connected && info.peerId && info.code) {
+                        const topic = `sc_video_v4/${info.code}/emitters/${info.peerId}`;
+                        // Forzar envío sincrónico de desconexión si es posible
+                        mqttClientRef.current.publish(topic, JSON.stringify({ offline: true, name: info.name }), { retain: true });
+                        mqttClientRef.current.end(true);
+                    }
+                };
+                window.addEventListener('beforeunload', handleUnload);
+                return () => {
+                    window.removeEventListener('beforeunload', handleUnload);
+                    handleUnload();
+                    if (peerRef.current) peerRef.current.destroy();
+                    if (txStreamRef.current) txStreamRef.current.getTracks().forEach(t => t.stop());
+                };
+            }, []);
+
+            if (!inRoom) {
+                return (
+                    <div className="lobby-container">
+                        <div className="glass-box animate__animated animate__fadeIn">
+                            <h1 className="text-3xl font-black mb-1 text-white">STREAM<span className="text-pink-500">VIDEO</span></h1>
+                            <p className="text-gray-400 text-sm mb-6 font-bold">IP VIDEO HUB V2.0 (Stable Core)</p>
+
+                            <input className="auth-input" placeholder="CÓDIGO DE SALA" value={roomCode} onChange={e=>setRoomCode(e.target.value)} disabled={isConnecting} />
+                            <input className="auth-input" placeholder="TU NOMBRE (Ej: CÁMARA 1)" value={stationName} onChange={e=>setStationName(e.target.value)} disabled={isConnecting} />
+                            
+                            <button className="btn btn-main" onClick={joinRoom} disabled={isConnecting}>
+                                {isConnecting ? 'CONECTANDO...' : 'ENTRAR AL HUB'}
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="dashboard-layout">
+                    {/* BARRA SUPERIOR */}
+                    <div className="top-bar">
+                        <div className="font-black text-xl text-white">STREAM<span className="text-pink-500">VIDEO</span></div>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs font-bold text-gray-400">SALA: {roomCode}</span>
+                            <span className="text-xs bg-slate-700 px-3 py-1 rounded font-bold text-green-400">{status}</span>
+                        </div>
+                    </div>
+
+                    <div className="main-content">
+                        
+                        {/* PANEL IZQUIERDO: MI EMISIÓN */}
+                        <div className="tx-panel">
+                            <h2 className="text-lg font-black text-white mb-4">TU SEÑAL (TX)</h2>
+                            
+                            <div className={`video-preview ${isEmitting ? 'is-live' : ''}`}>
+                                <video ref={localVideoRef} autoPlay playsInline muted></video>
+                                <div className="preview-tag">{isEmitting ? 'EN VIVO' : 'PREVIEW'}</div>
+                                
+                                {/* Botón flotante exclusivo para celular/tablet cuando está en vivo */}
+                                {isEmitting && (
+                                    <button className="tx-btn active mobile-floating-stop" onClick={toggleTx}>
+                                        ⏹ DETENER EMISIÓN
+                                    </button>
+                                )}
+                            </div>
+
+                            <label className="control-label">CÁMARA DE VIDEO</label>
+                            <div className="flex gap-2 mb-2">
+                                <select className="mb-0 flex-1" value={selectedVideo} onChange={e=>setSelectedVideo(e.target.value)} disabled={isEmitting}>
+                                    {videoDevices.length === 0 && <option value="">Sin cámaras...</option>}
+                                    {videoDevices.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Cámara ${i+1}`}</option>)}
+                                </select>
+                                <button className="bg-slate-700 px-3 rounded text-white text-sm" onClick={() => loadDevices(true)} disabled={isEmitting} title="Recargar">🔄</button>
+                            </div>
+
+                            <label className="control-label mt-2">MICRÓFONO / LÍNEA</label>
+                            <select value={selectedAudio} onChange={e=>setSelectedAudio(e.target.value)} disabled={isEmitting}>
+                                {audioDevices.length === 0 && <option value="">Sin micrófonos...</option>}
+                                {audioDevices.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Audio ${i+1}`}</option>)}
+                            </select>
+
+                            <label className="control-label mt-2">RESOLUCIÓN DE EMISIÓN</label>
+                            <select value={selectedRes} onChange={e=>setSelectedRes(e.target.value)} disabled={isEmitting}>
+                                {Object.entries(VIDEO_PROFILES).map(([key, prof]) => (
+                                    <option key={key} value={key}>{prof.label}</option>
+                                ))}
+                            </select>
+
+                            <div className="mt-auto pt-4">
+                                {!isEmitting ? (
+                                    <button className="tx-btn idle" onClick={toggleTx}>
+                                        ▶ TRANSMITIR CÁMARA
+                                    </button>
+                                ) : (
+                                    <button className="tx-btn active desktop-stop-btn" onClick={toggleTx}>
+                                        ⏹ DETENER EMISIÓN
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* PANEL CENTRAL: OTRAS CÁMARAS (ROUTER) */}
+                        <div className="rx-panel">
+                            <h2 className="text-lg font-black text-white mb-6">CÁMARAS EN LA SALA (ENLACES OBS)</h2>
+                            
+                            {Object.keys(activeStations).length === 0 && (
+                                <div className="text-center text-gray-500 mt-10">Esperando que otras cámaras se conecten a la sala.</div>
+                            )}
+
+                            <div className="rx-grid">
+                                {Object.values(activeStations).map((data) => {
+                                    return (
+                                        <div key={data.peerId} className="rx-card animate__animated animate__fadeIn">
+                                            <div className="rx-header">
+                                                <div className="rx-name">
+                                                    <div className={`led ${data.isEmitting ? 'red' : 'bg-gray-600'}`}></div>
+                                                    {data.name}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="text-[10px] font-bold text-gray-400 mb-4 bg-black p-2 rounded text-center">
+                                                FORMATO: {data.res || 'Desconocido'}
+                                            </div>
+
+                                            {data.isEmitting ? (
+                                                <button className="rx-btn copy" onClick={()=>copyObsUrl(data.peerId)}>🔗 COPIAR URL PARA OBS</button>
+                                            ) : (
+                                                <button className="rx-btn disabled" disabled>CÁMARA APAGADA</button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* PANEL DERECHO: CHAT / NOTAS */}
+                        <div className="chat-panel">
+                            <div className="p-4 border-b border-gray-700 bg-slate-800">
+                                <h2 className="text-sm font-black text-white uppercase tracking-wider">Línea Interna (Chat)</h2>
+                            </div>
+                            
+                            <div className="chat-messages">
+                                {messages.length === 0 && <div className="text-gray-500 text-xs text-center mt-4">Sin mensajes.</div>}
+                                {messages.map(m => (
+                                    <div key={m.id} className="chat-msg animate__animated animate__fadeIn animate__faster">
+                                        <div><span className="sender">{m.sender}</span><span className="time">{m.time}</span></div>
+                                        <div className="text">{m.text}</div>
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            <div className="chat-input-area">
+                                <form onSubmit={sendChatMessage}>
+                                    <input value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Avisar a producción..." />
+                                    <button type="submit" disabled={!chatInput.trim()}>➤</button>
+                                </form>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // ENRUTADOR PRINCIPAL
+        const App = () => {
+            const [mode, setMode] = useState(null);
+            const [room, setRoom] = useState('');
+            const [target, setTarget] = useState('');
+
+            useEffect(() => {
+                // Ocultar pantalla de carga al montar React
+                const loader = document.getElementById('loading-screen');
+                if(loader) loader.style.display = 'none';
+
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('mode') === 'obs') {
+                    setMode('obs');
+                    setRoom(params.get('room'));
+                    setTarget(params.get('target'));
+                } else {
+                    setMode('dash');
+                    setRoom(params.get('room') || '');
+                }
+            }, []);
+
+            if (!mode) return null;
+            if (mode === 'obs') return <ObsReceiver room={room} target={target} />;
+            if (mode === 'dash') return <Dashboard initialRoom={room} />;
+            return null;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
