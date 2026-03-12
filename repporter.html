@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Radio - Reportero (OBS/vMix)</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <style>
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .status-box { 
+            background: #111; 
+            border: 2px solid #333; 
+            border-radius: 12px; 
+            padding: 30px; 
+            text-align: center;
+            min-width: 300px;
+        }
+        .tally { 
+            width: 50px; height: 50px; 
+            border-radius: 50%; 
+            background: #333; 
+            margin: 0 auto 20px;
+            transition: all 0.3s;
+        }
+        .tally.on { 
+            background: #ef4444; 
+            box-shadow: 0 0 30px #ef4444, 0 0 60px #ef4444;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .info { font-size: 0.8rem; color: #666; margin-top: 10px; }
+        .vu-meter { width: 100%; height: 10px; background: #222; border-radius: 5px; margin-top: 20px; overflow: hidden; }
+        .vu-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #facc15, #ef4444); transition: width 0.1s; }
+    </style>
+</head>
+<body>
+    <div class="status-box">
+        <div id="tally" class="tally"></div>
+        <h2 id="channelName">CANAL --</h2>
+        <div id="status">Conectando...</div>
+        <div class="vu-meter"><div id="vuBar" class="vu-bar"></div></div>
+        <div class="info">Room: <span id="roomCode">--</span></div>
+    </div>
+
+    <script>
+        // Obtener parámetros de URL
+        const params = new URLSearchParams(window.location.search);
+        const room = params.get('room');
+        const ch = params.get('ch');
+        const producerId = params.get('producer'); // ID del productor
+        const reporterName = params.get('name') || `Reportero ${ch}`;
+        
+        const PEER_CONFIG = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }] } };
+        const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+        
+        let peer, localStream, producerCall, returnAudio;
+        
+        document.getElementById('channelName').textContent = `CANAL ${ch}`;
+        document.getElementById('roomCode').textContent = room;
+        
+        async function init() {
+            try {
+                // 1. Conectar a PeerJS
+                const myId = `reporter_${room}_CH${ch}_${Math.random().toString(16).slice(2, 6)}`;
+                peer = new Peer(myId, PEER_CONFIG);
+                
+                peer.on('open', async (id) => {
+                    document.getElementById('status').textContent = 'Conectado, iniciando audio...';
+                    
+                    // 2. Capturar audio del micrófono
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                            channelCount: 2
+                        }
+                    });
+                    
+                    // 3. Llamar al productor
+                    const call = peer.call(producerId, localStream, {
+                        metadata: { 
+                            name: reporterName, 
+                            channel: ch,
+                            kbps: 128 
+                        }
+                    });
+                    
+                    producerCall = call;
+                    
+                    call.on('stream', (returnStream) => {
+                        // Recibir retorno del productor
+                        returnAudio = new Audio();
+                        returnAudio.srcObject = returnStream;
+                        returnAudio.play();
+                        document.getElementById('status').textContent = '● EN VIVO (con retorno)';
+                    });
+                    
+                    // 4. VU Meter
+                    setupVU(localStream);
+                    
+                    // 5. Conectar MQTT para Tally
+                    initMQTT(id);
+                });
+                
+                peer.on('error', (err) => {
+                    document.getElementById('status').textContent = 'Error: ' + err.type;
+                });
+                
+            } catch(e) {
+                document.getElementById('status').textContent = 'Error de micrófono';
+                console.error(e);
+            }
+        }
+        
+        function setupVU(stream) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = ctx.createAnalyser();
+            const source = ctx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            const update = () => {
+                analyser.getByteFrequencyData(data);
+                let sum = 0;
+                for(let i = 0; i < data.length; i++) sum += data[i];
+                const level = (sum / data.length) * 2;
+                document.getElementById('vuBar').style.width = Math.min(level, 100) + '%';
+                requestAnimationFrame(update);
+            };
+            update();
+        }
+        
+        function initMQTT(peerId) {
+            const client = mqtt.connect(MQTT_BROKER, { clientId: `mqtt_rep_${peerId}` });
+            client.on('connect', () => {
+                client.subscribe(`sc_radio_v1/${room}/tally`);
+            });
+            
+            client.on('message', (t, msg) => {
+                try {
+                    const data = JSON.parse(msg.toString());
+                    if (data.channel == ch) {
+                        const tally = document.getElementById('tally');
+                        if (data.isLive) {
+                            tally.classList.add('on');
+                        } else {
+                            tally.classList.remove('on');
+                        }
+                    }
+                } catch(e) {}
+            });
+        }
+        
+        // Iniciar
+        init();
+    </script>
+</body>
+</html>
