@@ -57,9 +57,24 @@
             50% { opacity: 0.8; transform: scale(1.1); }
         }
 
-        .url-container { 
+        /* URL PARA OBS */
+        .url-container-obs { 
             background: #000; 
-            border: 2px solid #22c55e; 
+            border: 2px solid #3b82f6; 
+            border-radius: 8px; 
+            padding: 12px; 
+            margin-bottom: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .url-container-obs:hover { border-color: #60a5fa; background: #0a1a2a; }
+        .url-container-obs.copied { border-color: #22c55e; }
+        
+        /* URL PARA REPORTERO */
+        .url-container-reporter { 
+            background: #000; 
+            border: 2px solid #f59e0b; 
             border-radius: 8px; 
             padding: 12px; 
             margin-bottom: 15px;
@@ -67,8 +82,8 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .url-container:hover { border-color: #3b82f6; background: #0a1a0a; }
-        .url-container.copied { border-color: #3b82f6; }
+        .url-container-reporter:hover { border-color: #fbbf24; background: #1a1a0a; }
+        .url-container-reporter.copied { border-color: #22c55e; }
         
         .url-label { 
             font-size: 0.65rem; 
@@ -84,10 +99,12 @@
         .url-text { 
             font-family: 'Courier New', monospace; 
             font-size: 0.7rem; 
-            color: #22c55e; 
             word-break: break-all;
             line-height: 1.4;
         }
+        
+        .url-obs { color: #3b82f6; }
+        .url-reporter { color: #f59e0b; }
         
         .copy-btn {
             position: absolute;
@@ -104,7 +121,8 @@
             transition: opacity 0.2s;
             font-weight: bold;
         }
-        .url-container:hover .copy-btn { opacity: 1; }
+        .url-container-obs:hover .copy-btn,
+        .url-container-reporter:hover .copy-btn { opacity: 1; }
         .copy-btn:hover { background: #3b82f6; }
 
         .status-badge {
@@ -222,7 +240,7 @@
         .instructions h3 { margin: 0 0 5px 0; font-size: 0.8rem; color: #3b82f6; text-transform: uppercase; }
         .instructions p { margin: 0; font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
 
-        /* VISTA DE REPORTERO - SOLO TALLY Y ESTADO, SIN URL */
+        /* VISTA DE REPORTERO - SOLO PARA ABRIR EN CELULAR */
         .reporter-view {
             min-height: 100vh;
             background: #0a0a0a;
@@ -239,22 +257,22 @@
             background: #111;
             border: 2px solid #333;
             border-radius: 16px;
-            padding: 40px;
+            padding: 30px;
             max-width: 500px;
             width: 100%;
             text-align: center;
         }
         
         .reporter-tally {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             background: #222;
-            margin: 0 auto 30px;
+            margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
+            font-size: 2.5rem;
             transition: all 0.3s;
             border: 4px solid #444;
         }
@@ -262,7 +280,7 @@
         .reporter-tally.on {
             background: #ef4444;
             border-color: #ef4444;
-            box-shadow: 0 0 60px #ef4444, 0 0 100px #ef4444;
+            box-shadow: 0 0 50px #ef4444;
             animation: tallyPulse 1s infinite;
         }
         
@@ -272,49 +290,49 @@
         }
         
         .reporter-status {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 900;
             text-transform: uppercase;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .reporter-info {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-top: 30px;
+            gap: 15px;
+            margin: 20px 0;
         }
         
         .reporter-item {
             background: #1a1a1a;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
         }
         
         .reporter-item-label {
             color: #64748b;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         
         .reporter-item-value {
             color: white;
             font-weight: 900;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
         
         .reporter-vu {
-            margin-top: 30px;
-            padding: 20px;
+            margin-top: 20px;
+            padding: 15px;
             background: #1a1a1a;
             border-radius: 8px;
         }
         
         .reporter-vu-bar {
-            height: 16px;
+            height: 12px;
             background: #222;
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
             border: 1px solid #444;
         }
@@ -325,9 +343,57 @@
             transition: width 0.1s;
         }
 
+        .reporter-video {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border-radius: 8px;
+            margin: 20px auto;
+            object-fit: cover;
+            border: 2px solid #333;
+        }
+        
+        .reporter-video.active {
+            border-color: #ef4444;
+        }
+
+        .reporter-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .reporter-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        
+        .reporter-btn.start {
+            background: #22c55e;
+            color: black;
+        }
+        
+        .reporter-btn.stop {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .reporter-btn:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
         .reporter-footer {
-            margin-top: 30px;
-            font-size: 0.8rem;
+            margin-top: 20px;
+            font-size: 0.75rem;
             color: #64748b;
         }
     </style>
@@ -346,7 +412,8 @@
             const [reporterInfo, setReporterInfo] = useState({ name: '', kbps: '128' });
             const [vuLevel, setVuLevel] = useState(0);
             const [volume, setVolume] = useState(1);
-            const [copied, setCopied] = useState(false);
+            const [copiedObs, setCopiedObs] = useState(false);
+            const [copiedReporter, setCopiedReporter] = useState(false);
             
             const audioElRef = useRef(null);
             const analyserRef = useRef(null);
@@ -354,9 +421,14 @@
             const callRef = useRef(null);
             const returnCallRef = useRef(null);
             
-            // URL para OBS - SOLO EL PRODUCTOR LA VE
+            // URL para OBS (modo reporter con producer ID)
             const obsUrl = peerRef.current?.id 
                 ? `${baseUrl}?mode=reporter&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
+                : 'Conectando...';
+            
+            // URL para reportero (modo transmitter - él se conecta como emisor)
+            const reporterUrl = peerRef.current?.id
+                ? `${baseUrl}?mode=transmitter&room=${roomCode}&ch=${channelNum}&call=${peerRef.current.id}`
                 : 'Conectando...';
 
             useEffect(() => {
@@ -447,11 +519,18 @@
                 onTallyChange(channelNum, false);
             };
 
-            const copyUrl = () => {
+            const copyObsUrl = () => {
                 if (obsUrl.includes('Conectando')) return;
                 navigator.clipboard.writeText(obsUrl);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+                setCopiedObs(true);
+                setTimeout(() => setCopiedObs(false), 2000);
+            };
+
+            const copyReporterUrl = () => {
+                if (reporterUrl.includes('Conectando')) return;
+                navigator.clipboard.writeText(reporterUrl);
+                setCopiedReporter(true);
+                setTimeout(() => setCopiedReporter(false), 2000);
             };
 
             return (
@@ -463,15 +542,27 @@
                         <div className={`tally-light ${status === 'live' ? 'on' : ''}`}></div>
                     </div>
 
-                    {/* URL PARA OBS - SOLO VISIBLE EN EL DASHBOARD DEL PRODUCTOR */}
-                    <div className={`url-container ${copied ? 'copied' : ''}`} onClick={copyUrl}>
+                    {/* URL PARA OBS (AZUL) */}
+                    <div className={`url-container-obs ${copiedObs ? 'copied' : ''}`} onClick={copyObsUrl}>
                         <div className="url-label">
-                            <span>🔗 URL PARA OBS/VMIX (CLICK PARA COPIAR)</span>
-                            {copied && <span style={{color: '#3b82f6'}}>✓ COPIADO</span>}
+                            <span>📺 URL PARA OBS/VMIX</span>
+                            {copiedObs && <span style={{color: '#22c55e'}}>✓ COPIADO</span>}
                         </div>
-                        <div className="url-text">{obsUrl}</div>
-                        <button className="copy-btn" onClick={(e) => { e.stopPropagation(); copyUrl(); }}>
-                            {copied ? '✓' : 'COPY'}
+                        <div className="url-text url-obs">{obsUrl}</div>
+                        <button className="copy-btn" onClick={(e) => { e.stopPropagation(); copyObsUrl(); }}>
+                            {copiedObs ? '✓' : 'COPY'}
+                        </button>
+                    </div>
+
+                    {/* URL PARA REPORTERO (AMARILLA) */}
+                    <div className={`url-container-reporter ${copiedReporter ? 'copied' : ''}`} onClick={copyReporterUrl}>
+                        <div className="url-label">
+                            <span>📱 URL PARA REPORTERO (CELULAR)</span>
+                            {copiedReporter && <span style={{color: '#22c55e'}}>✓ COPIADO</span>}
+                        </div>
+                        <div className="url-text url-reporter">{reporterUrl}</div>
+                        <button className="copy-btn" onClick={(e) => { e.stopPropagation(); copyReporterUrl(); }}>
+                            {copiedReporter ? '✓' : 'COPY'}
                         </button>
                     </div>
 
@@ -522,8 +613,8 @@
 
                     {status === 'offline' && (
                         <div style={{fontSize: '0.75rem', color: '#64748b', textAlign: 'center', padding: '10px'}}>
-                            Copia la URL de arriba y envíasela al reportero<br/>
-                            o úsala directamente en OBS/vMix
+                            <strong>Azul:</strong> Para OBS/vMix<br/>
+                            <strong>Amarilla:</strong> Enviar al reportero para su celular
                         </div>
                     )}
                 </div>
@@ -535,6 +626,7 @@
             const [roomCode, setRoomCode] = useState('');
             const [producerName, setProducerName] = useState('');
             const [isProducer, setIsProducer] = useState(true);
+            const [userMode, setUserMode] = useState(''); // 'producer', 'reporter', 'transmitter'
             
             const [connectionStatus, setConnectionStatus] = useState('OFFLINE');
             const [tallyStates, setTallyStates] = useState({1: false, 2: false, 3: false, 4: false});
@@ -549,12 +641,19 @@
             const [chatInput, setChatInput] = useState('');
             
             const [reporterChannel, setReporterChannel] = useState('');
+            const [producerId, setProducerId] = useState('');
             
+            // Para modo transmitter (reportero con celular)
+            const [isTransmitting, setIsTransmitting] = useState(false);
+            const [localStream, setLocalStream] = useState(null);
+            const [txLevel, setTxLevel] = useState(0);
+            const videoRef = useRef(null);
             const peerRef = useRef(null);
             const mqttClientRef = useRef(null);
             const returnAudioCtxRef = useRef(null);
             const returnAnimRef = useRef(null);
             const messagesEndRef = useRef(null);
+            const txAnimRef = useRef(null);
 
             const [baseUrl, setBaseUrl] = useState('');
 
@@ -566,15 +665,29 @@
                 const mode = params.get('mode');
                 const room = params.get('room');
                 const ch = params.get('ch');
-                const producerId = params.get('producer');
+                const prodId = params.get('producer') || params.get('call');
 
-                if (mode === 'reporter' && room && ch && producerId) {
+                if (mode === 'reporter' && room && ch && prodId) {
+                    // Modo reportero para OBS (recibe audio)
                     setIsProducer(false);
+                    setUserMode('reporter');
                     setRoomCode(room);
                     setReporterChannel(ch);
+                    setProducerId(prodId);
                     setInRoom(true);
-                    setTimeout(() => initAsReporter(room, ch, producerId), 500);
+                    setTimeout(() => initAsReporter(room, ch, prodId), 500);
+                    
+                } else if (mode === 'transmitter' && room && ch && prodId) {
+                    // Modo transmitter (reportero con celular - envía audio/video)
+                    setIsProducer(false);
+                    setUserMode('transmitter');
+                    setRoomCode(room);
+                    setReporterChannel(ch);
+                    setProducerId(prodId);
+                    setInRoom(true);
+                    
                 } else {
+                    // Modo productor (dashboard)
                     setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
                     loadAudioDevices();
                 }
@@ -591,6 +704,7 @@
                 } catch(e) {}
             };
 
+            // Iniciar como Reportero (recibe audio - para OBS)
             const initAsReporter = async (room, channel, producerPeerId) => {
                 try {
                     setConnectionStatus('CONECTANDO...');
@@ -600,16 +714,8 @@
                     peerRef.current = peer;
 
                     peer.on('open', async (id) => {
-                        const stream = await navigator.mediaDevices.getUserMedia({
-                            audio: {
-                                echoCancellation: false,
-                                noiseSuppression: false,
-                                autoGainControl: false,
-                                channelCount: 2
-                            }
-                        });
-
-                        const call = peer.call(producerPeerId, stream, {
+                        // Solo recibir, no enviar (para OBS)
+                        const call = peer.call(producerPeerId, null, {
                             metadata: {
                                 name: `Canal ${channel}`,
                                 channel: parseInt(channel),
@@ -617,14 +723,16 @@
                             }
                         });
 
-                        call.on('stream', (returnStream) => {
-                            const audio = new Audio();
-                            audio.srcObject = returnStream;
-                            audio.play().catch(e => {});
-                            setConnectionStatus('EN VIVO CON RETORNO');
+                        // El reportero en OBS recibe retorno del productor
+                        peer.on('call', (incomingCall) => {
+                            incomingCall.answer();
+                            incomingCall.on('stream', (returnStream) => {
+                                const audio = new Audio();
+                                audio.srcObject = returnStream;
+                                audio.play().catch(e => {});
+                                setConnectionStatus('EN VIVO CON RETORNO');
+                            });
                         });
-
-                        setupReporterVU(stream);
                     });
 
                     peer.on('error', (err) => {
@@ -632,27 +740,96 @@
                     });
 
                 } catch(e) {
-                    setConnectionStatus('ERROR DE MICRÓFONO');
+                    setConnectionStatus('ERROR DE CONEXIÓN');
                 }
             };
 
-            const setupReporterVU = (stream) => {
+            // Iniciar como Transmitter (envía audio/video - para celular del reportero)
+            const startTransmission = async () => {
                 try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const analyser = ctx.createAnalyser();
-                    const source = ctx.createMediaStreamSource(stream);
-                    source.connect(analyser);
-                    const data = new Uint8Array(analyser.frequencyBinCount);
+                    setConnectionStatus('INICIANDO...');
                     
-                    const update = () => {
-                        analyser.getByteFrequencyData(data);
-                        let sum = 0;
-                        for(let i = 0; i < data.length; i++) sum += data[i];
-                        setReturnLevel(Math.min((sum / data.length) * 2, 100));
-                        requestAnimationFrame(update);
-                    };
-                    update();
-                } catch(e) {}
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                            channelCount: 2
+                        },
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: "environment" // Cámara trasera por defecto
+                        }
+                    });
+
+                    setLocalStream(stream);
+                    
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+
+                    // Conectar al productor
+                    const myId = `tx_${roomCode}_CH${reporterChannel}_${Math.random().toString(16).slice(2, 8)}`;
+                    const peer = new Peer(myId, PEER_CONFIG);
+                    peerRef.current = peer;
+
+                    peer.on('open', (id) => {
+                        const call = peer.call(producerId, stream, {
+                            metadata: {
+                                name: `Reportero Móvil CH${reporterChannel}`,
+                                channel: parseInt(reporterChannel),
+                                kbps: 128
+                            }
+                        });
+
+                        setIsTransmitting(true);
+                        setConnectionStatus('● AL AIRE');
+
+                        // Recibir retorno
+                        peer.on('call', (incomingCall) => {
+                            incomingCall.answer();
+                            incomingCall.on('stream', (returnStream) => {
+                                const audio = new Audio();
+                                audio.srcObject = returnStream;
+                                audio.play().catch(e => {});
+                            });
+                        });
+
+                        // VU Meter
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        const ctx = new AudioCtx();
+                        const analyser = ctx.createAnalyser();
+                        const source = ctx.createMediaStreamSource(stream);
+                        source.connect(analyser);
+                        
+                        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                        const update = () => {
+                            analyser.getByteFrequencyData(dataArray);
+                            let sum = 0;
+                            for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                            setTxLevel(Math.min((sum / dataArray.length) * 2, 100));
+                            txAnimRef.current = requestAnimationFrame(update);
+                        };
+                        update();
+                    });
+
+                } catch(e) {
+                    setConnectionStatus('ERROR DE CÁMARA/MIC');
+                    alert('Error al acceder a cámara/micrófono. Verifica permisos.');
+                }
+            };
+
+            const stopTransmission = () => {
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                }
+                if (txAnimRef.current) cancelAnimationFrame(txAnimRef.current);
+                if (peerRef.current) peerRef.current.destroy();
+                setLocalStream(null);
+                setIsTransmitting(false);
+                setTxLevel(0);
+                setConnectionStatus('DETENIDO');
             };
 
             const joinAsProducer = () => {
@@ -744,69 +921,110 @@
             useEffect(() => {
                 return () => {
                     if (returnStream) returnStream.getTracks().forEach(t => t.stop());
+                    if (localStream) localStream.getTracks().forEach(t => t.stop());
                     if (peerRef.current) peerRef.current.destroy();
                 };
             }, []);
 
-            // --- VISTA DE REPORTERO - SOLO TALLY Y ESTADO, SIN URL ---
-            if (!isProducer && inRoom) {
+            // --- VISTA DE TRANSMITTER (REPORTERO CON CELULAR) ---
+            if (userMode === 'transmitter' && inRoom) {
                 return (
                     <div className="reporter-view">
                         <div className="reporter-box">
-                            {/* SOLO TALLY Y STATUS - SIN URL */}
-                            <div className={`reporter-tally ${connectionStatus.includes('VIVO') ? 'on' : ''}`}>
-                                {connectionStatus.includes('VIVO') ? '🔴' : '⚫'}
+                            <div className={`reporter-tally ${isTransmitting ? 'on' : ''}`}>
+                                {isTransmitting ? '🔴' : '⚫'}
                             </div>
                             
                             <div className="reporter-status" style={{
-                                color: connectionStatus.includes('VIVO') ? '#ef4444' : 
-                                       connectionStatus.includes('ERROR') ? '#ef4444' : '#facc15'
+                                color: isTransmitting ? '#ef4444' : '#64748b'
                             }}>
-                                {connectionStatus}
+                                {isTransmitting ? '● AL AIRE' : 'STANDBY'}
                             </div>
                             
-                            <div style={{fontSize: '1rem', color: '#64748b', marginTop: '10px'}}>
-                                Canal {reporterChannel}
+                            <div style={{fontSize: '0.9rem', color: '#64748b', marginBottom: '10px'}}>
+                                Canal {reporterChannel} • Sala {roomCode}
                             </div>
 
-                            {/* INFO GRID */}
+                            {/* VIDEO PREVIEW */}
+                            <video 
+                                ref={videoRef}
+                                autoPlay 
+                                playsInline 
+                                muted
+                                className={`reporter-video ${isTransmitting ? 'active' : ''}`}
+                            />
+
+                            {/* CONTROLES */}
+                            <div className="reporter-controls">
+                                {!isTransmitting ? (
+                                    <button className="reporter-btn start" onClick={startTransmission}>
+                                        ▶ INICIAR
+                                    </button>
+                                ) : (
+                                    <button className="reporter-btn stop" onClick={stopTransmission}>
+                                        ⏹ DETENER
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* INFO */}
                             <div className="reporter-info">
                                 <div className="reporter-item">
-                                    <div className="reporter-item-label">Sala</div>
-                                    <div className="reporter-item-value">{roomCode}</div>
-                                </div>
-                                <div className="reporter-item">
-                                    <div className="reporter-item-label">Canal</div>
-                                    <div className="reporter-item-value">#{reporterChannel}</div>
-                                </div>
-                                <div className="reporter-item">
                                     <div className="reporter-item-label">Audio</div>
-                                    <div className="reporter-item-value" style={{color: returnLevel > 5 ? '#22c55e' : '#64748b'}}>
-                                        {returnLevel > 5 ? 'ON' : 'OFF'}
+                                    <div className="reporter-item-value" style={{color: txLevel > 5 ? '#22c55e' : '#64748b'}}>
+                                        {txLevel > 5 ? 'ON' : 'OFF'}
                                     </div>
                                 </div>
                                 <div className="reporter-item">
-                                    <div className="reporter-item-label">Retorno</div>
-                                    <div className="reporter-item-value" style={{color: connectionStatus.includes('RETORNO') ? '#3b82f6' : '#64748b'}}>
-                                        {connectionStatus.includes('RETORNO') ? 'ON' : 'OFF'}
+                                    <div className="reporter-item-label">Video</div>
+                                    <div className="reporter-item-value" style={{color: isTransmitting ? '#22c55e' : '#64748b'}}>
+                                        {isTransmitting ? 'ON' : 'OFF'}
                                     </div>
                                 </div>
                             </div>
 
                             {/* VU METER */}
-                            <div className="reporter-vu">
-                                <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b', marginBottom: '10px'}}>
-                                    <span>NIVEL DE AUDIO</span>
-                                    <span>{Math.round(returnLevel)}%</span>
+                            {isTransmitting && (
+                                <div className="reporter-vu">
+                                    <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b', marginBottom: '8px'}}>
+                                        <span>NIVEL DE AUDIO</span>
+                                        <span>{Math.round(txLevel)}%</span>
+                                    </div>
+                                    <div className="reporter-vu-bar">
+                                        <div className="reporter-vu-fill" style={{width: `${Math.min(txLevel, 100)}%`}}></div>
+                                    </div>
                                 </div>
-                                <div className="reporter-vu-bar">
-                                    <div className="reporter-vu-fill" style={{width: `${Math.min(returnLevel, 100)}%`}}></div>
-                                </div>
+                            )}
+
+                            <div className="reporter-footer">
+                                Stream Radio PRO • Reportero Móvil v3.4
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- VISTA DE REPORTERO PARA OBS ---
+            if (userMode === 'reporter' && inRoom) {
+                return (
+                    <div className="reporter-view">
+                        <div className="reporter-box">
+                            <div className={`reporter-tally ${connectionStatus.includes('VIVO') ? 'on' : ''}`}>
+                                {connectionStatus.includes('VIVO') ? '🔴' : '⚫'}
+                            </div>
+                            
+                            <div className="reporter-status" style={{
+                                color: connectionStatus.includes('VIVO') ? '#ef4444' : '#64748b'
+                            }}>
+                                {connectionStatus}
+                            </div>
+                            
+                            <div style={{fontSize: '0.9rem', color: '#64748b'}}>
+                                Canal {reporterChannel} • Sala {roomCode}
                             </div>
 
-                            {/* FOOTER */}
-                            <div className="reporter-footer">
-                                Stream Radio PRO v3.3 • Mantén esta página abierta
+                            <div className="reporter-footer" style={{marginTop: '30px'}}>
+                                Modo Receptor OBS • Stream Radio PRO
                             </div>
                         </div>
                     </div>
@@ -821,8 +1039,8 @@
                             <h1 className="text-3xl font-black mb-1 text-white">
                                 STREAM<span className="text-blue-500">RADIO</span> <span className="text-yellow-500">PRO</span>
                             </h1>
-                            <p className="text-gray-400 text-sm mb-2 font-bold">CONSOLA 4 CANALES + TALLY</p>
-                            <p className="text-gray-500 text-xs mb-6">v3.3 - Solo el productor ve las URLs</p>
+                            <p className="text-gray-400 text-sm mb-2 font-bold">CONSOLA 4 CANALES + VIDEO</p>
+                            <p className="text-gray-500 text-xs mb-6">v3.4 - URLs separadas para OBS y Reporteros</p>
 
                             <input 
                                 className="auth-input" 
@@ -845,7 +1063,7 @@
                 );
             }
 
-            // --- DASHBOARD PRODUCTOR - SOLO AQUÍ SE VEN LAS URLs ---
+            // --- DASHBOARD PRODUCTOR ---
             return (
                 <div className="dashboard-layout">
                     <div className="top-bar">
@@ -872,9 +1090,10 @@
                     <div className="main-content">
                         <div className="channels-panel">
                             <div className="instructions">
-                                <h3>📋 URLs para OBS/vMix (Solo el productor las ve)</h3>
-                                <p>Copia cada URL y envíasela al reportero correspondiente, o úsala directamente en OBS.<br/>
-                                <strong>Los reporteros NO ven estas URLs</strong> - solo ven el tally y su estado.</p>
+                                <h3>📋 Dos URLs por Canal</h3>
+                                <p><strong style={{color: '#3b82f6'}}>Azul:</strong> Para OBS/vMix (recibe audio/video)<br/>
+                                <strong style={{color: '#f59e0b'}}>Amarilla:</strong> Enviar al reportero para su celular (envía audio/video)<br/>
+                                El reportero abre la URL amarilla, presiona INICIAR y transmite.</p>
                             </div>
                             
                             <div className="channels-grid">
