@@ -43,7 +43,6 @@
         .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .channel-id { font-size: 1.5rem; font-weight: 900; color: white; }
         
-        /* TALLY INDICATOR EN DASHBOARD */
         .tally-indicator {
             display: flex;
             gap: 8px;
@@ -305,7 +304,6 @@
             text-align: center;
         }
         
-        /* TALLY GRANDE PARA REPORTERO */
         .transmitter-tally {
             width: 120px;
             height: 120px;
@@ -398,7 +396,7 @@
             margin: 15px 0;
             object-fit: cover;
             border: 2px solid #333;
-            transform: scaleX(-1); /* Espejo para selfie */
+            transform: scaleX(-1);
         }
         
         .transmitter-video.active {
@@ -468,7 +466,6 @@
             color: #64748b;
         }
         
-        /* RETORNO DE VIDEO DEL ESTUDIO */
         .return-video-box {
             margin-top: 15px;
             padding: 10px;
@@ -492,6 +489,63 @@
             border-radius: 6px;
             object-fit: cover;
         }
+
+        /* VISTA DE OBS - SIMPLE, SOLO VIDEO */
+        .obs-view {
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .obs-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .obs-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: white;
+        }
+        
+        .obs-tally {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #555;
+        }
+        
+        .obs-tally.preview {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            box-shadow: 0 0 20px #f59e0b;
+        }
+        
+        .obs-tally.onair {
+            background: #ef4444;
+            border-color: #ef4444;
+            box-shadow: 0 0 30px #ef4444;
+            animation: obsTallyPulse 0.5s infinite;
+        }
+        
+        @keyframes obsTallyPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
@@ -503,8 +557,9 @@
         const PEER_CONFIG = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }] } };
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 
-        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive, baseUrl, tallyState }) => {
-            const [status, setStatus] = useState('offline'); // offline, preview, onair, error
+        // Componente de Canal en Dashboard
+        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive, baseUrl, tallyState, reporterStreams }) => {
+            const [status, setStatus] = useState('offline');
             const [reporterInfo, setReporterInfo] = useState({ name: '', kbps: '128' });
             const [vuLevel, setVuLevel] = useState(0);
             const [volume, setVolume] = useState(1);
@@ -515,10 +570,8 @@
             const videoElRef = useRef(null);
             const analyserRef = useRef(null);
             const animRef = useRef(null);
-            const callRef = useRef(null);
-            const returnCallRef = useRef(null);
             
-            // URLs para este canal
+            // URLs
             const obsUrl = peerRef.current?.id 
                 ? `${baseUrl}?mode=obs&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
                 : 'Conectando...';
@@ -527,89 +580,32 @@
                 ? `${baseUrl}?mode=tx&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
                 : 'Conectando...';
 
-            // Escuchar conexiones del reportero (transmitter)
+            // Mostrar stream del reportero cuando llega
             useEffect(() => {
-                if (!peerRef.current) return;
-
-                const handleCall = (call) => {
-                    // Verificar que sea para este canal
-                    const callChannel = call.metadata?.channel;
-                    if (callChannel !== channelNum) {
-                        console.log(`Llamada para canal ${callChannel}, ignorando en canal ${channelNum}`);
-                        return;
-                    }
-
-                    console.log(`Canal ${channelNum}: Reportero conectado`);
-                    callRef.current = call;
-                    setStatus('preview'); // Primero en preview
-
-                    call.on('stream', (remoteStream) => {
-                        console.log(`Canal ${channelNum}: Stream recibido`);
-                        setReporterInfo({
-                            name: call.metadata?.name || `Reportero ${channelNum}`,
-                            kbps: call.metadata?.kbps || '128'
-                        });
-
-                        // Audio para el dashboard
-                        if (audioElRef.current) {
-                            audioElRef.current.srcObject = remoteStream;
-                            audioElRef.current.volume = volume;
-                            audioElRef.current.play().catch(e => console.log('Autoplay blocked:', e));
-                        }
-
-                        // Video para el dashboard (si tiene video)
-                        if (videoElRef.current && remoteStream.getVideoTracks().length > 0) {
-                            videoElRef.current.srcObject = remoteStream;
-                            videoElRef.current.play().catch(e => console.log('Video autoplay blocked:', e));
-                        }
-
-                        setupVUMeter(remoteStream);
-                        onTallyChange(channelNum, 'preview', call.peer);
-                    });
-
-                    call.on('close', () => {
-                        console.log(`Canal ${channelNum}: Conexión cerrada`);
-                        cleanup();
-                    });
+                const stream = reporterStreams[channelNum];
+                if (stream && videoElRef.current) {
+                    videoElRef.current.srcObject = stream;
+                    videoElRef.current.play().catch(e => {});
                     
-                    call.on('error', (err) => {
-                        console.error(`Canal ${channelNum}: Error`, err);
-                        setStatus('error');
-                        cleanup();
-                    });
-                };
-
-                peerRef.current.on('call', handleCall);
-                
-                return () => {
-                    cleanup();
-                };
-            }, [peerRef.current]);
-
-            // Enviar retorno al reportero
-            useEffect(() => {
-                if (!returnStream || !callRef.current) return;
-                
-                if (isReturnActive && !returnCallRef.current) {
-                    console.log(`Canal ${channelNum}: Enviando retorno`);
-                    const returnCall = peerRef.current.call(callRef.current.peer, returnStream, {
-                        metadata: { type: 'return', channel: channelNum }
-                    });
-                    returnCallRef.current = returnCall;
-                } else if (!isReturnActive && returnCallRef.current) {
-                    returnCallRef.current.close();
-                    returnCallRef.current = null;
+                    // Audio
+                    if (audioElRef.current) {
+                        audioElRef.current.srcObject = stream;
+                        audioElRef.current.volume = volume;
+                        audioElRef.current.play().catch(e => {});
+                    }
+                    
+                    setupVUMeter(stream);
+                    setStatus('preview');
+                    setReporterInfo({ name: `Reportero ${channelNum}`, kbps: '128' });
                 }
-            }, [returnStream, isReturnActive]);
+            }, [reporterStreams[channelNum]]);
 
-            // Actualizar estado según tally
+            // Actualizar tally visual
             useEffect(() => {
                 if (tallyState[channelNum] === 'onair' && status === 'preview') {
                     setStatus('onair');
                 } else if (tallyState[channelNum] === 'preview' && status === 'onair') {
                     setStatus('preview');
-                } else if (!tallyState[channelNum] && status !== 'offline') {
-                    // Mantener conexión pero sin tally
                 }
             }, [tallyState]);
 
@@ -634,22 +630,7 @@
                         animRef.current = requestAnimationFrame(update);
                     };
                     update();
-                } catch(e) {
-                    console.error('VU Meter error:', e);
-                }
-            };
-
-            const cleanup = () => {
-                if (animRef.current) cancelAnimationFrame(animRef.current);
-                if (callRef.current) callRef.current.close();
-                if (returnCallRef.current) returnCallRef.current.close();
-                if (audioElRef.current) audioElRef.current.srcObject = null;
-                if (videoElRef.current) videoElRef.current.srcObject = null;
-                callRef.current = null;
-                returnCallRef.current = null;
-                setStatus('offline');
-                setVuLevel(0);
-                onTallyChange(channelNum, 'offline', null);
+                } catch(e) {}
             };
 
             const copyObsUrl = () => {
@@ -669,7 +650,7 @@
             const toggleOnAir = () => {
                 const newState = status === 'onair' ? 'preview' : 'onair';
                 setStatus(newState);
-                onTallyChange(channelNum, newState, callRef.current?.peer);
+                onTallyChange(channelNum, newState);
             };
 
             return (
@@ -709,16 +690,14 @@
                         </button>
                     </div>
 
-                    {/* VIDEO PREVIEW EN DASHBOARD */}
-                    {status !== 'offline' && (
-                        <video 
-                            ref={videoElRef}
-                            autoPlay 
-                            playsInline 
-                            muted
-                            style={{width: '100%', height: '120px', background: '#000', borderRadius: '6px', marginBottom: '10px', objectFit: 'cover'}}
-                        />
-                    )}
+                    {/* VIDEO PREVIEW */}
+                    <video 
+                        ref={videoElRef}
+                        autoPlay 
+                        playsInline 
+                        muted
+                        style={{width: '100%', height: '100px', background: '#000', borderRadius: '6px', marginBottom: '10px', objectFit: 'cover', display: status === 'offline' ? 'none' : 'block'}}
+                    />
 
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                         <span className={`status-badge ${status}`}>
@@ -726,19 +705,14 @@
                             {status === 'offline' && 'SIN CONEXIÓN'}
                             {status === 'preview' && '● PREVIO'}
                             {status === 'onair' && '🔴 AL AIRE'}
-                            {status === 'error' && 'ERROR'}
                         </span>
                         {status !== 'offline' && (
-                            <span style={{fontSize: '0.7rem', color: '#64748b'}}>{reporterInfo.kbps} kbps</span>
+                            <span style={{fontSize: '0.7rem', color: '#64748b'}}>128 kbps</span>
                         )}
                     </div>
 
                     {status !== 'offline' && (
                         <>
-                            <div style={{fontSize: '0.85rem', fontWeight: 'bold', color: 'white', marginBottom: '8px'}}>
-                                {reporterInfo.name}
-                            </div>
-                            
                             <div className="vu-container">
                                 <div className="vu-bar" style={{width: `${vuLevel}%`}}></div>
                             </div>
@@ -786,8 +760,7 @@
 
                     {status === 'offline' && (
                         <div style={{fontSize: '0.75rem', color: '#64748b', textAlign: 'center', padding: '10px'}}>
-                            <strong>Azul:</strong> Para OBS (recibe)<br/>
-                            <strong>Amarilla:</strong> Enviar al reportero (envía)
+                            Esperando conexión del reportero...
                         </div>
                     )}
                 </div>
@@ -813,6 +786,9 @@
             const [messages, setMessages] = useState([]);
             const [chatInput, setChatInput] = useState('');
             
+            // Streams de reporteros recibidos en el dashboard
+            const [reporterStreams, setReporterStreams] = useState({});
+            
             const [reporterChannel, setReporterChannel] = useState('');
             const [producerId, setProducerId] = useState('');
             
@@ -820,12 +796,11 @@
             const [isTransmitting, setIsTransmitting] = useState(false);
             const [localStream, setLocalStream] = useState(null);
             const [txLevel, setTxLevel] = useState(0);
-            const [tallyMode, setTallyMode] = useState('offline'); // offline, preview, onair
+            const [tallyMode, setTallyMode] = useState('offline');
             
             const videoRef = useRef(null);
             const returnVideoRef = useRef(null);
             const peerRef = useRef(null);
-            const producerCallRef = useRef(null);
             const mqttClientRef = useRef(null);
             const returnAudioCtxRef = useRef(null);
             const returnAnimRef = useRef(null);
@@ -844,14 +819,24 @@
                 const ch = params.get('ch');
                 const prodId = params.get('producer');
 
-                if ((mode === 'obs' || mode === 'tx') && room && ch && prodId) {
+                if (mode === 'tx' && room && ch && prodId) {
+                    // Modo transmitter (reportero)
                     setIsProducer(false);
-                    setUserMode(mode);
+                    setUserMode('tx');
+                    setRoomCode(room);
+                    setReporterChannel(ch);
+                    setProducerId(prodId);
+                    setInRoom(true);
+                } else if (mode === 'obs' && room && ch && prodId) {
+                    // Modo OBS
+                    setIsProducer(false);
+                    setUserMode('obs');
                     setRoomCode(room);
                     setReporterChannel(ch);
                     setProducerId(prodId);
                     setInRoom(true);
                 } else {
+                    // Modo productor
                     setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
                     loadAudioDevices();
                 }
@@ -868,15 +853,15 @@
                 } catch(e) {}
             };
 
-            // Conectar MQTT para tally
-            const initMQTT = (room, peerId) => {
+            // Iniciar MQTT
+            const initMQTT = (room, peerId, isProd) => {
                 const client = mqtt.connect(MQTT_BROKER, {
-                    clientId: `mqtt_${peerId}_${Date.now()}`
+                    clientId: `mqtt_${isProd ? 'prod' : 'rep'}_${peerId}_${Date.now()}`
                 });
                 
                 client.on('connect', () => {
                     client.subscribe(`sc_radio_v1/${room}/tally`);
-                    client.subscribe(`sc_radio_v1/${room}/chat`);
+                    if (isProd) client.subscribe(`sc_radio_v1/${room}/chat`);
                 });
 
                 client.on('message', (topic, msg) => {
@@ -884,16 +869,15 @@
                         const data = JSON.parse(msg.toString());
                         
                         if (topic.includes('/tally')) {
-                            // Actualizar tally
                             if (userMode === 'tx' && data.channel == reporterChannel) {
                                 setTallyMode(data.state);
-                            } else if (isProducer) {
+                            } else if (isProd) {
                                 setTallyStates(prev => ({
                                     ...prev,
                                     [data.channel]: data.state
                                 }));
                             }
-                        } else if (topic.includes('/chat')) {
+                        } else if (topic.includes('/chat') && isProd) {
                             setMessages(prev => [...prev, data].slice(-50));
                         }
                     } catch(e) {}
@@ -903,49 +887,52 @@
                 return client;
             };
 
-            // Modo OBS (receptor para vMix/OBS)
-            const initAsObs = async (room, channel, producerPeerId) => {
-                try {
-                    setConnectionStatus('CONECTANDO...');
-                    
-                    const myId = `obs_${room}_CH${channel}_${Math.random().toString(16).slice(2, 8)}`;
-                    const peer = new Peer(myId, PEER_CONFIG);
-                    peerRef.current = peer;
+            // Modo OBS - Recibe del productor
+            useEffect(() => {
+                if (userMode !== 'obs' || !inRoom) return;
 
-                    peer.on('open', (id) => {
-                        initMQTT(room, id);
+                const initObs = async () => {
+                    try {
+                        setConnectionStatus('CONECTANDO...');
                         
-                        // Llamar al productor para recibir stream
-                        const call = peer.call(producerPeerId, null, {
-                            metadata: {
-                                name: `OBS Canal ${channel}`,
-                                channel: parseInt(channel),
-                                type: 'obs'
-                            }
-                        });
+                        const myId = `obs_${roomCode}_CH${reporterChannel}_${Math.random().toString(16).slice(2, 8)}`;
+                        const peer = new Peer(myId, PEER_CONFIG);
+                        peerRef.current = peer;
 
-                        producerCallRef.current = call;
-
-                        call.on('stream', (remoteStream) => {
-                            setConnectionStatus('RECIBIENDO SEÑAL');
+                        peer.on('open', (id) => {
+                            initMQTT(roomCode, id, false);
                             
-                            if (videoRef.current) {
-                                videoRef.current.srcObject = remoteStream;
-                                videoRef.current.play().catch(e => {});
-                            }
+                            // El OBS espera que el productor le llame con el stream
+                            peer.on('call', (call) => {
+                                console.log('OBS: Recibiendo llamada del productor');
+                                call.answer(); // Answer without stream
+                                
+                                call.on('stream', (remoteStream) => {
+                                    console.log('OBS: Stream recibido');
+                                    setConnectionStatus('SEÑAL RECIBIDA');
+                                    
+                                    if (videoRef.current) {
+                                        videoRef.current.srcObject = remoteStream;
+                                        videoRef.current.play().catch(e => {});
+                                    }
+                                });
+                            });
                         });
-                    });
 
-                    peer.on('error', (err) => {
+                        peer.on('error', (err) => {
+                            console.error('OBS Error:', err);
+                            setConnectionStatus('ERROR');
+                        });
+
+                    } catch(e) {
                         setConnectionStatus('ERROR');
-                    });
+                    }
+                };
 
-                } catch(e) {
-                    setConnectionStatus('ERROR');
-                }
-            };
+                initObs();
+            }, [userMode, inRoom]);
 
-            // Modo Transmitter (reportero con celular)
+            // Modo Transmitter (Reportero)
             const startTransmission = async () => {
                 try {
                     setConnectionStatus('INICIANDO...');
@@ -975,7 +962,7 @@
                     peerRef.current = peer;
 
                     peer.on('open', (id) => {
-                        const mqttClient = initMQTT(roomCode, id);
+                        initMQTT(roomCode, id, false);
 
                         // Llamar al productor
                         const call = peer.call(producerId, stream, {
@@ -986,16 +973,13 @@
                             }
                         });
 
-                        producerCallRef.current = call;
                         setIsTransmitting(true);
-                        setConnectionStatus('CONECTADO - PREVIO');
+                        setConnectionStatus('CONECTADO');
 
-                        // Recibir retorno del productor (audio + video)
+                        // Recibir retorno del productor
                         peer.on('call', (incomingCall) => {
-                            console.log('Recibiendo retorno del productor');
                             incomingCall.answer();
                             incomingCall.on('stream', (returnStream) => {
-                                console.log('Stream de retorno recibido');
                                 if (returnVideoRef.current) {
                                     returnVideoRef.current.srcObject = returnStream;
                                     returnVideoRef.current.play().catch(e => {});
@@ -1028,11 +1012,8 @@
             };
 
             const stopTransmission = () => {
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop());
-                }
+                if (localStream) localStream.getTracks().forEach(t => t.stop());
                 if (txAnimRef.current) cancelAnimationFrame(txAnimRef.current);
-                if (producerCallRef.current) producerCallRef.current.close();
                 if (peerRef.current) peerRef.current.destroy();
                 setLocalStream(null);
                 setIsTransmitting(false);
@@ -1041,6 +1022,7 @@
                 setTallyMode('offline');
             };
 
+            // Modo Productor
             const joinAsProducer = () => {
                 if (!roomCode || !producerName) return alert("Completa todos los campos");
 
@@ -1051,27 +1033,50 @@
                 peerRef.current = peer;
 
                 peer.on('open', (id) => {
-                    initMQTT(roomCode, id);
+                    initMQTT(roomCode, id, true);
                     setConnectionStatus('ONLINE');
                     setInRoom(true);
                 });
 
+                // Recibir llamadas de reporteros
+                peer.on('call', (call) => {
+                    const channel = call.metadata?.channel;
+                    if (!channel) return;
+
+                    console.log(`Productor: Reportero conectado al canal ${channel}`);
+
+                    call.answer(); // Answer without stream
+
+                    call.on('stream', (remoteStream) => {
+                        console.log(`Productor: Stream recibido del canal ${channel}`);
+                        
+                        // Guardar stream para mostrar en dashboard
+                        setReporterStreams(prev => ({
+                            ...prev,
+                            [channel]: remoteStream
+                        }));
+
+                        // Reenviar a OBS si está conectado
+                        // (El OBS se conecta por separado y también recibe)
+                    });
+                });
+
                 peer.on('error', (err) => {
+                    console.error('Productor Error:', err);
                     setConnectionStatus('ERROR');
                 });
             };
 
-            const handleTallyChange = (channel, state, peerId) => {
+            const handleTallyChange = (channel, state) => {
                 setTallyStates(prev => ({
                     ...prev,
                     [channel]: state
                 }));
 
-                // Publicar por MQTT
                 if (mqttClientRef.current?.connected) {
                     mqttClientRef.current.publish(
                         `sc_radio_v1/${roomCode}/tally`,
-                        JSON.stringify({ channel, state, peerId, time: Date.now() })
+                        JSON.stringify({ channel, state, time: Date.now() })
                     );
                 }
             };
@@ -1092,8 +1097,7 @@
                                 noiseSuppression: false,
                                 autoGainControl: false,
                                 channelCount: 2
-                            },
-                            video: false // Solo audio para retorno
+                            }
                         });
                         
                         setReturnStream(stream);
@@ -1149,12 +1153,29 @@
                 };
             }, []);
 
-            // --- VISTA DE TRANSMITTER (REPORTERO CON CELULAR) ---
+            // --- VISTA DE OBS ---
+            if (userMode === 'obs' && inRoom) {
+                return (
+                    <div className="obs-view">
+                        <video 
+                            ref={videoRef}
+                            autoPlay 
+                            playsInline
+                            className="obs-video"
+                        />
+                        <div className="obs-overlay">
+                            CANAL {reporterChannel} • {connectionStatus}
+                        </div>
+                        <div className={`obs-tally ${tallyMode}`}></div>
+                    </div>
+                );
+            }
+
+            // --- VISTA DE TRANSMITTER ---
             if (userMode === 'tx' && inRoom) {
                 return (
                     <div className="transmitter-view">
                         <div className="transmitter-box">
-                            {/* TALLY GRANDE CON PREVIO/AL AIRE */}
                             <div className={`transmitter-tally ${tallyMode}`}>
                                 {tallyMode === 'onair' ? '🔴' : tallyMode === 'preview' ? '🟡' : '⚫'}
                                 <span className="tally-label">
@@ -1171,7 +1192,6 @@
                                  isTransmitting ? 'CONECTADO' : 'STANDBY'}
                             </div>
 
-                            {/* MI VIDEO (SELFIE) */}
                             <video 
                                 ref={videoRef}
                                 autoPlay 
@@ -1180,7 +1200,6 @@
                                 className={`transmitter-video ${tallyMode}`}
                             />
 
-                            {/* RETORNO DE VIDEO DEL ESTUDIO */}
                             {isTransmitting && (
                                 <div className="return-video-box">
                                     <div className="return-video-label">📺 RETORNO DEL ESTUDIO</div>
@@ -1193,7 +1212,6 @@
                                 </div>
                             )}
 
-                            {/* CONTROLES */}
                             <div className="transmitter-controls">
                                 {!isTransmitting ? (
                                     <button className="transmitter-btn start" onClick={startTransmission}>
@@ -1206,7 +1224,6 @@
                                 )}
                             </div>
 
-                            {/* INFO */}
                             <div className="transmitter-info">
                                 <div className="transmitter-item">
                                     <div className="transmitter-item-label">Sala</div>
@@ -1230,7 +1247,6 @@
                                 </div>
                             </div>
 
-                            {/* VU METER */}
                             {isTransmitting && (
                                 <div className="transmitter-vu">
                                     <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginBottom: '5px'}}>
@@ -1244,43 +1260,7 @@
                             )}
 
                             <div className="transmitter-footer">
-                                Stream Radio PRO v3.5 • Reportero Móvil
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            // --- VISTA DE OBS (RECEPTOR PARA VMIX) ---
-            if (userMode === 'obs' && inRoom) {
-                useEffect(() => {
-                    initAsObs(roomCode, reporterChannel, producerId);
-                }, []);
-
-                return (
-                    <div style={{
-                        height: '100vh', 
-                        background: '#000', 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontFamily: 'Inter, sans-serif',
-                        padding: '20px'
-                    }}>
-                        <video 
-                            ref={videoRef}
-                            autoPlay 
-                            playsInline
-                            style={{width: '100%', height: '80%', objectFit: 'contain'}}
-                        />
-                        <div style={{marginTop: '20px', textAlign: 'center'}}>
-                            <div style={{fontSize: '1.2rem', fontWeight: 'bold'}}>
-                                CANAL {reporterChannel} • {connectionStatus}
-                            </div>
-                            <div style={{fontSize: '0.8rem', color: '#64748b', marginTop: '5px'}}>
-                                Sala: {roomCode} • Modo OBS
+                                Stream Radio PRO v3.6 • Reportero Móvil
                             </div>
                         </div>
                     </div>
@@ -1296,7 +1276,7 @@
                                 STREAM<span className="text-blue-500">RADIO</span> <span className="text-yellow-500">PRO</span>
                             </h1>
                             <p className="text-gray-400 text-sm mb-2 font-bold">CONSOLA 4 CANALES + VIDEO + TALLY</p>
-                            <p className="text-gray-500 text-xs mb-6">v3.5 - Sistema completo</p>
+                            <p className="text-gray-500 text-xs mb-6">v3.6 - Flujo: Reportero → Productor → OBS</p>
 
                             <input 
                                 className="auth-input" 
@@ -1338,7 +1318,6 @@
                                             tallyStates[ch] === 'preview' ? 'bg-yellow-500' : 
                                             'bg-gray-700'
                                         }`}
-                                        title={`Canal ${ch}: ${tallyStates[ch]}`}
                                     />
                                 ))}
                             </div>
@@ -1351,10 +1330,11 @@
                     <div className="main-content">
                         <div className="channels-panel">
                             <div className="instructions">
-                                <h3>📋 URLs por Canal</h3>
-                                <p><strong style={{color: '#3b82f6'}}>Azul:</strong> Para OBS/vMix (recibe video)<br/>
-                                <strong style={{color: '#f59e0b'}}>Amarilla:</strong> Enviar al reportero (envía desde celular)<br/>
-                                Usa el botón PREVIO/AL AIRE para controlar el tally.</p>
+                                <h3>📋 Flujo de Señal</h3>
+                                <p><strong>1.</strong> Reportero abre URL amarilla en celular<br/>
+                                <strong>2.</strong> Reportero presiona INICIAR → Señal llega al dashboard<br/>
+                                <strong>3.</strong> Usa URL azul en OBS para recibir la señal<br/>
+                                <strong>4.</strong> Controla PREVIO/AL AIRE desde el dashboard</p>
                             </div>
                             
                             <div className="channels-grid">
@@ -1369,6 +1349,7 @@
                                         isReturnActive={isReturnActive}
                                         baseUrl={baseUrl}
                                         tallyState={tallyStates}
+                                        reporterStreams={reporterStreams}
                                     />
                                 ))}
                             </div>
