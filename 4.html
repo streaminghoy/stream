@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Stream Radio PRO - 4 Canales</title>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+
+body{
+background:#050505;
+color:white;
+font-family:Inter;
+margin:0;
+padding:0;
+height:100vh;
+}
+
+.lobby-container{
+display:flex;
+align-items:center;
+justify-content:center;
+height:100vh;
+}
+
+.glass-box{
+background:#111;
+padding:40px;
+border-radius:12px;
+border:1px solid #333;
+max-width:400px;
+width:100%;
+text-align:center;
+}
+
+.auth-input{
+width:100%;
+background:#000;
+border:2px solid #333;
+color:white;
+padding:15px;
+border-radius:6px;
+font-size:1.2rem;
+text-align:center;
+font-weight:bold;
+margin-bottom:20px;
+outline:none;
+}
+
+.btn{
+width:100%;
+padding:15px;
+font-weight:900;
+border-radius:6px;
+cursor:pointer;
+border:none;
+}
+
+.btn-main{
+background:#3b82f6;
+color:white;
+}
+
+.dashboard-layout{
+display:flex;
+flex-direction:column;
+height:100vh;
+background:#0f172a;
+}
+
+.top-bar{
+padding:15px 30px;
+background:#1e293b;
+border-bottom:1px solid #334155;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.main-content{
+display:flex;
+flex:1;
+overflow:hidden;
+}
+
+.channels-panel{
+flex:1;
+padding:20px;
+background:#0b0f19;
+overflow-y:auto;
+}
+
+.channels-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:20px;
+}
+
+.channel-box{
+background:#1e293b;
+border:2px solid #334155;
+border-radius:12px;
+padding:20px;
+}
+
+.channel-box.live{
+border-color:#ef4444;
+}
+
+.channel-box.active{
+border-color:#22c55e;
+}
+
+.status-badge{
+font-size:0.7rem;
+font-weight:bold;
+}
+
+.vu-container{
+width:100%;
+height:8px;
+background:#000;
+border-radius:4px;
+overflow:hidden;
+margin-top:10px;
+}
+
+.vu-bar{
+height:100%;
+width:0%;
+background:linear-gradient(90deg,#22c55e,#facc15,#ef4444);
+}
+
+.obs-view{
+width:100vw;
+height:100vh;
+background:#000;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.obs-video{
+width:100%;
+height:100%;
+object-fit:contain;
+}
+
+.transmitter-view{
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#000;
+}
+
+.transmitter-box{
+background:#111;
+padding:20px;
+border-radius:12px;
+border:1px solid #333;
+max-width:450px;
+width:100%;
+text-align:center;
+}
+
+.transmitter-video{
+width:100%;
+height:240px;
+background:#000;
+margin-top:10px;
+border-radius:6px;
+object-fit:cover;
+}
+
+.return-video{
+width:100%;
+height:120px;
+background:#000;
+margin-top:10px;
+border-radius:6px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">const {useState,useEffect,useRef} = React
+
+const MQTT_BROKER='wss://broker.emqx.io:8084/mqtt'
+
+const PEER_CONFIG={
+config:{
+iceServers:[
+{urls:'stun:stun.l.google.com:19302'}
+]
+}
+}
+
+const ChannelBox=({channelNum,roomCode,peerRef,onTallyChange,reporterStreams,tallyState,baseUrl})=>{
+
+const [status,setStatus]=useState('offline')
+const [vuLevel,setVuLevel]=useState(0)
+const [volume,setVolume]=useState(1)
+
+const audioElRef=useRef(null)
+const videoElRef=useRef(null)
+
+const obsUrl=peerRef.current?.id?
+`${baseUrl}?mode=obs&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
+:'conectando'
+
+const reporterUrl=peerRef.current?.id?
+`${baseUrl}?mode=tx&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
+:'conectando'useEffect(()=>{
+
+const stream=reporterStreams[channelNum]
+
+if(stream && videoElRef.current){
+
+videoElRef.current.srcObject=stream
+videoElRef.current.play()
+
+if(audioElRef.current){
+
+audioElRef.current.srcObject=stream
+audioElRef.current.volume=volume
+
+audioElRef.current.muted=true
+audioElRef.current.play()
+
+}
+
+setStatus('preview')
+
+}
+
+},[reporterStreams])useEffect(()=>{
+
+if(!audioElRef.current)return
+
+if(tallyState[channelNum]=='onair'){
+
+setStatus('onair')
+audioElRef.current.muted=false
+
+}
+
+if(tallyState[channelNum]=='preview'){
+
+setStatus('preview')
+audioElRef.current.muted=true
+
+}
+
+},[tallyState])return(
+
+<div className={`channel-box ${status=='onair'?'live':''}`}>
+
+<audio ref={audioElRef} autoPlay playsInline style={{display:'none'}} />
+
+<div style={{fontWeight:'bold'}}>CANAL {channelNum}</div>
+
+<video
+ref={videoElRef}
+autoPlay
+playsInline
+muted
+style={{width:'100%',height:'120px',background:'#000'}}
+/>
+
+<div style={{marginTop:'10px'}}>
+
+<a href={obsUrl} target="_blank">OBS URL</a>
+
+<br/>
+
+<a href={reporterUrl} target="_blank">REPORTERO URL</a>
+
+</div>
+
+</div>
+
+)
+
+}const App=()=>{
+
+const [inRoom,setInRoom]=useState(false)
+const [roomCode,setRoomCode]=useState('')
+const [producerName,setProducerName]=useState('')
+const [connectionStatus,setConnectionStatus]=useState('OFFLINE')
+
+const [tallyStates,setTallyStates]=useState({1:'offline',2:'offline',3:'offline',4:'offline'})
+
+const [reporterStreams,setReporterStreams]=useState({})
+
+const [userMode,setUserMode]=useState('')
+
+const [reporterChannel,setReporterChannel]=useState('')
+const [producerId,setProducerId]=useState('')
+
+const videoRef=useRef(null)
+const peerRef=useRef(null)
+const mqttClientRef=useRef(null)
+
+const [baseUrl,setBaseUrl]=useState('')useEffect(()=>{
+
+const url=window.location.href.split('?')[0]
+setBaseUrl(url)
+
+const params=new URLSearchParams(window.location.search)
+
+const mode=params.get('mode')
+const room=params.get('room')
+const ch=params.get('ch')
+const prodId=params.get('producer')
+
+if(mode=='tx'){
+
+setUserMode('tx')
+setRoomCode(room)
+setReporterChannel(ch)
+setProducerId(prodId)
+setInRoom(true)
+
+}
+
+if(mode=='obs'){
+
+setUserMode('obs')
+setRoomCode(room)
+setReporterChannel(ch)
+setProducerId(prodId)
+setInRoom(true)
+
+}
+
+},[])const joinAsProducer=()=>{
+
+const myId=`prod_${roomCode}_${Math.random().toString(16).slice(2,8)}`
+
+const peer=new Peer(myId,PEER_CONFIG)
+
+peerRef.current=peer
+
+peer.on('open',(id)=>{
+
+setConnectionStatus('ONLINE')
+setInRoom(true)
+
+})
+
+peer.on('call',(call)=>{
+
+const channel=call.metadata?.channel
+
+call.answer()
+
+call.on('stream',(remoteStream)=>{
+
+setReporterStreams(prev=>({...prev,[channel]:remoteStream}))
+
+const obsId=`obs_${roomCode}_CH${channel}`
+
+try{
+
+peer.call(obsId,remoteStream)
+
+}catch(e){}
+
+})
+
+})
+
+}if(userMode=='obs'){
+
+return(
+
+<div className="obs-view">
+
+<video ref={videoRef} autoPlay playsInline className="obs-video"/>
+
+</div>
+
+)
+
+}if(!inRoom){
+
+return(
+
+<div className="lobby-container">
+
+<div className="glass-box">
+
+<h2>STREAM RADIO PRO</h2>
+
+<input
+className="auth-input"
+placeholder="ROOM"
+value={roomCode}
+onChange={e=>setRoomCode(e.target.value)}
+/>
+
+<input
+className="auth-input"
+placeholder="NOMBRE"
+value={producerName}
+onChange={e=>setProducerName(e.target.value)}
+/>
+
+<button className="btn btn-main" onClick={joinAsProducer}>
+INICIAR
+</button>
+
+</div>
+
+</div>
+
+)
+
+}
+
+return(
+
+<div className="dashboard-layout">
+
+<div className="top-bar">
+
+<div>SALA {roomCode}</div>
+
+<div>{connectionStatus}</div>
+
+</div>
+
+<div className="main-content">
+
+<div className="channels-panel">
+
+<div className="channels-grid">
+
+{[1,2,3,4].map(ch=>(
+
+<ChannelBox
+key={ch}
+channelNum={ch}
+roomCode={roomCode}
+peerRef={peerRef}
+tallyState={tallyStates}
+reporterStreams={reporterStreams}
+baseUrl={baseUrl}
+/>
+
+))}
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+)
+
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'))
+root.render(<App/>)
+
+</script>
+
+</body>
+</html>
