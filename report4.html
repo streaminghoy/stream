@@ -84,11 +84,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-weight: bold;
         }
         
         .url-text { 
             font-family: 'Courier New', monospace; 
-            font-size: 0.7rem; 
+            font-size: 0.65rem; 
             color: #22c55e; 
             word-break: break-all;
             line-height: 1.4;
@@ -108,13 +109,38 @@
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.2s;
+            font-weight: bold;
         }
         .url-container:hover .copy-btn { opacity: 1; }
         .copy-btn:hover { background: #3b82f6; }
 
+        /* LINK DIRECTO */
+        .direct-link-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .direct-link-label {
+            font-size: 0.6rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .direct-link {
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            color: #3b82f6;
+            word-break: break-all;
+            background: #000;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #334155;
+        }
+
         /* CONTROLES DE CANAL */
-        .channel-controls { display: flex; flex-direction: column; gap: 10px; }
-        
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -257,7 +283,7 @@
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 
         // Componente para un Canal (Reportero remoto)
-        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive }) => {
+        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive, baseUrl }) => {
             const [status, setStatus] = useState('offline'); // offline, connecting, live, error
             const [reporterInfo, setReporterInfo] = useState({ name: '', kbps: '128' });
             const [vuLevel, setVuLevel] = useState(0);
@@ -270,16 +296,16 @@
             const callRef = useRef(null);
             const returnCallRef = useRef(null);
             
-            // Generar URL única para este canal
-            const currentUrl = window.location.href.split('?')[0];
-            const channelUrl = `${currentUrl}?mode=reporter&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current?.id || ''}`;
+            // Generar URL completa para este canal (PARA OBS/VMIX)
+            const reporterUrl = peerRef.current?.id 
+                ? `${baseUrl}?mode=reporter&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
+                : 'Esperando conexión...';
 
             // Escuchar llamadas entrantes de reporteros
             useEffect(() => {
                 if (!peerRef.current) return;
 
                 const handleCall = (call) => {
-                    // Verificar si es para este canal (por metadata o peerId)
                     const isForThisChannel = call.metadata?.channel === channelNum || 
                                            call.peer.includes(`_CH${channelNum}_`);
                     
@@ -296,14 +322,12 @@
                         });
                         onTallyChange(channelNum, true);
 
-                        // Audio
                         if (audioElRef.current) {
                             audioElRef.current.srcObject = remoteStream;
                             audioElRef.current.volume = volume;
                             audioElRef.current.play().catch(e => console.log('Autoplay blocked'));
                         }
 
-                        // VU Meter
                         setupVUMeter(remoteStream);
                     });
 
@@ -322,7 +346,6 @@
             // Enviar retorno cuando cambie
             useEffect(() => {
                 if (returnStream && isReturnActive && callRef.current && !returnCallRef.current) {
-                    // Llamar de vuelta con el stream de retorno
                     const returnCall = peerRef.current.call(callRef.current.peer, returnStream, {
                         metadata: { type: 'return', channel: channelNum }
                     });
@@ -372,7 +395,8 @@
             };
 
             const copyUrl = () => {
-                navigator.clipboard.writeText(channelUrl);
+                if (reporterUrl.includes('Esperando')) return;
+                navigator.clipboard.writeText(reporterUrl);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             };
@@ -391,15 +415,15 @@
                         <div className={`tally-light ${status === 'live' ? 'on' : ''}`} title="TALLY ON AIR"></div>
                     </div>
 
-                    {/* URL PARA OBS - COPIABLE */}
+                    {/* URL COMPLETA PARA OBS - COPIABLE */}
                     <div className={`url-container ${copied ? 'copied' : ''}`} onClick={copyUrl}>
                         <div className="url-label">
-                            <span>🔗 URL para OBS/vMix (Click para copiar)</span>
+                            <span>🔗 URL PARA OBS/VMIX (CLICK PARA COPIAR)</span>
                             {copied && <span style={{color: '#22c55e'}}>✓ COPIADO</span>}
                         </div>
-                        <div className="url-text">{channelUrl}</div>
+                        <div className="url-text">{reporterUrl}</div>
                         <button className="copy-btn" onClick={(e) => { e.stopPropagation(); copyUrl(); }}>
-                            {copied ? '✓' : 'COPIAR'}
+                            {copied ? '✓' : 'COPY'}
                         </button>
                     </div>
 
@@ -447,7 +471,8 @@
 
                     {status === 'offline' && (
                         <div style={{fontSize: '0.75rem', color: '#64748b', textAlign: 'center', padding: '10px'}}>
-                            Esperando que el reportero se conecte...
+                            Esperando que el reportero se conecte...<br/>
+                            <span style={{fontSize: '0.6rem'}}>Copia la URL de arriba y pégala en OBS</span>
                         </div>
                     )}
                 </div>
@@ -459,32 +484,33 @@
             const [inRoom, setInRoom] = useState(false);
             const [roomCode, setRoomCode] = useState('');
             const [producerName, setProducerName] = useState('');
-            const [isProducer, setIsProducer] = useState(true); // true = productor, false = reportero
+            const [isProducer, setIsProducer] = useState(true);
             
-            // Estados del sistema
             const [connectionStatus, setConnectionStatus] = useState('OFFLINE');
             const [tallyStates, setTallyStates] = useState({1: false, 2: false, 3: false, 4: false});
             
-            // Retorno (TX del estudio)
             const [isReturnActive, setIsReturnActive] = useState(false);
             const [returnDevices, setReturnDevices] = useState([]);
             const [selectedReturnDevice, setSelectedReturnDevice] = useState('');
             const [returnStream, setReturnStream] = useState(null);
             const [returnLevel, setReturnLevel] = useState(0);
             
-            // Chat
             const [messages, setMessages] = useState([]);
             const [chatInput, setChatInput] = useState('');
             
-            // Refs
             const peerRef = useRef(null);
             const mqttClientRef = useRef(null);
             const returnAudioCtxRef = useRef(null);
             const returnAnimRef = useRef(null);
             const messagesEndRef = useRef(null);
 
-            // Verificar parámetros de URL al cargar
+            // URL base para generar links
+            const [baseUrl, setBaseUrl] = useState('');
+
             useEffect(() => {
+                const url = window.location.href.split('?')[0];
+                setBaseUrl(url);
+                
                 const params = new URLSearchParams(window.location.search);
                 const mode = params.get('mode');
                 const room = params.get('room');
@@ -492,14 +518,11 @@
                 const producerId = params.get('producer');
 
                 if (mode === 'reporter' && room && ch && producerId) {
-                    // Modo reportero (para OBS/vMix)
                     setIsProducer(false);
                     setRoomCode(room);
                     setInRoom(true);
-                    // Iniciar como reportero después de un momento
                     setTimeout(() => initAsReporter(room, ch, producerId), 500);
                 } else {
-                    // Modo productor - generar código
                     setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
                     loadAudioDevices();
                 }
@@ -518,7 +541,6 @@
                 }
             };
 
-            // Iniciar como Reportero (modo OBS)
             const initAsReporter = async (room, channel, producerPeerId) => {
                 try {
                     setConnectionStatus('CONECTANDO...');
@@ -528,7 +550,6 @@
                     peerRef.current = peer;
 
                     peer.on('open', async (id) => {
-                        // Capturar audio
                         const stream = await navigator.mediaDevices.getUserMedia({
                             audio: {
                                 echoCancellation: false,
@@ -538,7 +559,6 @@
                             }
                         });
 
-                        // Llamar al productor
                         const call = peer.call(producerPeerId, stream, {
                             metadata: {
                                 name: `Canal ${channel}`,
@@ -548,17 +568,13 @@
                         });
 
                         call.on('stream', (returnStream) => {
-                            // Recibir retorno
                             const audio = new Audio();
                             audio.srcObject = returnStream;
                             audio.play().catch(e => console.log('Autoplay blocked'));
                             setConnectionStatus('EN VIVO CON RETORNO');
                         });
 
-                        // VU Meter local
                         setupReporterVU(stream);
-                        
-                        // MQTT para Tally
                         initReporterMQTT(room, channel);
                     });
 
@@ -603,13 +619,12 @@
                     try {
                         const data = JSON.parse(msg.toString());
                         if (data.channel == channel) {
-                            // Actualizar tally visual si tuvieras uno en el modo reportero
+                            // Tally update
                         }
                     } catch(e) {}
                 });
             };
 
-            // Iniciar como Productor
             const joinAsProducer = () => {
                 if (!roomCode || !producerName) return alert("Completa todos los campos");
 
@@ -686,7 +701,6 @@
                         setReturnStream(stream);
                         setIsReturnActive(true);
 
-                        // VU Meter
                         const AudioCtx = window.AudioContext || window.webkitAudioContext;
                         returnAudioCtxRef.current = new AudioCtx();
                         const analyser = returnAudioCtxRef.current.createAnalyser();
@@ -728,7 +742,6 @@
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [messages]);
 
-            // Cleanup
             useEffect(() => {
                 return () => {
                     if (returnStream) returnStream.getTracks().forEach(t => t.stop());
@@ -737,7 +750,7 @@
                 };
             }, []);
 
-            // --- VISTA DE REPORTERO (para OBS) ---
+            // --- VISTA DE REPORTERO ---
             if (!isProducer && inRoom) {
                 return (
                     <div style={{
@@ -752,37 +765,39 @@
                         padding: '20px'
                     }}>
                         <div style={{
-                            width: '60px', 
-                            height: '60px', 
+                            width: '80px', 
+                            height: '80px', 
                             borderRadius: '50%', 
                             background: connectionStatus.includes('VIVO') ? '#ef4444' : '#333',
-                            boxShadow: connectionStatus.includes('VIVO') ? '0 0 30px #ef4444' : 'none',
-                            marginBottom: '20px',
+                            boxShadow: connectionStatus.includes('VIVO') ? '0 0 40px #ef4444' : 'none',
+                            marginBottom: '30px',
                             animation: connectionStatus.includes('VIVO') ? 'pulse 1s infinite' : 'none'
                         }}></div>
                         
-                        <h1 style={{margin: '0 0 10px 0', fontSize: '1.5rem', fontWeight: '900'}}>
+                        <h1 style={{margin: '0 0 15px 0', fontSize: '2rem', fontWeight: '900'}}>
                             CANAL {new URLSearchParams(window.location.search).get('ch')}
                         </h1>
                         
                         <div style={{
-                            padding: '8px 16px', 
-                            borderRadius: '20px', 
+                            padding: '10px 20px', 
+                            borderRadius: '25px', 
                             background: connectionStatus.includes('VIVO') ? '#14532d' : '#334155',
                             color: connectionStatus.includes('VIVO') ? '#4ade80' : '#94a3b8',
-                            fontSize: '0.85rem',
+                            fontSize: '1rem',
                             fontWeight: 'bold',
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            marginBottom: '30px'
                         }}>
                             {connectionStatus}
                         </div>
 
-                        <div style={{marginTop: '30px', width: '200px'}}>
+                        <div style={{width: '250px'}}>
                             <div style={{
-                                height: '8px', 
+                                height: '10px', 
                                 background: '#222', 
-                                borderRadius: '4px', 
-                                overflow: 'hidden'
+                                borderRadius: '5px', 
+                                overflow: 'hidden',
+                                border: '1px solid #444'
                             }}>
                                 <div style={{
                                     width: `${returnLevel}%`,
@@ -791,9 +806,14 @@
                                     transition: 'width 0.1s'
                                 }}></div>
                             </div>
-                            <div style={{textAlign: 'center', marginTop: '8px', fontSize: '0.7rem', color: '#64748b'}}>
-                                NIVEL DE AUDIO
+                            <div style={{textAlign: 'center', marginTop: '10px', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase'}}>
+                                Nivel de Audio
                             </div>
+                        </div>
+
+                        <div style={{marginTop: '40px', textAlign: 'center', color: '#475569', fontSize: '0.8rem'}}>
+                            <div>Room: {roomCode}</div>
+                            <div style={{marginTop: '5px', fontSize: '0.7rem'}}>Stream Radio PRO v3.1</div>
                         </div>
 
                         <style>{`
@@ -869,7 +889,9 @@
                         <div className="channels-panel">
                             <div className="instructions">
                                 <h3>📋 Instrucciones para OBS/vMix</h3>
-                                <p>Copia cada URL y pégala como fuente "Browser" en OBS. Cada URL es única por canal. El audio se captura automáticamente.</p>
+                                <p><strong>1.</strong> Copia la URL de cada canal (click en la caja verde)<br/>
+                                <strong>2.</strong> En OBS: Agrega fuente "Navegador" y pega la URL<br/>
+                                <strong>3.</strong> Ancho: 400px, Alto: 300px, Audio: Controlar vía OBS</p>
                             </div>
                             
                             <div className="channels-grid">
@@ -882,6 +904,7 @@
                                         onTallyChange={handleTallyChange}
                                         returnStream={returnStream}
                                         isReturnActive={isReturnActive}
+                                        baseUrl={baseUrl}
                                     />
                                 ))}
                             </div>
@@ -898,7 +921,7 @@
                                 </div>
                                 <div className="text-xs text-gray-400 mb-3">
                                     {isReturnActive 
-                                        ? 'Enviando audio a todos los reporteros' 
+                                        ? 'Enviando audio a todos los reporteros conectados' 
                                         : 'El retorno está silenciado'}
                                 </div>
                                 
@@ -910,7 +933,7 @@
                             </div>
 
                             <div className="control-group">
-                                <label className="control-label">Fuente de Retorno</label>
+                                <label className="control-label">Fuente de Retorno (Micrófono/Mezcla)</label>
                                 <select 
                                     value={selectedReturnDevice} 
                                     onChange={e => setSelectedReturnDevice(e.target.value)}
@@ -940,7 +963,7 @@
                                 <div className="chat-messages">
                                     {messages.length === 0 && (
                                         <div style={{textAlign: 'center', color: '#475569', padding: '20px', fontSize: '0.8rem'}}>
-                                            Sin mensajes aún
+                                            Sin mensajes aún. Usa el chat para coordinar con el equipo.
                                         </div>
                                     )}
                                     {messages.map(m => (
@@ -956,16 +979,19 @@
                                     <input 
                                         value={chatInput}
                                         onChange={e => setChatInput(e.target.value)}
-                                        placeholder="Mensaje al equipo..."
+                                        placeholder="Mensaje al equipo de campo..."
                                     />
                                     <button type="submit" disabled={!chatInput.trim()}>➤</button>
                                 </form>
                             </div>
 
                             <div className="info-panel">
-                                <div>Peer ID: <span>{peerRef.current?.id || '...'}</span></div>
-                                <div>Activos: <span>{Object.values(tallyStates).filter(Boolean).length}/4</span></div>
-                                <div>MQTT: <span>{mqttClientRef.current?.connected ? 'CONECTADO' : '...'}</span></div>
+                                <div>Peer ID: <span>{peerRef.current?.id || 'Conectando...'}</span></div>
+                                <div>Canales activos: <span>{Object.values(tallyStates).filter(Boolean).length}/4</span></div>
+                                <div>MQTT: <span>{mqttClientRef.current?.connected ? '✓ Conectado' : '...'}</span></div>
+                                <div style={{marginTop: '5px', color: '#3b82f6'}}>
+                                    Base URL: {baseUrl.substring(0, 30)}...
+                                </div>
                             </div>
                         </div>
                     </div>
