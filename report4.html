@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stream Radio PRO - 4 Canales (Producer Console) By streaminghoy.com.ar</title>
+    <title>Stream Radio PRO - 4 Canales (Dashboard Único) By streaminghoy.com.ar</title>
    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -28,7 +28,7 @@
 
         /* --- DASHBOARD UI --- */
         .dashboard-layout { display: flex; flex-direction: column; height: 100vh; background: #0f172a; }
-        .top-bar { padding: 15px 30px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .top-bar { padding: 15px 30px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
        
         .main-content { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
         @media(min-width: 1024px) { .main-content { flex-direction: row; } }
@@ -42,12 +42,11 @@
         /* CADA CANAL */
         .channel-box { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 20px; position: relative; transition: all 0.3s; }
         .channel-box.active { border-color: #22c55e; box-shadow: 0 0 20px rgba(34, 197, 94, 0.2); }
-        .channel-box.tally-on { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); background: #2a1515; }
         
         .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .channel-id { font-size: 1.5rem; font-weight: 900; color: white; }
         
-        /* TALLY LIGHT */
+        /* TALLY */
         .tally-light { 
             width: 20px; height: 20px; border-radius: 50%; background: #333; 
             transition: all 0.3s; box-shadow: 0 0 5px rgba(0,0,0,0.5);
@@ -63,119 +62,207 @@
             50% { opacity: 0.8; transform: scale(1.1); }
         }
 
-        /* URL PARA OBS/VMIX */
-        .url-box { 
-            background: #000; border: 1px solid #444; border-radius: 6px; 
-            padding: 10px; font-family: monospace; font-size: 0.75rem; 
-            color: #22c55e; word-break: break-all; margin-bottom: 15px;
-            cursor: pointer; position: relative;
+        /* URL BOX - ESTILO ESPECIAL PARA COPIAR */
+        .url-container { 
+            background: #000; 
+            border: 2px solid #444; 
+            border-radius: 8px; 
+            padding: 12px; 
+            margin-bottom: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .url-box:hover { border-color: #22c55e; }
-        .url-label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+        .url-container:hover { border-color: #3b82f6; }
+        .url-container.copied { border-color: #22c55e; background: #0a1f0a; }
+        
+        .url-label { 
+            font-size: 0.65rem; 
+            color: #64748b; 
+            text-transform: uppercase; 
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .url-text { 
+            font-family: 'Courier New', monospace; 
+            font-size: 0.7rem; 
+            color: #22c55e; 
+            word-break: break-all;
+            line-height: 1.4;
+            user-select: all;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #334155;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .url-container:hover .copy-btn { opacity: 1; }
+        .copy-btn:hover { background: #3b82f6; }
 
         /* CONTROLES DE CANAL */
         .channel-controls { display: flex; flex-direction: column; gap: 10px; }
         
-        .rx-btn { padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 0.85rem; text-transform: uppercase; transition: 0.2s; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;}
-        .rx-btn.play { background: #22c55e; color: black; }
-        .rx-btn.play:hover { background: #16a34a; }
-        .rx-btn.stop { background: #ef4444; color: white; }
-        .rx-btn.stop:hover { background: #dc2626; }
-        .rx-btn.disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-badge.offline { background: #334155; color: #94a3b8; }
+        .status-badge.connecting { background: #713f12; color: #facc15; }
+        .status-badge.live { background: #14532d; color: #4ade80; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-dot.live { background: #4ade80; animation: blink 1s infinite; }
+        
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         /* VU METER */
-        .vu-container { width: 100%; height: 6px; background: #000; border-radius: 3px; overflow: hidden; margin-top: 10px; border: 1px solid #334155; }
+        .vu-container { width: 100%; height: 8px; background: #000; border-radius: 4px; overflow: hidden; margin-top: 10px; border: 1px solid #334155; }
         .vu-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #facc15, #ef4444); transition: width 0.05s; }
+
+        /* VOLUMEN */
+        .volume-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .volume-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; min-width: 30px; }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: white; cursor: pointer; margin-top: -5px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
 
         /* PANEL DE RETORNO (DERECHA) */
         .return-panel { 
             width: 100%; background: #0f172a; border-left: 1px solid #334155; 
             display: flex; flex-direction: column; padding: 20px;
         }
-        @media(min-width: 1024px) { .return-panel { width: 350px; flex-shrink: 0; } }
+        @media(min-width: 1024px) { .return-panel { width: 380px; flex-shrink: 0; } }
 
-        .return-title { font-size: 1.2rem; font-weight: 900; color: white; margin-bottom: 20px; text-align: center; }
+        .return-title { font-size: 1.1rem; font-weight: 900; color: white; margin-bottom: 20px; text-align: center; text-transform: uppercase; }
         
-        .return-status { 
+        .return-status-box { 
             background: #1e293b; border: 2px solid #334155; border-radius: 12px; 
             padding: 20px; text-align: center; margin-bottom: 20px;
         }
-        .return-status.streaming { border-color: #3b82f6; background: #1a2332; }
+        .return-status-box.active { border-color: #3b82f6; background: #1e293b; }
         
-        .return-led { width: 15px; height: 15px; border-radius: 50%; background: #333; margin: 0 auto 10px; }
-        .return-led.on { background: #3b82f6; box-shadow: 0 0 15px #3b82f6; }
+        .return-led { width: 20px; height: 20px; border-radius: 50%; background: #333; margin: 0 auto 10px; transition: all 0.3s; }
+        .return-led.on { background: #3b82f6; box-shadow: 0 0 20px #3b82f6; animation: pulseBlue 1.5s infinite; }
+        
+        @keyframes pulseBlue {
+            0%, 100% { box-shadow: 0 0 20px #3b82f6; }
+            50% { box-shadow: 0 0 40px #3b82f6, 0 0 60px #3b82f6; }
+        }
 
-        /* TX DEL RETORNO */
-        .tx-controls { margin-top: 20px; }
-        .tx-btn { width: 100%; padding: 15px; font-size: 1rem; font-weight: 900; text-transform: uppercase; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        /* CONTROLES DE RETORNO */
+        .control-group { margin-bottom: 15px; }
+        .control-label { font-size: 0.7rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        
+        select { 
+            width: 100%; background: #0f172a; border: 1px solid #334155; color: white; 
+            padding: 10px; border-radius: 6px; font-size: 0.85rem; outline: none; cursor: pointer; 
+        }
+        select:focus { border-color: #3b82f6; }
+        select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .tx-btn { 
+            width: 100%; padding: 15px; font-size: 0.9rem; font-weight: 900; 
+            text-transform: uppercase; border: none; border-radius: 8px; 
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
         .tx-btn.idle { background: #3b82f6; color: white; }
         .tx-btn.idle:hover { background: #2563eb; }
         .tx-btn.active { background: #ef4444; color: white; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
 
-        select { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 0.85rem; outline: none; margin-bottom: 15px; cursor: pointer; }
-        select:focus { border-color: #3b82f6; }
-
-        /* VOLUMEN GLOBAL */
-        .volume-control { margin-top: 20px; }
-        .volume-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: block; }
-        
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: white; cursor: pointer; margin-top: -6px; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
-
-        /* INFO DE CONEXIÓN */
-        .connection-info { 
-            background: #000; border: 1px solid #333; border-radius: 6px; 
-            padding: 10px; font-size: 0.7rem; color: #64748b; margin-top: 20px;
-        }
-
         /* CHAT */
-        .chat-panel { margin-top: 20px; flex: 1; display: flex; flex-direction: column; }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 10px; background: #000; border-radius: 6px; max-height: 200px; }
-        .chat-msg { background: #1e293b; padding: 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 5px; }
-        .chat-msg .sender { font-weight: 900; color: #3b82f6; }
+        .chat-container { flex: 1; display: flex; flex-direction: column; margin-top: 20px; min-height: 0; }
+        .chat-header { 
+            font-size: 0.75rem; font-weight: bold; color: #94a3b8; 
+            text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; 
+        }
+        .chat-messages { 
+            flex: 1; overflow-y: auto; background: #000; border: 1px solid #334155; 
+            border-radius: 8px; padding: 10px; min-height: 150px;
+        }
+        .chat-msg { background: #1e293b; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 0.8rem; }
+        .chat-msg .sender { font-weight: 900; color: #3b82f6; font-size: 0.7rem; text-transform: uppercase; }
         .chat-msg .time { color: #64748b; font-size: 0.6rem; float: right; }
-        .chat-input { display: flex; gap: 5px; margin-top: 10px; }
-        .chat-input input { flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 4px; font-size: 0.8rem; }
-        .chat-input button { background: #3b82f6; color: white; border: none; padding: 0 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .chat-msg .text { margin-top: 3px; color: #e2e8f0; line-height: 1.3; }
+        
+        .chat-input-area { display: flex; gap: 8px; margin-top: 8px; }
+        .chat-input-area input { 
+            flex: 1; background: #0f172a; border: 1px solid #334155; color: white; 
+            padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; outline: none;
+        }
+        .chat-input-area input:focus { border-color: #3b82f6; }
+        .chat-input-area button { 
+            background: #3b82f6; color: white; border: none; padding: 0 16px; 
+            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
+        }
+        .chat-input-area button:hover { background: #2563eb; }
+        .chat-input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* COPY TOAST */
+        /* TOAST DE COPIADO */
         .toast { 
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-            background: #22c55e; color: black; padding: 10px 20px; 
-            border-radius: 6px; font-weight: bold; z-index: 1000;
-            animation: fadeInOut 2s;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+            background: #22c55e; color: black; padding: 12px 24px; 
+            border-radius: 8px; font-weight: 900; z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
         }
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            10%, 90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
+
+        /* INFO PANEL */
+        .info-panel {
+            background: #000; border: 1px solid #333; border-radius: 6px;
+            padding: 10px; font-size: 0.65rem; color: #64748b;
+            margin-top: 15px;
+        }
+        .info-panel div { margin-bottom: 3px; }
+        .info-panel span { color: #94a3b8; }
+
+        /* INSTRUCCIONES */
+        .instructions {
+            background: #1e293b; border-left: 3px solid #3b82f6; padding: 10px 15px;
+            margin-bottom: 20px; border-radius: 0 8px 8px 0;
+        }
+        .instructions h3 { margin: 0 0 5px 0; font-size: 0.8rem; color: #3b82f6; text-transform: uppercase; }
+        .instructions p { margin: 0; font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         const PEER_CONFIG = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }] } };
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 
-        // Componente para un Canal Individual
-        const ChannelBox = ({ 
-            channelNum, 
-            roomCode, 
-            peerRef, 
-            onTallyChange,
-            returnStream, // El stream de retorno para enviar a este reportero
-            isReturnActive 
-        }) => {
-            const [status, setStatus] = useState('OFFLINE'); // OFFLINE, CONNECTING, LIVE, ERROR
-            const [isListening, setIsListening] = useState(false);
+        // Componente para un Canal (Reportero remoto)
+        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive }) => {
+            const [status, setStatus] = useState('offline'); // offline, connecting, live, error
+            const [reporterInfo, setReporterInfo] = useState({ name: '', kbps: '128' });
             const [vuLevel, setVuLevel] = useState(0);
             const [volume, setVolume] = useState(1);
-            const [reporterName, setReporterName] = useState('');
-            const [kbps, setKbps] = useState('128');
+            const [copied, setCopied] = useState(false);
             
             const audioElRef = useRef(null);
             const analyserRef = useRef(null);
@@ -183,62 +270,60 @@
             const callRef = useRef(null);
             const returnCallRef = useRef(null);
             
-            // PeerID único para este canal (el reportero se conectará a este ID)
-            const myPeerId = `rad_${roomCode}_CH${channelNum}_${Math.random().toString(16).slice(2, 8)}`;
-            const fullUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&ch=${channelNum}&id=${myPeerId}`;
+            // Generar URL única para este canal
+            const currentUrl = window.location.href.split('?')[0];
+            const channelUrl = `${currentUrl}?mode=reporter&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current?.id || ''}`;
 
-            // Escuchar llamadas entrantes (del reportero)
+            // Escuchar llamadas entrantes de reporteros
             useEffect(() => {
                 if (!peerRef.current) return;
 
                 const handleCall = (call) => {
-                    // Solo aceptar llamadas para este canal específico
-                    if (call.peer.includes(`_CH${channelNum}_`)) {
-                        call.answer(); // Answer without stream (solo recibir)
-                        callRef.current = call;
-                        
-                        call.on('stream', (remoteStream) => {
-                            setStatus('LIVE');
-                            setReporterName(call.metadata?.name || `Reportero ${channelNum}`);
-                            setKbps(call.metadata?.kbps || '128');
-                            onTallyChange(channelNum, true);
-                            
-                            // Reproducir audio
-                            if (audioElRef.current) {
-                                audioElRef.current.srcObject = remoteStream;
-                                audioElRef.current.volume = volume;
-                                audioElRef.current.play().catch(e => console.log('Autoplay blocked'));
-                            }
-                            
-                            // VU Meter
-                            setupVUMeter(remoteStream);
-                        });
+                    // Verificar si es para este canal (por metadata o peerId)
+                    const isForThisChannel = call.metadata?.channel === channelNum || 
+                                           call.peer.includes(`_CH${channelNum}_`);
+                    
+                    if (!isForThisChannel) return;
 
-                        call.on('close', () => {
-                            cleanup();
-                        });
+                    callRef.current = call;
+                    setStatus('connecting');
 
-                        call.on('error', () => {
-                            setStatus('ERROR');
-                            cleanup();
+                    call.on('stream', (remoteStream) => {
+                        setStatus('live');
+                        setReporterInfo({
+                            name: call.metadata?.name || `Reportero ${channelNum}`,
+                            kbps: call.metadata?.kbps || '128'
                         });
-                    }
+                        onTallyChange(channelNum, true);
+
+                        // Audio
+                        if (audioElRef.current) {
+                            audioElRef.current.srcObject = remoteStream;
+                            audioElRef.current.volume = volume;
+                            audioElRef.current.play().catch(e => console.log('Autoplay blocked'));
+                        }
+
+                        // VU Meter
+                        setupVUMeter(remoteStream);
+                    });
+
+                    call.on('close', () => cleanup());
+                    call.on('error', () => {
+                        setStatus('error');
+                        cleanup();
+                    });
                 };
 
                 peerRef.current.on('call', handleCall);
                 
-                return () => {
-                    cleanup();
-                };
+                return () => cleanup();
             }, [peerRef.current]);
 
-            // Enviar retorno cuando esté disponible
+            // Enviar retorno cuando cambie
             useEffect(() => {
                 if (returnStream && isReturnActive && callRef.current && !returnCallRef.current) {
-                    // Crear una llamada de vuelta para el retorno
-                    // Usamos el mismo peer pero llamamos al reportero
-                    const reporterPeerId = callRef.current.peer;
-                    const returnCall = peerRef.current.call(reporterPeerId, returnStream, {
+                    // Llamar de vuelta con el stream de retorno
+                    const returnCall = peerRef.current.call(callRef.current.peer, returnStream, {
                         metadata: { type: 'return', channel: channelNum }
                     });
                     returnCallRef.current = returnCall;
@@ -253,6 +338,7 @@
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
                     const ctx = new AudioCtx();
                     const analyser = ctx.createAnalyser();
+                    analyser.fftSize = 256;
                     const source = ctx.createMediaStreamSource(stream);
                     source.connect(analyser);
                     analyserRef.current = analyser;
@@ -263,12 +349,13 @@
                         analyser.getByteFrequencyData(dataArray);
                         let sum = 0;
                         for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                        setVuLevel(sum / dataArray.length);
+                        const level = (sum / dataArray.length) * 1.5;
+                        setVuLevel(Math.min(level, 100));
                         animRef.current = requestAnimationFrame(update);
                     };
                     update();
                 } catch(e) {
-                    console.error('VU Meter error:', e);
+                    console.error('VU Error:', e);
                 }
             };
 
@@ -279,88 +366,88 @@
                 if (audioElRef.current) audioElRef.current.srcObject = null;
                 callRef.current = null;
                 returnCallRef.current = null;
-                setStatus('OFFLINE');
+                setStatus('offline');
                 setVuLevel(0);
                 onTallyChange(channelNum, false);
             };
 
             const copyUrl = () => {
-                navigator.clipboard.writeText(myPeerId);
-                // Mostrar toast
-                const toast = document.createElement('div');
-                toast.className = 'toast';
-                toast.textContent = 'ID copiado al portapapeles';
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 2000);
+                navigator.clipboard.writeText(channelUrl);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
             };
 
-            const getStatusColor = () => {
-                switch(status) {
-                    case 'LIVE': return 'text-green-400';
-                    case 'CONNECTING': return 'text-yellow-400';
-                    case 'ERROR': return 'text-red-400';
-                    default: return 'text-gray-500';
-                }
+            const handleVolumeChange = (v) => {
+                setVolume(v);
+                if (audioElRef.current) audioElRef.current.volume = v;
             };
 
             return (
-                <div className={`channel-box ${status === 'LIVE' ? 'active' : ''}`}>
+                <div className={`channel-box ${status === 'live' ? 'active' : ''}`}>
                     <audio ref={audioElRef} autoPlay playsInline style={{display: 'none'}} />
                     
                     <div className="channel-header">
                         <div className="channel-id">CANAL {channelNum}</div>
-                        <div className={`tally-light ${status === 'LIVE' ? 'on' : ''}`} title="TALLY ON AIR"></div>
+                        <div className={`tally-light ${status === 'live' ? 'on' : ''}`} title="TALLY ON AIR"></div>
                     </div>
 
-                    <div className="url-box" onClick={copyUrl} title="Click para copiar ID del canal">
-                        <div className="url-label">ID PARA OBS/VMIX (Click para copiar)</div>
-                        {myPeerId}
+                    {/* URL PARA OBS - COPIABLE */}
+                    <div className={`url-container ${copied ? 'copied' : ''}`} onClick={copyUrl}>
+                        <div className="url-label">
+                            <span>🔗 URL para OBS/vMix (Click para copiar)</span>
+                            {copied && <span style={{color: '#22c55e'}}>✓ COPIADO</span>}
+                        </div>
+                        <div className="url-text">{channelUrl}</div>
+                        <button className="copy-btn" onClick={(e) => { e.stopPropagation(); copyUrl(); }}>
+                            {copied ? '✓' : 'COPIAR'}
+                        </button>
                     </div>
 
-                    <div className="flex justify-between items-center mb-2">
-                        <span className={`text-xs font-bold ${getStatusColor()}`}>
-                            {status === 'OFFLINE' ? 'ESPERANDO CONEXIÓN' : 
-                             status === 'LIVE' ? '● EN VIVO' : status}
+                    {/* STATUS */}
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
+                        <span className={`status-badge ${status}`}>
+                            <span className={`status-dot ${status}`}></span>
+                            {status === 'offline' && 'SIN CONEXIÓN'}
+                            {status === 'connecting' && 'CONECTANDO...'}
+                            {status === 'live' && '● EN VIVO'}
+                            {status === 'error' && 'ERROR'}
                         </span>
-                        {status === 'LIVE' && (
-                            <span className="text-xs text-gray-400">{kbps} kbps</span>
+                        {status === 'live' && (
+                            <span style={{fontSize: '0.7rem', color: '#64748b'}}>{reporterInfo.kbps} kbps</span>
                         )}
                     </div>
 
-                    {status === 'LIVE' && reporterName && (
-                        <div className="text-sm font-bold text-white mb-2">
-                            {reporterName}
-                        </div>
-                    )}
-
-                    {status === 'LIVE' && (
+                    {status === 'live' && (
                         <>
-                            <div className="vu-container">
-                                <div className="vu-bar" style={{width: `${Math.min(vuLevel * 2, 100)}%`}}></div>
+                            <div style={{fontSize: '0.85rem', fontWeight: 'bold', color: 'white', marginBottom: '8px'}}>
+                                {reporterInfo.name}
                             </div>
                             
-                            <div className="flex items-center gap-2 mt-3">
-                                <span className="text-[10px] text-gray-400">VOL</span>
+                            <div className="vu-container">
+                                <div className="vu-bar" style={{width: `${vuLevel}%`}}></div>
+                            </div>
+                            
+                            <div className="volume-row">
+                                <span className="volume-label">VOL</span>
                                 <input 
                                     type="range" 
                                     min="0" 
                                     max="1" 
                                     step="0.05" 
                                     value={volume}
-                                    onChange={(e) => {
-                                        const v = parseFloat(e.target.value);
-                                        setVolume(v);
-                                        if (audioElRef.current) audioElRef.current.volume = v;
-                                    }}
+                                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                                 />
+                            </div>
+
+                            <div style={{marginTop: '8px', fontSize: '0.65rem', color: isReturnActive ? '#3b82f6' : '#64748b'}}>
+                                {isReturnActive ? '🔊 Retorno activo' : '🔇 Sin retorno'}
                             </div>
                         </>
                     )}
 
-                    {status === 'LIVE' && (
-                        <div className="mt-3 flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            <span className="text-xs text-green-400">Retorno: {isReturnActive ? 'ACTIVO' : 'STANDBY'}</span>
+                    {status === 'offline' && (
+                        <div style={{fontSize: '0.75rem', color: '#64748b', textAlign: 'center', padding: '10px'}}>
+                            Esperando que el reportero se conecte...
                         </div>
                     )}
                 </div>
@@ -372,12 +459,13 @@
             const [inRoom, setInRoom] = useState(false);
             const [roomCode, setRoomCode] = useState('');
             const [producerName, setProducerName] = useState('');
+            const [isProducer, setIsProducer] = useState(true); // true = productor, false = reportero
             
             // Estados del sistema
-            const [status, setStatus] = useState('OFFLINE');
+            const [connectionStatus, setConnectionStatus] = useState('OFFLINE');
             const [tallyStates, setTallyStates] = useState({1: false, 2: false, 3: false, 4: false});
             
-            // Retorno (TX del estudio a los reporteros)
+            // Retorno (TX del estudio)
             const [isReturnActive, setIsReturnActive] = useState(false);
             const [returnDevices, setReturnDevices] = useState([]);
             const [selectedReturnDevice, setSelectedReturnDevice] = useState('');
@@ -395,76 +483,182 @@
             const returnAnimRef = useRef(null);
             const messagesEndRef = useRef(null);
 
-            // Generar código de sala al inicio
+            // Verificar parámetros de URL al cargar
             useEffect(() => {
-                setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
-                loadAudioDevices();
+                const params = new URLSearchParams(window.location.search);
+                const mode = params.get('mode');
+                const room = params.get('room');
+                const ch = params.get('ch');
+                const producerId = params.get('producer');
+
+                if (mode === 'reporter' && room && ch && producerId) {
+                    // Modo reportero (para OBS/vMix)
+                    setIsProducer(false);
+                    setRoomCode(room);
+                    setInRoom(true);
+                    // Iniciar como reportero después de un momento
+                    setTimeout(() => initAsReporter(room, ch, producerId), 500);
+                } else {
+                    // Modo productor - generar código
+                    setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
+                    loadAudioDevices();
+                }
             }, []);
 
             const loadAudioDevices = async () => {
                 try {
                     const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     tempStream.getTracks().forEach(t => t.stop());
-                    
                     const devs = await navigator.mediaDevices.enumerateDevices();
                     const audios = devs.filter(d => d.kind === 'audioinput');
                     setReturnDevices(audios);
                     if (audios.length > 0) setSelectedReturnDevice(audios[0].deviceId);
                 } catch(e) {
-                    console.error("Error cargando dispositivos:", e);
+                    console.error("Error audio devices:", e);
                 }
             };
 
-            const joinRoom = () => {
-                if (!roomCode || !producerName) return alert("Completa todos los campos");
+            // Iniciar como Reportero (modo OBS)
+            const initAsReporter = async (room, channel, producerPeerId) => {
+                try {
+                    setConnectionStatus('CONECTANDO...');
+                    
+                    const myId = `reporter_${room}_CH${channel}_${Math.random().toString(16).slice(2, 8)}`;
+                    const peer = new Peer(myId, PEER_CONFIG);
+                    peerRef.current = peer;
 
-                setStatus('CONECTANDO...');
-                
-                const myPeerId = `prod_${roomCode}_${Math.random().toString(16).slice(2)}`;
-                peerRef.current = new Peer(myPeerId, PEER_CONFIG);
+                    peer.on('open', async (id) => {
+                        // Capturar audio
+                        const stream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                echoCancellation: false,
+                                noiseSuppression: false,
+                                autoGainControl: false,
+                                channelCount: 2
+                            }
+                        });
 
-                peerRef.current.on('open', (id) => {
-                    setStatus('ONLINE');
-                    setInRoom(true);
-                    initMQTT(id);
-                });
+                        // Llamar al productor
+                        const call = peer.call(producerPeerId, stream, {
+                            metadata: {
+                                name: `Canal ${channel}`,
+                                channel: parseInt(channel),
+                                kbps: 128
+                            }
+                        });
 
-                peerRef.current.on('error', (err) => {
-                    console.error(err);
-                    setStatus('ERROR');
-                });
+                        call.on('stream', (returnStream) => {
+                            // Recibir retorno
+                            const audio = new Audio();
+                            audio.srcObject = returnStream;
+                            audio.play().catch(e => console.log('Autoplay blocked'));
+                            setConnectionStatus('EN VIVO CON RETORNO');
+                        });
+
+                        // VU Meter local
+                        setupReporterVU(stream);
+                        
+                        // MQTT para Tally
+                        initReporterMQTT(room, channel);
+                    });
+
+                    peer.on('error', (err) => {
+                        setConnectionStatus('ERROR: ' + err.type);
+                    });
+
+                } catch(e) {
+                    setConnectionStatus('ERROR DE MICRÓFONO');
+                }
             };
 
-            const initMQTT = (peerId) => {
-                const topicChat = `sc_radio_v1/${roomCode}/chat`;
-                const topicTally = `sc_radio_v1/${roomCode}/tally`;
+            const setupReporterVU = (stream) => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const analyser = ctx.createAnalyser();
+                    const source = ctx.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    const data = new Uint8Array(analyser.frequencyBinCount);
+                    
+                    const update = () => {
+                        analyser.getByteFrequencyData(data);
+                        let sum = 0;
+                        for(let i = 0; i < data.length; i++) sum += data[i];
+                        setReturnLevel(Math.min((sum / data.length) * 2, 100));
+                        requestAnimationFrame(update);
+                    };
+                    update();
+                } catch(e) {}
+            };
+
+            const initReporterMQTT = (room, channel) => {
+                const client = mqtt.connect(MQTT_BROKER, {
+                    clientId: `mqtt_rep_${room}_${channel}_${Date.now()}`
+                });
                 
-                mqttClientRef.current = mqtt.connect(MQTT_BROKER, { 
-                    clientId: `mqtt_prod_${peerId}` 
+                client.on('connect', () => {
+                    client.subscribe(`sc_radio_v1/${room}/tally`);
                 });
 
-                mqttClientRef.current.on('connect', () => {
-                    mqttClientRef.current.subscribe(topicChat);
-                    mqttClientRef.current.subscribe(topicTally);
-                });
-
-                mqttClientRef.current.on('message', (t, msg) => {
+                client.on('message', (t, msg) => {
                     try {
-                        if (t === topicChat) {
-                            const payload = JSON.parse(msg.toString());
-                            setMessages(prev => [...prev, payload].slice(-50));
+                        const data = JSON.parse(msg.toString());
+                        if (data.channel == channel) {
+                            // Actualizar tally visual si tuvieras uno en el modo reportero
                         }
                     } catch(e) {}
                 });
             };
 
+            // Iniciar como Productor
+            const joinAsProducer = () => {
+                if (!roomCode || !producerName) return alert("Completa todos los campos");
+
+                setConnectionStatus('CONECTANDO...');
+                
+                const myId = `prod_${roomCode}_${Math.random().toString(16).slice(2, 8)}`;
+                const peer = new Peer(myId, PEER_CONFIG);
+                peerRef.current = peer;
+
+                peer.on('open', (id) => {
+                    setConnectionStatus('ONLINE');
+                    setInRoom(true);
+                    initProducerMQTT(id);
+                });
+
+                peer.on('error', (err) => {
+                    console.error(err);
+                    setConnectionStatus('ERROR');
+                });
+            };
+
+            const initProducerMQTT = (peerId) => {
+                const client = mqtt.connect(MQTT_BROKER, {
+                    clientId: `mqtt_prod_${peerId}`
+                });
+
+                client.on('connect', () => {
+                    client.subscribe(`sc_radio_v1/${roomCode}/chat`);
+                    client.subscribe(`sc_radio_v1/${roomCode}/tally`);
+                });
+
+                client.on('message', (t, msg) => {
+                    try {
+                        if (t.includes('/chat')) {
+                            const data = JSON.parse(msg.toString());
+                            setMessages(prev => [...prev, data].slice(-50));
+                        }
+                    } catch(e) {}
+                });
+
+                mqttClientRef.current = client;
+            };
+
             const handleTallyChange = (channel, isLive) => {
                 setTallyStates(prev => ({ ...prev, [channel]: isLive }));
                 
-                // Publicar estado de tally por MQTT para sincronización
                 if (mqttClientRef.current?.connected) {
                     mqttClientRef.current.publish(
-                        `sc_radio_v1/${roomCode}/tally`, 
+                        `sc_radio_v1/${roomCode}/tally`,
                         JSON.stringify({ channel, isLive, time: Date.now() })
                     );
                 }
@@ -472,16 +666,12 @@
 
             const toggleReturn = async () => {
                 if (isReturnActive) {
-                    // Detener retorno
-                    if (returnStream) {
-                        returnStream.getTracks().forEach(t => t.stop());
-                    }
+                    if (returnStream) returnStream.getTracks().forEach(t => t.stop());
                     if (returnAnimRef.current) cancelAnimationFrame(returnAnimRef.current);
                     setReturnStream(null);
                     setIsReturnActive(false);
                     setReturnLevel(0);
                 } else {
-                    // Iniciar retorno
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({
                             audio: {
@@ -495,8 +685,8 @@
                         
                         setReturnStream(stream);
                         setIsReturnActive(true);
-                        
-                        // VU Meter para retorno
+
+                        // VU Meter
                         const AudioCtx = window.AudioContext || window.webkitAudioContext;
                         returnAudioCtxRef.current = new AudioCtx();
                         const analyser = returnAudioCtxRef.current.createAnalyser();
@@ -508,13 +698,13 @@
                             analyser.getByteFrequencyData(dataArray);
                             let sum = 0;
                             for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                            setReturnLevel(sum / dataArray.length);
+                            setReturnLevel(Math.min((sum / dataArray.length) * 2, 100));
                             returnAnimRef.current = requestAnimationFrame(update);
                         };
                         update();
                         
                     } catch(e) {
-                        alert("Error al iniciar retorno. Verifica permisos de micrófono.");
+                        alert("Error al iniciar retorno. Verifica permisos.");
                     }
                 }
             };
@@ -547,13 +737,85 @@
                 };
             }, []);
 
+            // --- VISTA DE REPORTERO (para OBS) ---
+            if (!isProducer && inRoom) {
+                return (
+                    <div style={{
+                        height: '100vh', 
+                        background: '#000', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontFamily: 'Inter, sans-serif',
+                        padding: '20px'
+                    }}>
+                        <div style={{
+                            width: '60px', 
+                            height: '60px', 
+                            borderRadius: '50%', 
+                            background: connectionStatus.includes('VIVO') ? '#ef4444' : '#333',
+                            boxShadow: connectionStatus.includes('VIVO') ? '0 0 30px #ef4444' : 'none',
+                            marginBottom: '20px',
+                            animation: connectionStatus.includes('VIVO') ? 'pulse 1s infinite' : 'none'
+                        }}></div>
+                        
+                        <h1 style={{margin: '0 0 10px 0', fontSize: '1.5rem', fontWeight: '900'}}>
+                            CANAL {new URLSearchParams(window.location.search).get('ch')}
+                        </h1>
+                        
+                        <div style={{
+                            padding: '8px 16px', 
+                            borderRadius: '20px', 
+                            background: connectionStatus.includes('VIVO') ? '#14532d' : '#334155',
+                            color: connectionStatus.includes('VIVO') ? '#4ade80' : '#94a3b8',
+                            fontSize: '0.85rem',
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase'
+                        }}>
+                            {connectionStatus}
+                        </div>
+
+                        <div style={{marginTop: '30px', width: '200px'}}>
+                            <div style={{
+                                height: '8px', 
+                                background: '#222', 
+                                borderRadius: '4px', 
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{
+                                    width: `${returnLevel}%`,
+                                    height: '100%',
+                                    background: 'linear-gradient(90deg, #22c55e, #facc15, #ef4444)',
+                                    transition: 'width 0.1s'
+                                }}></div>
+                            </div>
+                            <div style={{textAlign: 'center', marginTop: '8px', fontSize: '0.7rem', color: '#64748b'}}>
+                                NIVEL DE AUDIO
+                            </div>
+                        </div>
+
+                        <style>{`
+                            @keyframes pulse {
+                                0%, 100% { transform: scale(1); opacity: 1; }
+                                50% { transform: scale(1.1); opacity: 0.8; }
+                            }
+                        `}</style>
+                    </div>
+                );
+            }
+
+            // --- LOBBY PRODUCTOR ---
             if (!inRoom) {
                 return (
                     <div className="lobby-container">
                         <div className="glass-box">
-                            <h1 className="text-3xl font-black mb-1 text-white">STREAM<span className="text-blue-500">RADIO</span> <span className="text-yellow-500">PRO</span></h1>
+                            <h1 className="text-3xl font-black mb-1 text-white">
+                                STREAM<span className="text-blue-500">RADIO</span> <span className="text-yellow-500">PRO</span>
+                            </h1>
                             <p className="text-gray-400 text-sm mb-2 font-bold">CONSOLA 4 CANALES + TALLY</p>
-                            <p className="text-gray-500 text-xs mb-6">v3.0 - Producer Console</p>
+                            <p className="text-gray-500 text-xs mb-6">v3.1 - Dashboard Único</p>
 
                             <input 
                                 className="auth-input" 
@@ -568,7 +830,7 @@
                                 onChange={e => setProducerName(e.target.value)} 
                             />
                            
-                            <button className="btn btn-main" onClick={joinRoom}>
+                            <button className="btn btn-main" onClick={joinAsProducer}>
                                 INICIAR CONSOLA
                             </button>
                         </div>
@@ -576,6 +838,7 @@
                 );
             }
 
+            // --- DASHBOARD PRODUCTOR ---
             return (
                 <div className="dashboard-layout">
                     {/* BARRA SUPERIOR */}
@@ -586,17 +849,17 @@
                         </div>
                         <div className="flex items-center gap-4">
                             <span className="text-xs font-bold text-gray-400">SALA: {roomCode}</span>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1">
                                 {[1,2,3,4].map(ch => (
                                     <div 
                                         key={ch} 
                                         className={`w-3 h-3 rounded-full ${tallyStates[ch] ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' : 'bg-gray-700'}`}
-                                        title={`Canal ${ch} ${tallyStates[ch] ? 'EN VIVO' : 'OFFLINE'}`}
+                                        title={`Canal ${ch}`}
                                     />
                                 ))}
                             </div>
-                            <span className={`text-xs px-3 py-1 rounded font-bold ${status === 'ONLINE' ? 'text-green-400 bg-slate-700' : 'text-red-400'}`}>
-                                {status}
+                            <span className={`text-xs px-3 py-1 rounded font-bold ${connectionStatus === 'ONLINE' ? 'text-green-400 bg-slate-700' : 'text-red-400'}`}>
+                                {connectionStatus}
                             </span>
                         </div>
                     </div>
@@ -604,10 +867,10 @@
                     <div className="main-content">
                         {/* PANEL DE 4 CANALES */}
                         <div className="channels-panel">
-                            <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                ENTRADAS DE REPORTEROS (4 CANALES)
-                            </h2>
+                            <div className="instructions">
+                                <h3>📋 Instrucciones para OBS/vMix</h3>
+                                <p>Copia cada URL y pégala como fuente "Browser" en OBS. Cada URL es única por canal. El audio se captura automáticamente.</p>
+                            </div>
                             
                             <div className="channels-grid">
                                 {[1, 2, 3, 4].map(ch => (
@@ -626,29 +889,28 @@
 
                         {/* PANEL DE RETORNO Y CHAT */}
                         <div className="return-panel">
-                            <div className="return-title">🎧 RETORNO A CAMPO</div>
+                            <div className="return-title">🎧 Retorno a Campo</div>
                             
-                            <div className={`return-status ${isReturnActive ? 'streaming' : ''}`}>
+                            <div className={`return-status-box ${isReturnActive ? 'active' : ''}`}>
                                 <div className={`return-led ${isReturnActive ? 'on' : ''}`}></div>
                                 <div className="text-sm font-bold text-white mb-1">
                                     {isReturnActive ? 'RETORNO ACTIVO' : 'RETORNO STANDBY'}
                                 </div>
-                                <div className="text-xs text-gray-400">
-                                    {isReturnActive ? 'Todos los reporteros escuchan esta señal' : 'El retorno está silenciado'}
+                                <div className="text-xs text-gray-400 mb-3">
+                                    {isReturnActive 
+                                        ? 'Enviando audio a todos los reporteros' 
+                                        : 'El retorno está silenciado'}
                                 </div>
                                 
                                 {isReturnActive && (
-                                    <div className="mt-3">
-                                        <div className="text-[10px] text-blue-400 text-center mb-1">NIVEL DE RETORNO</div>
-                                        <div className="vu-container">
-                                            <div className="vu-bar" style={{width: `${Math.min(returnLevel * 2, 100)}%`}}></div>
-                                        </div>
+                                    <div className="vu-container">
+                                        <div className="vu-bar" style={{width: `${Math.min(returnLevel, 100)}%`}}></div>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="tx-controls">
-                                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Fuente de Retorno</label>
+                            <div className="control-group">
+                                <label className="control-label">Fuente de Retorno</label>
                                 <select 
                                     value={selectedReturnDevice} 
                                     onChange={e => setSelectedReturnDevice(e.target.value)}
@@ -660,49 +922,50 @@
                                         </option>
                                     ))}
                                 </select>
-
-                                <button 
-                                    className={`tx-btn ${isReturnActive ? 'active' : 'idle'}`}
-                                    onClick={toggleReturn}
-                                >
-                                    {isReturnActive ? '⏹ CORTAR RETORNO' : '▶ INICIAR RETORNO'}
-                                </button>
                             </div>
 
-                            <div className="volume-control">
-                                <label className="volume-label">Volumen General de Monitoreo</label>
-                                <input type="range" min="0" max="1" step="0.05" defaultValue="1" />
-                            </div>
+                            <button 
+                                className={`tx-btn ${isReturnActive ? 'active' : 'idle'}`}
+                                onClick={toggleReturn}
+                            >
+                                {isReturnActive ? '⏹ CORTAR RETORNO' : '▶ INICIAR RETORNO'}
+                            </button>
 
-                            {/* CHAT DE PRODUCCIÓN */}
-                            <div className="chat-panel">
-                                <div className="text-xs font-bold text-gray-400 uppercase mb-2">Chat de Producción</div>
+                            {/* CHAT */}
+                            <div className="chat-container">
+                                <div className="chat-header">
+                                    <span>Chat de Producción</span>
+                                    <span style={{color: '#64748b'}}>{messages.length} msgs</span>
+                                </div>
                                 <div className="chat-messages">
                                     {messages.length === 0 && (
-                                        <div className="text-gray-600 text-xs text-center">Sin mensajes</div>
+                                        <div style={{textAlign: 'center', color: '#475569', padding: '20px', fontSize: '0.8rem'}}>
+                                            Sin mensajes aún
+                                        </div>
                                     )}
                                     {messages.map(m => (
                                         <div key={m.id} className="chat-msg">
                                             <span className="sender">{m.sender}</span>
                                             <span className="time">{m.time}</span>
-                                            <div className="mt-1 text-gray-300">{m.text}</div>
+                                            <div className="text">{m.text}</div>
                                         </div>
                                     ))}
                                     <div ref={messagesEndRef} />
                                 </div>
-                                <form className="chat-input" onSubmit={sendChat}>
+                                <form className="chat-input-area" onSubmit={sendChat}>
                                     <input 
                                         value={chatInput}
                                         onChange={e => setChatInput(e.target.value)}
                                         placeholder="Mensaje al equipo..."
                                     />
-                                    <button type="submit">➤</button>
+                                    <button type="submit" disabled={!chatInput.trim()}>➤</button>
                                 </form>
                             </div>
 
-                            <div className="connection-info">
-                                <div>Peer ID: {peerRef.current?.id || '...'}</div>
-                                <div>Canales activos: {Object.values(tallyStates).filter(Boolean).length}/4</div>
+                            <div className="info-panel">
+                                <div>Peer ID: <span>{peerRef.current?.id || '...'}</span></div>
+                                <div>Activos: <span>{Object.values(tallyStates).filter(Boolean).length}/4</span></div>
+                                <div>MQTT: <span>{mqttClientRef.current?.connected ? 'CONECTADO' : '...'}</span></div>
                             </div>
                         </div>
                     </div>
