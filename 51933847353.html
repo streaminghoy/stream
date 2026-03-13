@@ -1,1 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamCommand</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    
+    <style>
+        /* BASE */
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; overflow: hidden; background-color: transparent; color: white; height: 100%; }
+        body.dashboard-mode { background-color: #0f172a !important; overflow-y: auto !important; }
+        body.overlay-mode { background-color: transparent !important; overflow: hidden !important; }
+        
+        /* DASHBOARD UI */
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding-bottom: 60px; }
+        .panel { background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; font-weight: bold; letter-spacing: 1px; color: #94a3b8; font-size: 0.9rem; }
+        
+        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; flex: 1; text-transform: uppercase; color: white; background: #334155; transition: 0.2s; white-space: nowrap; }
+        .btn.active { background: #22c55e; color: black; box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+        .btn.red { background: #ef4444; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-link { background: #3b82f6; padding: 4px 8px; font-size: 9px; border-radius: 4px; margin-left: auto; cursor: pointer; color: white; border: none; font-weight: bold; }
+        .btn-link:hover { background: #2563eb; }
 
+        input, textarea { background: #1e293b; border: 1px solid #475569; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; outline: none; font-size: 14px; }
+        input:focus { border-color: #3b82f6; }
+        textarea { resize: none; height: 60px; }
+        
+        /* --- ELEMENTOS OVERLAY --- */
+        
+        /* 1. QR DINÁMICO */
+        .qr-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .qr-label { color: black; font-weight: 900; text-transform: uppercase; font-size: 1.5rem; line-height: 1.1; max-width: 300px; }
+        .qr-img { width: 300px; height: 300px; image-rendering: pixelated; }
+
+        /* 2. CRONÓMETRO */
+        .timer-box { position: absolute; top: 40px; right: 40px; background: #0f172a; padding: 10px 40px; border-radius: 10px; border-top: 4px solid #3b82f6; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideDown 0.5s ease-out; }
+        .timer-label { font-size: 0.9rem; color: #60a5fa; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 5px; }
+        .timer-val { font-size: 4rem; font-family: monospace; font-weight: bold; line-height: 1; }
+
+        /* 3. SEMÁFORO ORADOR */
+        .speaker-container { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 100; }
+        .speaker-bar { height: 15px; transition: width 1s linear, background-color 0.5s; box-shadow: 0 -5px 15px rgba(0,0,0,0.5); }
+        .speaker-overlay { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 50px; font-family: monospace; font-weight: bold; font-size: 2.5rem; border: 2px solid rgba(255,255,255,0.2); backdrop-filter: blur(5px); }
+
+        /* 4. FEATURED CARD (NOVEDAD) */
+        .card-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 700px; display: flex; animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1); filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); }
+        .card-accent { width: 10px; background: #facc15; }
+        .card-content { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 20px 30px; border-radius: 0 10px 10px 0; color: #1e293b; flex: 1; }
+        .card-quote { font-family: 'Times New Roman', serif; font-size: 2rem; font-style: italic; line-height: 1.2; font-weight: bold; margin-bottom: 10px; }
+        .card-author { font-family: 'Arial', sans-serif; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 2px; color: #64748b; font-weight: bold; }
+
+        /* 5. FLASH ALERT (NOVEDAD) */
+        .flash-container { position: absolute; top: 100px; left: 0; width: 100%; display: flex; justify-content: center; animation: flashPulse 2s infinite; }
+        .flash-box { background: #ef4444; color: white; font-weight: 900; font-size: 3rem; text-transform: uppercase; padding: 10px 100px; transform: skewX(-15deg); border: 4px solid white; box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+        .flash-text { transform: skewX(15deg); }
+
+        /* ANIMACIONES */
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        @keyframes flashPulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.98); } 100% { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const MQTT_CONFIG = { host: 'broker.emqx.io', port: 8084, path: '/mqtt' };
+
+        const initialState = {
+            id: Date.now(),
+            qr: { visible: false, url: "https://google.com", label: "ESCANEA PARA MÁS INFO" },
+            timer: { visible: false, label: "TIEMPO RESTANTE", mode: "stopwatch", running: false, pausedAt: null, baseTime: null },
+            speaker: { visible: false, duration: 5, startTime: null, running: false },
+            card: { visible: false, author: "GUSTAVO EPPEL", text: "La innovación distingue a los líderes de los seguidores." },
+            flash: { visible: false, text: "EN VIVO" }
+        };
+
+        const App = () => {
+            const [data, setData] = useState(initialState);
+            const [mode, setMode] = useState('dashboard');
+            const [module, setModule] = useState('all');
+            const [status, setStatus] = useState('offline');
+            const clientRef = useRef(null);
+
+            // --- CONEXIÓN ---
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const m = params.get('mode') === 'overlay' ? 'overlay' : 'dashboard';
+                const mod = params.get('module') || 'all';
+                
+                setMode(m);
+                setModule(mod);
+                
+                if(m === 'overlay') document.body.classList.add('overlay-mode');
+                else document.body.classList.add('dashboard-mode');
+
+                const client = mqtt.connect(`wss://${MQTT_CONFIG.host}:${MQTT_CONFIG.port}${MQTT_CONFIG.path}`, { 
+                    clientId: 'inn_' + Math.random().toString(16).substr(2, 8) 
+                });
+
+                client.on('connect', () => { 
+                    setStatus('online'); 
+                    if (m === 'overlay') client.subscribe('sc_v38_innov/stream'); 
+                });
+                
+                client.on('message', (t, msg) => { 
+                    if (m === 'overlay') try { setData(JSON.parse(msg.toString())); } catch(e) {} 
+                });
+
+                clientRef.current = client;
+            }, []);
+
+            const update = (newData) => {
+                setData(newData);
+                if (clientRef.current?.connected) clientRef.current.publish('sc_v38_innov/stream', JSON.stringify(newData), { retain: true });
+            };
+            
+            const setObj = (k, f, v) => update({ ...data, [k]: { ...data[k], [f]: v } });
+
+            // --- LÓGICA DE TIEMPO ---
+            const [timerDisplay, setTimerDisplay] = useState("00:00");
+            const [customMin, setCustomMin] = useState(10); 
+            useEffect(() => {
+                if (!data.timer.visible) return;
+                const i = setInterval(() => {
+                    if (!data.timer.running) return;
+                    const now = Date.now();
+                    let diff = data.timer.mode === 'stopwatch' ? now - data.timer.baseTime : data.timer.baseTime - now;
+                    if (diff < 0) diff = 0;
+                    setTimerDisplay(`${Math.floor(diff/60000).toString().padStart(2,'0')}:${Math.floor((diff%60000)/1000).toString().padStart(2,'0')}`);
+                }, 200);
+                return () => clearInterval(i);
+            }, [data.timer]);
+
+            const [spk, setSpk] = useState({ pct: 0, color: '#22c55e', time: '00:00' });
+            useEffect(() => {
+                if (!data.speaker.running || !data.speaker.visible) return;
+                const i = setInterval(() => {
+                    const now = Date.now();
+                    const totalMs = data.speaker.duration * 60000;
+                    const elapsed = now - data.speaker.startTime;
+                    const remaining = Math.max(0, totalMs - elapsed);
+                    const pct = (remaining / totalMs) * 100;
+                    let color = '#22c55e'; // Verde
+                    if (pct < 50) color = '#eab308'; // Amarillo
+                    if (pct < 20) color = '#ef4444'; // Rojo
+                    const m = Math.floor(remaining / 60000).toString().padStart(2,'0');
+                    const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2,'0');
+                    setSpk({ pct, color, time: `${m}:${s}` });
+                }, 200);
+                return () => clearInterval(i);
+            }, [data.speaker]);
+
+            const timerStart = (mode) => {
+                const now = Date.now();
+                const base = mode === 'stopwatch' ? now : now + (customMin * 60000);
+                update({ ...data, timer: { ...data.timer, visible: true, running: true, mode, baseTime: base, pausedAt: null } });
+            };
+            const timerPause = () => {
+                if (data.timer.running) update({ ...data, timer: { ...data.timer, running: false, pausedAt: Date.now() } });
+                else if (data.timer.pausedAt) {
+                    const diff = Date.now() - data.timer.pausedAt;
+                    update({ ...data, timer: { ...data.timer, running: true, baseTime: data.timer.baseTime + diff, pausedAt: null } });
+                }
+            };
+
+            const copyLink = (mod) => {
+                const url = `${window.location.origin}${window.location.pathname}?mode=overlay${mod !== 'all' ? '&module='+mod : ''}`;
+                navigator.clipboard.writeText(url);
+                alert(`URL copiada para: ${mod.toUpperCase()}`);
+            };
+
+            // --- RENDERIZADO ---
+            if (mode === 'overlay') {
+                const showAll = module === 'all';
+                const showQR = showAll || module === 'qr';
+                const showTimer = showAll || module === 'timer';
+                const showSpeaker = showAll || module === 'speaker';
+                const showCard = showAll || module === 'card';
+                const showFlash = showAll || module === 'flash';
+
+                return (
+                    <div>
+                        {showQR && data.qr.visible && <div className="qr-box">
+                            <div className="qr-label">{data.qr.label}</div>
+                            <img className="qr-img" src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data.qr.url)}`} />
+                        </div>}
+
+                        {showTimer && data.timer.visible && <div className="timer-box">
+                            <div className="timer-label">{data.timer.label}</div>
+                            <div className="timer-val" style={{ color: data.timer.running ? 'white' : '#facc15' }}>{timerDisplay}</div>
+                        </div>}
+
+                        {showSpeaker && data.speaker.visible && <div className="speaker-container">
+                            <div className="speaker-overlay" style={{ color: spk.color, borderColor: spk.color }}>{spk.time}</div>
+                            <div className="speaker-bar" style={{ width: `${spk.pct}%`, backgroundColor: spk.color }}></div>
+                        </div>}
+
+                        {/* NUEVO: CARD DESTACADA */}
+                        {showCard && data.card.visible && <div className="card-container">
+                            <div className="card-accent"></div>
+                            <div className="card-content">
+                                <div className="card-quote">“{data.card.text}”</div>
+                                <div className="card-author">- {data.card.author}</div>
+                            </div>
+                        </div>}
+
+                        {/* NUEVO: FLASH ALERT */}
+                        {showFlash && data.flash.visible && <div className="flash-container">
+                            <div className="flash-box"><div className="flash-text">{data.flash.text}</div></div>
+                        </div>}
+                    </div>
+                );
+            }
+
+            // --- DASHBOARD ---
+            const obsUrl = window.location.href.split('?')[0] + '?mode=overlay';
+            return (
+                <div className="container">
+                    <div className="panel" style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
+                        <h1 style={{margin:0}}>STREAM<span style={{color:'#3b82f6'}}>INNOVATION</span> V38</h1>
+                        <div style={{display:'flex', gap:10, alignItems:'center'}}>
+                            <span style={{fontSize:10, color: status==='online'?'#22c55e':'red'}}>{status.toUpperCase()}</span>
+                            <button className="btn active" onClick={() => navigator.clipboard.writeText(obsUrl)}>COPIAR URL MASTER</button>
+                        </div>
+                    </div>
+
+                    <div className="grid">
+                        
+                        {/* PANEL QR */}
+                        <div className="panel" style={{borderLeft:'4px solid #8b5cf6'}}>
+                            <div className="panel-header">GENERADOR QR <button className="btn-link" onClick={()=>copyLink('qr')}>🔗 URL</button></div>
+                            <div className="row"><button className={`btn ${data.qr.visible?'active':''}`} onClick={()=>setObj('qr','visible',!data.qr.visible)}>{data.qr.visible?'MOSTRAR':'OCULTAR'}</button></div>
+                            <input value={data.qr.url} onChange={e=>setObj('qr','url',e.target.value)} placeholder="https://www.sitio.com" />
+                            <input value={data.qr.label} onChange={e=>setObj('qr','label',e.target.value)} placeholder="Texto Superior (ej: ESCANEA)" />
+                        </div>
+
+                        {/* PANEL CRONÓMETRO */}
+                        <div className="panel" style={{borderLeft:'4px solid #3b82f6'}}>
+                            <div className="panel-header">CRONÓMETRO <button className="btn-link" onClick={()=>copyLink('timer')}>🔗 URL</button></div>
+                            <div className="row"><button className="btn" onClick={()=>timerStart('stopwatch')}>INICIAR (00:00)</button>{data.timer.visible && <button className="btn" style={{background:'#eab308', color:'black'}} onClick={timerPause}>{!data.timer.running && data.timer.pausedAt ? 'REANUDAR' : 'PAUSAR'}</button>}</div>
+                            <div className="row"><input type="number" value={customMin} onChange={e=>setCustomMin(e.target.value)} style={{width:'80px'}}/> <span>min</span><button className="btn" onClick={()=>timerStart('countdown')}>CUENTA REGRESIVA</button></div>
+                            <div className="row"><button className={`btn ${data.timer.visible?'active':''}`} onClick={()=>setObj('timer','visible',!data.timer.visible)}>{data.timer.visible?'VISIBILIDAD ON':'VISIBILIDAD OFF'}</button></div>
+                            <input value={data.timer.label} onChange={e=>setObj('timer','label',e.target.value)} placeholder="Etiqueta Superior"/>
+                        </div>
+
+                        {/* PANEL SEMÁFORO */}
+                        <div className="panel" style={{borderLeft:'4px solid #f59e0b'}}>
+                            <div className="panel-header">SEMÁFORO ORADOR <button className="btn-link" onClick={()=>copyLink('speaker')}>🔗 URL</button></div>
+                            <div className="row"><input type="number" value={data.speaker.duration} onChange={e=>setObj('speaker','duration',e.target.value)} style={{width:'80px'}} /> <span>min</span><button className="btn active" onClick={()=>update({...data, speaker: { ...data.speaker, visible:true, running:true, startTime: Date.now() }})}>INICIAR</button></div>
+                            <div className="row"><button className={`btn ${data.speaker.visible?'active':''}`} onClick={()=>setObj('speaker','visible',!data.speaker.visible)}>{data.speaker.visible?'MOSTRAR BARRA':'OCULTAR BARRA'}</button></div>
+                        </div>
+
+                        {/* PANEL CITA DESTACADA (NUEVO) */}
+                        <div className="panel" style={{borderLeft:'4px solid #facc15'}}>
+                            <div className="panel-header">CITA DESTACADA <button className="btn-link" onClick={()=>copyLink('card')}>🔗 URL</button></div>
+                            <div className="row"><button className={`btn ${data.card.visible?'active':''}`} onClick={()=>setObj('card','visible',!data.card.visible)}>{data.card.visible?'MOSTRAR':'OCULTAR'}</button></div>
+                            <input value={data.card.author} onChange={e=>setObj('card','author',e.target.value)} placeholder="Autor (ej: Steve Jobs)" />
+                            <textarea value={data.card.text} onChange={e=>setObj('card','text',e.target.value)} placeholder="Escribe la frase aquí..."></textarea>
+                        </div>
+
+                        {/* PANEL FLASH ALERT (NUEVO) */}
+                        <div className="panel" style={{borderLeft:'4px solid #ef4444'}}>
+                            <div className="panel-header">ALERTA FLASH <button className="btn-link" onClick={()=>copyLink('flash')}>🔗 URL</button></div>
+                            <div className="row"><button className={`btn red ${data.flash.visible?'active':''}`} onClick={()=>setObj('flash','visible',!data.flash.visible)}>{data.flash.visible?'MOSTRAR ALERTA':'OCULTAR ALERTA'}</button></div>
+                            <input value={data.flash.text} onChange={e=>setObj('flash','text',e.target.value)} placeholder="Texto (ej: GOL, URGENTE)" />
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
