@@ -592,7 +592,7 @@
                 }
             };
 
-            // Modo OBS - Receptor de señal (CORREGIDO PARA AUDIO Y VIDEO)
+            // Modo OBS - Receptor de señal (UNIFICADO Y LIMPIO)
             useEffect(() => {
                 if (userMode !== 'obs' || !inRoom || !producerId) return;
 
@@ -600,29 +600,25 @@
                     try {
                         setConnectionStatus('CONECTANDO...');
                         
-                        // ID FIJO y predecible (sin el random al final) 
-                        // para que el Productor te encuentre fácil
+                        // ID estático para que el Productor nos encuentre
                         const myId = `obs_${roomCode}_CH${reporterChannel}`;
                         
-                        if (peerRef.current) {
-                            peerRef.current.destroy();
-                        }
+                        if (peerRef.current) peerRef.current.destroy();
                         
                         const peer = new Peer(myId, PEER_CONFIG);
                         peerRef.current = peer;
 
                         peer.on('open', (id) => {
-                            console.log('OBS: Receptor listo con ID:', id);
+                            console.log('OBS Ready:', id);
                             initMQTT(roomCode, id, false);
                             setConnectionStatus('ESPERANDO SEÑAL...');
                         });
 
-                        // RECIBIR LA LLAMADA DEL PRODUCTOR
-                        // Esto permite que el audio fluya correctamente
+                        // ESTE ES EL ÚNICO BLOQUE QUE DEBE EXISTIR PARA RECIBIR LA LLAMADA
                         peer.on('call', (incomingCall) => {
-                            console.log('OBS: Recibiendo llamada del Productor...');
+                            console.log('OBS: Recibiendo feed del Productor...');
                             
-                            // Contestamos para recibir el stream
+                            // Contestamos la llamada
                             incomingCall.answer();
 
                             incomingCall.on('stream', (remoteStream) => {
@@ -631,12 +627,12 @@
                                 
                                 if (videoRef.current) {
                                     videoRef.current.srcObject = remoteStream;
-                                    // IMPORTANTE: Muted en false y volumen en 1 para que OBS detecte el audio
-                                    videoRef.current.muted = false;
+                                    // Configuraciones críticas para OBS
+                                    videoRef.current.muted = false; 
                                     videoRef.current.volume = 1;
                                     
                                     videoRef.current.play().catch(e => {
-                                        console.warn('OBS: El audio requiere interacción o permisos.');
+                                        console.warn('OBS: Bloqueo de auto-play. Haz click en "Interactuar".');
                                     });
                                 }
                             });
@@ -644,11 +640,10 @@
 
                         peer.on('error', (err) => {
                             console.error('OBS Peer Error:', err);
-                            // Si el ID ya existe, es que quedó una sesión colgada
                             if(err.type === 'id-taken') {
                                 setConnectionStatus('ID OCUPADO - REINTENTANDO...');
                             } else {
-                                setConnectionStatus('ERROR: ' + err.type);
+                                setConnectionStatus('ERROR');
                             }
                         });
 
@@ -888,7 +883,7 @@
 
                 setConnectionStatus('CONECTANDO...');
                 
-                const myId = `prod_${roomCode}_${Math.random().toString(16).slice(2, 8)}`;
+                const myId = `prod_${roomCode}`;
                 const peer = new Peer(myId, PEER_CONFIG);
                 peerRef.current = peer;
 
