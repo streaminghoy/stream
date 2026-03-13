@@ -244,34 +244,58 @@
                 ? `${baseUrl}?mode=tx&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
                 : 'Conectando...';
 
-            // Verificar si hay stream disponible
+            // Verificar si hay stream disponible (DENTRO DE CHANNELBOX)
             useEffect(() => {
                 const stream = reporterStreams[channelNum];
+                
                 if (stream && stream.active) {
                     setHasStream(true);
                     
+                    // Manejo de Video
                     if (videoElRef.current) {
-                        videoElRef.current.srcObject = stream;
-                        videoElRef.current.play().catch(e => console.error('Video Play Error:', e));
+                        if (videoElRef.current.srcObject !== stream) {
+                            videoElRef.current.srcObject = stream;
+                        }
+                        videoElRef.current.play().catch(e => console.warn('Video Play Blocked:', e));
                     }
                     
+                    // Manejo de Audio (Dashboard Monitoring)
                     if (audioElRef.current) {
-                        audioElRef.current.srcObject = stream;
-                        // El volumen se controla aquí
-                        audioElRef.current.volume = volume;
-                        // Si está en PREVIEW, muteamos. Si está ON AIR, desmuteamos.
-                        audioElRef.current.muted = (tallyState[channelNum] !== 'onair');
+                        if (audioElRef.current.srcObject !== stream) {
+                            audioElRef.current.srcObject = stream;
+                        }
                         
-                        audioElRef.current.play().catch(e => console.error('Audio Play Error:', e));
+                        audioElRef.current.volume = volume;
+                        
+                        // IMPORTANTE: Solo escuchamos en el dashboard si el canal está ON AIR
+                        // O si quieres monitorear todo, podrías ponerlo en false, 
+                        // pero para esta consola PRO, muteamos según el Tally.
+                        const shouldBeMuted = (tallyState[channelNum] !== 'onair');
+                        audioElRef.current.muted = shouldBeMuted;
+                        
+                        audioElRef.current.play().catch(e => console.warn('Audio Play Blocked:', e));
                     }
                     
+                    // El VU Meter siempre corre si hay stream, para ver modulación
                     setupVUMeter(stream);
-                    if (status === 'offline') setStatus('preview');
+                    
+                    // Actualizar estado visual
+                    if (tallyState[channelNum] === 'onair') {
+                        setStatus('onair');
+                    } else if (tallyState[channelNum] === 'preview' || status === 'offline') {
+                        setStatus('preview');
+                    }
+                    
                 } else {
+                    // Limpieza si no hay stream
                     setHasStream(false);
-                    if (status !== 'offline') setStatus('offline');
+                    setStatus('offline');
+                    setVuLevel(0);
+                    if (videoElRef.current) videoElRef.current.srcObject = null;
+                    if (audioElRef.current) audioElRef.current.srcObject = null;
+                    if (animRef.current) cancelAnimationFrame(animRef.current);
                 }
-            }, [reporterStreams[channelNum], tallyState[channelNum]]); // Agregamos tallyState a la dependencia
+            }, [reporterStreams[channelNum], tallyState[channelNum], volume]); // Agregamos tallyState a la dependencia
 
             // Control de tally y audio
             useEffect(() => {
@@ -826,37 +850,58 @@
                     setInRoom(true);
                 });
 
-                // Recibir llamadas de reporteros
+                // Recibir llamadas de reporteros (DASHBOARD)
                 peer.on('call', (call) => {
                     const channel = call.metadata?.channel;
                     console.log(`Productor: Llamada entrante del canal ${channel}`, call.metadata);
                     
                     if (!channel) return;
 
-                    call.answer(); // Responder sin enviar stream
+                    // Respondemos la llamada. 
+                    // Si el retorno está activo, podríamos enviar returnStream aquí, 
+                    // pero lo manejaremos con tu lógica de toggle para mayor control.
+                    call.answer(); 
 
                     call.on('stream', (remoteStream) => {
-                        console.log(`Productor: Stream recibido del canal ${channel}`, remoteStream.getTracks());
+                        console.log(`Productor: Stream recibido del canal ${channel}`);
                         
-                        // Guardar stream
+                        // Validamos y activamos tracks de audio
+                        if (remoteStream.getAudioTracks().length > 0) {
+                            remoteStream.getAudioTracks().forEach(track => {
+                                track.enabled = true;
+                                console.log(`Audio track activo en Canal ${channel}:`, track.label);
+                            });
+                        } else {
+                            console.warn(`OJO: El Canal ${channel} no está enviando audio.`);
+                        }
+
+                        // Guardar stream en el estado del Productor
                         setReporterStreams(prev => ({
                             ...prev,
                             [channel]: remoteStream
                         }));
 
-                        // Reenviar a OBS si está conectado
-                        const obsId = `obs_${roomCode}_CH${channel}_`;
-                        console.log(`Productor: Intentando conectar con OBS: ${obsId}`);
+                        // Reenviar a OBS
+                        // IMPORTANTE: El ID de OBS debe ser predecible. 
+                        // Quitamos el random del final en el modo OBS para que sea estático:
+                        const obsId = `obs_${roomCode}_CH${channel}`; 
+                        console.log(`Productor: Reenviando señal a OBS -> ${obsId}`);
                         
-                        // El OBS debería llamarnos, pero también podemos intentar llamarlo
-                        // Esperamos un momento por si el OBS ya está conectado
                         setTimeout(() => {
-                            const obsCall = peer.call(obsId, remoteStream);
+                            // Llamamos a OBS enviando el remoteStream que tiene el audio del reportero
+                            const obsCall = peer.call(obsId, remoteStream, {
+                                metadata: { 
+                                    type: 'feed', 
+                                    channel: channel,
+                                    hasAudio: true 
+                                }
+                            });
+
                             if (obsCall) {
-                                console.log(`Productor: Llamada a OBS iniciada`);
+                                console.log(`Productor: Conexión con OBS Canal ${channel} establecida`);
                                 setObsConnections(prev => ({...prev, [channel]: obsCall}));
                             }
-                        }, 2000);
+                        }, 1500);
                     });
                     
                     call.on('close', () => {
@@ -874,7 +919,7 @@
                 });
 
                 peer.on('error', (err) => {
-                    console.error('Productor Error:', err);
+                    console.error('Productor PeerJS Error:', err);
                     setConnectionStatus('ERROR');
                 });
                 
@@ -957,25 +1002,39 @@
                         
                         setReturnStream(audioStream);
                         
-                        // Enviar a todos los reporteros conectados
+                        // Enviar a todos los reporteros conectados (DASHBOARD - RETORNO)
                         Object.keys(reporterStreams).forEach(ch => {
                             if (peerRef.current) {
-                                const txId = `tx_${roomCode}_CH${ch}_`;
-                                console.log(`Enviando retorno a: ${txId}`);
-                                const call = peerRef.current.call(txId, combinedStream);
+                                // IMPORTANTE: Para que el txId funcione, el reportero 
+                                // DEBE haber abierto su peer con el ID exacto tx_SALA_CH#
+                                // o debemos usar el patrón que definimos antes.
+                                const txId = `tx_${roomCode}_CH${ch}`; 
+                                console.log(`Enviando señal de retorno (IFB) al Canal ${ch}: ${txId}`);
+                                
+                                // Llamamos al reportero enviando el audio del estudio (Mic del productor)
+                                // Usamos metadata para que el celular del reportero sepa que es el RETORNO
+                                peerRef.current.call(txId, combinedStream, {
+                                    metadata: { type: 'return', from: 'producer' }
+                                });
                             }
                         });
                         
                         setIsReturnActive(true);
 
+                        // Visualización del nivel de retorno (VU Meter del Mic del Productor)
                         const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                        returnAudioCtxRef.current = new AudioCtx();
+                        // Evitamos duplicar el contexto si ya existe
+                        if (!returnAudioCtxRef.current) {
+                            returnAudioCtxRef.current = new AudioCtx();
+                        }
+                        
                         const analyser = returnAudioCtxRef.current.createAnalyser();
                         const source = returnAudioCtxRef.current.createMediaStreamSource(audioStream);
                         source.connect(analyser);
                         
                         const dataArray = new Uint8Array(analyser.frequencyBinCount);
                         const update = () => {
+                            if (!isReturnActive) return; // Detener si se apaga el retorno
                             analyser.getByteFrequencyData(dataArray);
                             let sum = 0;
                             for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
@@ -986,7 +1045,7 @@
                         
                     } catch(e) {
                         console.error("Error al iniciar retorno:", e);
-                        alert("Error al iniciar retorno");
+                        alert("Error al iniciar retorno. Verifica permisos de micrófono.");
                     }
                 }
             };
@@ -1006,17 +1065,23 @@
                 setChatInput('');
             };
 
+            // Auto-scroll del chat
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [messages]);
 
+            // Limpieza total al desmontar o cerrar la pestaña
             useEffect(() => {
                 return () => {
                     if (returnStream) returnStream.getTracks().forEach(t => t.stop());
                     if (localStream) localStream.getTracks().forEach(t => t.stop());
                     if (returnVideoStreamRef.current) returnVideoStreamRef.current.getTracks().forEach(t => t.stop());
-                    if (peerRef.current) peerRef.current.destroy();
+                    if (peerRef.current) {
+                        peerRef.current.disconnect();
+                        peerRef.current.destroy();
+                    }
                     if (mqttClientRef.current) mqttClientRef.current.end();
+                    if (returnAnimRef.current) cancelAnimationFrame(returnAnimRef.current);
                 };
             }, []);
 
