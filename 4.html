@@ -599,6 +599,7 @@
                 const initObs = async () => {
                     try {
                         setConnectionStatus('CONECTANDO...');
+                        // ID estático para que el Productor nos encuentre
                         const myId = `obs_${roomCode}_CH${reporterChannel}`;
                         
                         if (peerRef.current) peerRef.current.destroy();
@@ -612,6 +613,7 @@
                             setConnectionStatus('ESPERANDO SEÑAL...');
                         });
 
+                        // RECIBIR LLAMADA
                         peer.on('call', (incomingCall) => {
                             console.log('OBS: Recibiendo feed...');
                             incomingCall.answer();
@@ -637,13 +639,6 @@
                         setConnectionStatus('ERROR');
                     }
                 };
-
-                initObs();
-                
-                return () => {
-                    if (peerRef.current) peerRef.current.destroy();
-                };
-            }, [userMode, inRoom, producerId, roomCode, reporterChannel]);
                         // ESTE ES EL ÚNICO BLOQUE QUE DEBE EXISTIR PARA RECIBIR LA LLAMADA
                         peer.on('call', (incomingCall) => {
                             console.log('OBS: Recibiendo feed del Productor...');
