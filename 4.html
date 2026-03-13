@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall V13 PRO (Audio Fix)</title>
+    <title>StreamCall V14 PRO (Mobile Fix)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -36,6 +36,7 @@
         .obs-status { position: relative; z-index: 9999; background: rgba(0,0,0,0.85); color: #facc15; padding: 20px 30px; border-radius: 12px; font-family: monospace; font-size: 16px; border: 2px solid #facc15; text-align: center; }
         
         .interaction-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(220, 38, 38, 0.95); color: white; z-index: 99999; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; cursor: pointer; text-align: center; padding: 20px; text-transform: uppercase; }
+        .mobile-audio-warning { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); background: #ef4444; padding: 15px; border-radius: 10px; z-index: 9999; text-align: center; cursor: pointer; font-weight: bold; }
 
         /* --- DIRECTOR MULTI-CAM --- */
         .director-layout { display: flex; flex-direction: column; height: 100vh; background: #000; }
@@ -96,7 +97,6 @@
         };
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 
-        // COMPONENTE ESTABLE DE VIDEO CON DETECCIÓN DE AUTOPLAY
         const VideoPlayer = ({ stream, muted, className, onPlayError }) => {
             const videoRef = useRef(null);
             useEffect(() => {
@@ -105,7 +105,7 @@
                     let playPromise = videoRef.current.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(error => {
-                            console.warn("Autoplay bloqueado por el navegador:", error);
+                            console.warn("Autoplay bloqueado:", error);
                             if (onPlayError) onPlayError();
                         });
                     }
@@ -151,9 +151,6 @@
                             setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], connected: true, stream: stream } }));
                         });
                         call.on('close', () => {
-                            setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], connected: false, stream: null } }));
-                        });
-                        call.on('error', () => {
                             setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], connected: false, stream: null } }));
                         });
                     }
@@ -274,7 +271,7 @@
                 <div className="obs-layout">
                     {needsInteraction && (
                         <div className="interaction-overlay" onClick={handleInteract}>
-                            🎵 HAZ CLIC AQUÍ PARA HABILITAR EL AUDIO<br/><span style={{fontSize:'1rem', marginTop:'10px', display:'block'}}>Si ves esto en OBS, marca "Controlar audio mediante OBS" en las propiedades de la fuente.</span>
+                            🎵 HAZ CLIC AQUÍ PARA HABILITAR EL AUDIO<br/><span style={{fontSize:'1rem', marginTop:'10px', display:'block'}}>En OBS, marca "Controlar audio mediante OBS".</span>
                         </div>
                     )}
                     {stream && <VideoPlayer stream={stream} muted={false} className="obs-video" onPlayError={() => setNeedsInteraction(true)} />}
@@ -292,6 +289,7 @@
             const [camOff, setCamOff] = useState(false);
             const [returnStream, setReturnStream] = useState(null);
             const [facingMode, setFacingMode] = useState('user');
+            const [audioNeedsClick, setAudioNeedsClick] = useState(false);
             
             const peer = useRef(null);
             const mqttClient = useRef(null);
@@ -301,19 +299,23 @@
             const switchCamera = async () => {
                 const nextMode = facingMode === 'user' ? 'environment' : 'user';
                 setFacingMode(nextMode);
-                if (localStream.current) {
-                    const videoTrack = localStream.current.getVideoTracks()[0];
-                    if (videoTrack) videoTrack.stop();
+                
+                try {
                     const res = { '360': [640,360], '720': [1280,720], '1080': [1920,1080] };
-                    try {
-                        const newVideoState = await navigator.mediaDevices.getUserMedia({ 
-                            video: { width: res[quality][0], height: res[quality][1], facingMode: nextMode }
-                        });
-                        const newVideoTrack = newVideoState.getVideoTracks()[0];
-                        localStream.current.removeTrack(videoTrack);
-                        localStream.current.addTrack(newVideoTrack);
-                        setMyStreamState({...localStream.current});
-                        
+                    
+                    // FIX 1: Pedimos la cámara NUEVA primero, usando "ideal" para que el móvil no colapse.
+                    const newVideoState = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: { ideal: res[quality][0] }, 
+                            height: { ideal: res[quality][1] }, 
+                            facingMode: nextMode 
+                        }
+                    });
+                    
+                    const newVideoTrack = newVideoState.getVideoTracks()[0];
+                    
+                    // Reemplazamos el track en las conexiones de PeerJS
+                    if (peer.current) {
                         Object.values(peer.current.connections).forEach(connArray => {
                             connArray.forEach(connection => {
                                 if (connection.peerConnection) {
@@ -322,7 +324,23 @@
                                 }
                             });
                         });
-                    } catch (e) { alert("Error al girar cámara"); }
+                    }
+
+                    // Actualizamos el estado local
+                    if (localStream.current) {
+                        const oldVideoTrack = localStream.current.getVideoTracks()[0];
+                        localStream.current.removeTrack(oldVideoTrack);
+                        localStream.current.addTrack(newVideoTrack);
+                        
+                        // Forzamos un re-render limpio creando un nuevo objeto MediaStream
+                        setMyStreamState(new MediaStream(localStream.current.getTracks()));
+                        
+                        // FIX 2: AHORA sí apagamos la cámara vieja
+                        if (oldVideoTrack) oldVideoTrack.stop();
+                    }
+
+                } catch (e) { 
+                    alert("Error al girar la cámara: " + e.message); 
                 }
             };
 
@@ -340,10 +358,17 @@
                 const init = async () => {
                     try {
                         const res = { '360': [640,360], '720': [1280,720], '1080': [1920,1080] };
+                        
+                        // FIX 3: Usamos constraints flexibles (ideal) para que Android/iOS no bloqueen el pedido
                         const s = await navigator.mediaDevices.getUserMedia({ 
-                            video: { width: res[quality][0], height: res[quality][1], facingMode: facingMode }, 
+                            video: { 
+                                width: { ideal: res[quality][0] }, 
+                                height: { ideal: res[quality][1] }, 
+                                facingMode: facingMode 
+                            }, 
                             audio: { echoCancellation: true, noiseSuppression: true } 
                         });
+                        
                         localStream.current = s;
                         setMyStreamState(s);
                         
@@ -359,7 +384,7 @@
                             c.answer(localStream.current); 
                             c.on('stream', (rem) => { setReturnStream(rem); });
                         });
-                    } catch (e) { alert("Error cámara/micrófono"); }
+                    } catch (e) { alert("Error al acceder a cámara/micrófono en el móvil."); }
                 };
                 init();
                 return () => { peer.current?.destroy(); mq.end(); };
@@ -367,6 +392,12 @@
 
             const toggleMic = () => { if (localStream.current) { const t = localStream.current.getAudioTracks()[0]; t.enabled = !t.enabled; setMicMuted(!t.enabled); } };
             const toggleCam = () => { if (localStream.current) { const t = localStream.current.getVideoTracks()[0]; t.enabled = !t.enabled; setCamOff(!t.enabled); } };
+
+            const forceAudio = () => {
+                setAudioNeedsClick(false);
+                const videos = document.querySelectorAll('video');
+                videos.forEach(v => v.play().catch(e => console.log(e)));
+            };
 
             if (!joined) return (
                 <div className="lobby-container"><div className="glass-box">
@@ -386,8 +417,14 @@
                     <div className="guest-tally-border"></div>
                     <div className="big-tally-text">{tally === 'live' ? 'AL AIRE' : tally === 'prev' ? 'PREVENIDO' : ''}</div>
                     
+                    {audioNeedsClick && (
+                        <div className="mobile-audio-warning" onClick={forceAudio}>
+                            TOCA AQUÍ PARA ESCUCHAR AL DIRECTOR 🔊
+                        </div>
+                    )}
+
                     <div className={`return-pip ${returnStream ? 'active' : ''}`}>
-                        {returnStream && <VideoPlayer stream={returnStream} muted={false} />}
+                        {returnStream && <VideoPlayer stream={returnStream} muted={false} onPlayError={() => setAudioNeedsClick(true)} />}
                         <div className="pip-label">RETORNO DIRECTOR</div>
                     </div>
                     
