@@ -592,15 +592,13 @@
                 }
             };
 
-            /// Modo OBS - Receptor de señal (CORREGIDO PARA AUDIO Y VIDEO)
+            // Modo OBS - Receptor de señal (CORREGIDO Y SIN ERRORES DE SINTAXIS)
             useEffect(() => {
                 if (userMode !== 'obs' || !inRoom || !producerId) return;
 
                 const initObs = async () => {
                     try {
                         setConnectionStatus('CONECTANDO...');
-                        
-                        // ID estático: El Productor te buscará exactamente con este nombre
                         const myId = `obs_${roomCode}_CH${reporterChannel}`;
                         
                         if (peerRef.current) peerRef.current.destroy();
@@ -609,38 +607,28 @@
                         peerRef.current = peer;
 
                         peer.on('open', (id) => {
-                            console.log('OBS: Receptor listo y esperando llamada en:', id);
+                            console.log('OBS Ready:', id);
                             initMQTT(roomCode, id, false);
                             setConnectionStatus('ESPERANDO SEÑAL...');
                         });
 
-                        // CLAVE: El receptor NO llama, el receptor ESCUCHA (on 'call')
                         peer.on('call', (incomingCall) => {
-                            console.log('OBS: ¡Llamada entrante detectada!');
-                            
-                            // Contestamos la llamada para abrir el canal de video y audio
+                            console.log('OBS: Recibiendo feed...');
                             incomingCall.answer();
 
                             incomingCall.on('stream', (remoteStream) => {
-                                console.log('OBS: Stream recibido con éxito');
                                 setConnectionStatus('EN VIVO');
-                                
                                 if (videoRef.current) {
                                     videoRef.current.srcObject = remoteStream;
-                                    
-                                    // CONFIGURACIÓN PARA QUE OBS DETECTE EL AUDIO:
-                                    videoRef.current.muted = false; // Audio activado
-                                    videoRef.current.volume = 1;    // Volumen al máximo
-                                    
-                                    videoRef.current.play().catch(e => {
-                                        console.warn('OBS: El audio está bloqueado hasta que interactúes (Click derecho -> Interactuar).');
-                                    });
+                                    videoRef.current.muted = false; 
+                                    videoRef.current.volume = 1;
+                                    videoRef.current.play().catch(e => console.warn('Interactuar para audio'));
                                 }
                             });
                         });
 
                         peer.on('error', (err) => {
-                            console.error('OBS Peer Error:', err);
+                            console.error('Peer Error:', err);
                             setConnectionStatus('ERROR');
                         });
 
