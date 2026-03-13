@@ -24,6 +24,8 @@
         .btn { width: 100%; padding: 15px; font-weight: 900; font-size: 1rem; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-main { background: #3b82f6; color: white; }
         .btn-main:hover { background: #2563eb; }
+        .btn-secondary { background: #334155; color: white; margin-top: 10px; }
+        .btn-secondary:hover { background: #475569; }
 
         .dashboard-layout { display: flex; flex-direction: column; height: 100vh; background: #0f172a; }
         .top-bar { padding: 15px 30px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -43,136 +45,41 @@
         .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .channel-id { font-size: 1.5rem; font-weight: 900; color: white; }
         
-        .tally-indicator {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+        .tally-indicator { display: flex; gap: 8px; align-items: center; }
         
         .tally-badge {
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            background: #334155;
-            color: #64748b;
-            transition: all 0.3s;
+            padding: 4px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: 900;
+            text-transform: uppercase; background: #334155; color: #64748b; transition: all 0.3s;
         }
+        .tally-badge.preview { background: #f59e0b; color: #000; animation: pulsePreview 2s infinite; }
+        .tally-badge.onair { background: #ef4444; color: #fff; animation: pulseOnAir 0.5s infinite; }
         
-        .tally-badge.preview {
-            background: #f59e0b;
-            color: #000;
-            animation: pulsePreview 2s infinite;
-        }
-        
-        .tally-badge.onair {
-            background: #ef4444;
-            color: #fff;
-            animation: pulseOnAir 0.5s infinite;
-        }
-        
-        @keyframes pulsePreview {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        @keyframes pulseOnAir {
-            0%, 100% { opacity: 1; box-shadow: 0 0 10px #ef4444; }
-            50% { opacity: 0.8; box-shadow: 0 0 20px #ef4444, 0 0 30px #ef4444; }
-        }
+        @keyframes pulsePreview { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes pulseOnAir { 0%, 100% { opacity: 1; box-shadow: 0 0 10px #ef4444; } 50% { opacity: 0.8; box-shadow: 0 0 20px #ef4444, 0 0 30px #ef4444; } }
 
-        .tally-light { 
-            width: 20px; height: 20px; border-radius: 50%; background: #333; 
-            transition: all 0.3s; box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
-        .tally-light.on { 
-            background: #ef4444; 
-            box-shadow: 0 0 20px #ef4444, 0 0 40px #ef4444; 
-            animation: pulseTally 1s infinite;
-        }
+        .tally-light { width: 20px; height: 20px; border-radius: 50%; background: #333; transition: all 0.3s; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        .tally-light.on { background: #ef4444; box-shadow: 0 0 20px #ef4444, 0 0 40px #ef4444; animation: pulseTally 1s infinite; }
         
-        @keyframes pulseTally {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.1); }
-        }
+        @keyframes pulseTally { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } }
 
-        .url-container-obs { 
-            background: #000; 
-            border: 2px solid #3b82f6; 
-            border-radius: 8px; 
-            padding: 12px; 
-            margin-bottom: 10px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .url-container-obs { background: #000; border: 2px solid #3b82f6; border-radius: 8px; padding: 12px; margin-bottom: 10px; position: relative; cursor: pointer; transition: all 0.2s; }
         .url-container-obs:hover { border-color: #60a5fa; background: #0a1a2a; }
         .url-container-obs.copied { border-color: #22c55e; }
         
-        .url-container-reporter { 
-            background: #000; 
-            border: 2px solid #f59e0b; 
-            border-radius: 8px; 
-            padding: 12px; 
-            margin-bottom: 15px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .url-container-reporter { background: #000; border: 2px solid #f59e0b; border-radius: 8px; padding: 12px; margin-bottom: 15px; position: relative; cursor: pointer; transition: all 0.2s; }
         .url-container-reporter:hover { border-color: #fbbf24; background: #1a1a0a; }
         .url-container-reporter.copied { border-color: #22c55e; }
         
-        .url-label { 
-            font-size: 0.65rem; 
-            color: #64748b; 
-            text-transform: uppercase; 
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-        }
-        
-        .url-text { 
-            font-family: 'Courier New', monospace; 
-            font-size: 0.7rem; 
-            word-break: break-all;
-            line-height: 1.4;
-        }
-        
+        .url-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .url-text { font-family: 'Courier New', monospace; font-size: 0.7rem; word-break: break-all; line-height: 1.4; }
         .url-obs { color: #3b82f6; }
         .url-reporter { color: #f59e0b; }
         
-        .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #334155;
-            border: none;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
-            font-weight: bold;
-        }
-        .url-container-obs:hover .copy-btn,
-        .url-container-reporter:hover .copy-btn { opacity: 1; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; background: #334155; border: none; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; opacity: 0; transition: opacity 0.2s; font-weight: bold; }
+        .url-container-obs:hover .copy-btn, .url-container-reporter:hover .copy-btn { opacity: 1; }
         .copy-btn:hover { background: #3b82f6; }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
         .status-badge.offline { background: #334155; color: #94a3b8; }
         .status-badge.connecting { background: #713f12; color: #facc15; }
         .status-badge.live { background: #14532d; color: #4ade80; }
@@ -194,359 +101,105 @@
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: white; cursor: pointer; margin-top: -5px; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
 
-        .return-panel { 
-            width: 100%; background: #0f172a; border-left: 1px solid #334155; 
-            display: flex; flex-direction: column; padding: 20px;
-        }
+        .return-panel { width: 100%; background: #0f172a; border-left: 1px solid #334155; display: flex; flex-direction: column; padding: 20px; }
         @media(min-width: 1024px) { .return-panel { width: 380px; flex-shrink: 0; } }
 
         .return-title { font-size: 1.1rem; font-weight: 900; color: white; margin-bottom: 20px; text-align: center; text-transform: uppercase; }
         
-        .return-status-box { 
-            background: #1e293b; border: 2px solid #334155; border-radius: 12px; 
-            padding: 20px; text-align: center; margin-bottom: 20px;
-        }
+        .return-status-box { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; }
         .return-status-box.active { border-color: #3b82f6; background: #1e293b; }
         
         .return-led { width: 20px; height: 20px; border-radius: 50%; background: #333; margin: 0 auto 10px; transition: all 0.3s; }
         .return-led.on { background: #3b82f6; box-shadow: 0 0 20px #3b82f6; animation: pulseBlue 1.5s infinite; }
         
-        @keyframes pulseBlue {
-            0%, 100% { box-shadow: 0 0 20px #3b82f6; }
-            50% { box-shadow: 0 0 40px #3b82f6, 0 0 60px #3b82f6; }
-        }
+        @keyframes pulseBlue { 0%, 100% { box-shadow: 0 0 20px #3b82f6; } 50% { box-shadow: 0 0 40px #3b82f6, 0 0 60px #3b82f6; } }
 
         .control-group { margin-bottom: 15px; }
         .control-label { font-size: 0.7rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: block; }
         
-        select { 
-            width: 100%; background: #0f172a; border: 1px solid #334155; color: white; 
-            padding: 10px; border-radius: 6px; font-size: 0.85rem; outline: none; cursor: pointer; 
-        }
+        select { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 0.85rem; outline: none; cursor: pointer; }
         select:focus { border-color: #3b82f6; }
         select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .tx-btn { 
-            width: 100%; padding: 15px; font-size: 0.9rem; font-weight: 900; 
-            text-transform: uppercase; border: none; border-radius: 8px; 
-            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
+        .tx-btn { width: 100%; padding: 15px; font-size: 0.9rem; font-weight: 900; text-transform: uppercase; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .tx-btn.idle { background: #3b82f6; color: white; }
         .tx-btn.idle:hover { background: #2563eb; }
         .tx-btn.active { background: #ef4444; color: white; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
 
         .chat-container { flex: 1; display: flex; flex-direction: column; margin-top: 20px; min-height: 0; }
-        .chat-header { 
-            font-size: 0.75rem; font-weight: bold; color: #94a3b8; 
-            text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; 
-        }
-        .chat-messages { 
-            flex: 1; overflow-y: auto; background: #000; border: 1px solid #334155; 
-            border-radius: 8px; padding: 10px; min-height: 150px;
-        }
+        .chat-header { font-size: 0.75rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .chat-messages { flex: 1; overflow-y: auto; background: #000; border: 1px solid #334155; border-radius: 8px; padding: 10px; min-height: 150px; }
         .chat-msg { background: #1e293b; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 0.8rem; }
         .chat-msg .sender { font-weight: 900; color: #3b82f6; font-size: 0.7rem; text-transform: uppercase; }
         .chat-msg .time { color: #64748b; font-size: 0.6rem; float: right; }
         .chat-msg .text { margin-top: 3px; color: #e2e8f0; line-height: 1.3; }
         
         .chat-input-area { display: flex; gap: 8px; margin-top: 8px; }
-        .chat-input-area input { 
-            flex: 1; background: #0f172a; border: 1px solid #334155; color: white; 
-            padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; outline: none;
-        }
+        .chat-input-area input { flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; outline: none; }
         .chat-input-area input:focus { border-color: #3b82f6; }
-        .chat-input-area button { 
-            background: #3b82f6; color: white; border: none; padding: 0 16px; 
-            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
-        }
+        .chat-input-area button { background: #3b82f6; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
         .chat-input-area button:hover { background: #2563eb; }
         .chat-input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .toast { 
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
-            background: #22c55e; color: black; padding: 12px 24px; 
-            border-radius: 8px; font-weight: 900; z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            animation: slideUp 0.3s ease-out;
-        }
-        @keyframes slideUp {
-            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #22c55e; color: black; padding: 12px 24px; border-radius: 8px; font-weight: 900; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateX(-50%) translateY(100px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 
-        .instructions {
-            background: #1e293b; border-left: 3px solid #3b82f6; padding: 10px 15px;
-            margin-bottom: 20px; border-radius: 0 8px 8px 0;
-        }
+        .instructions { background: #1e293b; border-left: 3px solid #3b82f6; padding: 10px 15px; margin-bottom: 20px; border-radius: 0 8px 8px 0; }
         .instructions h3 { margin: 0 0 5px 0; font-size: 0.8rem; color: #3b82f6; text-transform: uppercase; }
         .instructions p { margin: 0; font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
 
         /* VISTA DE TRANSMITTER (REPORTERO CON CELULAR) */
-        .transmitter-view {
-            min-height: 100vh;
-            background: #0a0a0a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: white;
-            font-family: 'Inter', sans-serif;
-        }
+        .transmitter-view { min-height: 100vh; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; color: white; font-family: 'Inter', sans-serif; }
+        .transmitter-box { background: #111; border: 2px solid #333; border-radius: 16px; padding: 20px; max-width: 500px; width: 100%; text-align: center; }
+        .transmitter-tally { width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; transition: all 0.3s; border: 4px solid #444; position: relative; }
+        .transmitter-tally.preview { background: #f59e0b; border-color: #f59e0b; box-shadow: 0 0 40px #f59e0b; animation: tallyPreview 1s infinite; }
+        .transmitter-tally.onair { background: #ef4444; border-color: #ef4444; box-shadow: 0 0 60px #ef4444, 0 0 100px #ef4444; animation: tallyOnAir 0.5s infinite; }
         
-        .transmitter-box {
-            background: #111;
-            border: 2px solid #333;
-            border-radius: 16px;
-            padding: 20px;
-            max-width: 500px;
-            width: 100%;
-            text-align: center;
-        }
+        @keyframes tallyPreview { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
+        @keyframes tallyOnAir { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         
-        .transmitter-tally {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: #222;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            transition: all 0.3s;
-            border: 4px solid #444;
-            position: relative;
-        }
-        
-        .transmitter-tally.preview {
-            background: #f59e0b;
-            border-color: #f59e0b;
-            box-shadow: 0 0 40px #f59e0b;
-            animation: tallyPreview 1s infinite;
-        }
-        
-        .transmitter-tally.onair {
-            background: #ef4444;
-            border-color: #ef4444;
-            box-shadow: 0 0 60px #ef4444, 0 0 100px #ef4444;
-            animation: tallyOnAir 0.5s infinite;
-        }
-        
-        @keyframes tallyPreview {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-        }
-        
-        @keyframes tallyOnAir {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        .tally-label {
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.7rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-        
-        .transmitter-status {
-            font-size: 1.2rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
+        .tally-label { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+        .transmitter-status { font-size: 1.2rem; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; }
 
-        .transmitter-info {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin: 15px 0;
-        }
+        .transmitter-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 0; }
+        .transmitter-item { background: #1a1a1a; padding: 10px; border-radius: 6px; }
+        .transmitter-item-label { color: #64748b; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 3px; }
+        .transmitter-item-value { color: white; font-weight: 900; font-size: 0.9rem; }
         
-        .transmitter-item {
-            background: #1a1a1a;
-            padding: 10px;
-            border-radius: 6px;
-        }
-        
-        .transmitter-item-label {
-            color: #64748b;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
-        
-        .transmitter-item-value {
-            color: white;
-            font-weight: 900;
-            font-size: 0.9rem;
-        }
-        
-        .transmitter-video {
-            width: 100%;
-            max-width: 100%;
-            height: 250px;
-            background: #000;
-            border-radius: 8px;
-            margin: 15px 0;
-            object-fit: cover;
-            border: 2px solid #333;
-            transform: scaleX(-1);
-        }
-        
-        .transmitter-video.active {
-            border-color: #ef4444;
-        }
-        
-        .transmitter-video.preview {
-            border-color: #f59e0b;
-        }
+        .transmitter-video { width: 100%; max-width: 100%; height: 250px; background: #000; border-radius: 8px; margin: 15px 0; object-fit: cover; border: 2px solid #333; }
+        .transmitter-video.active { border-color: #ef4444; }
+        .transmitter-video.preview { border-color: #f59e0b; }
 
-        .transmitter-controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .transmitter-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 1rem;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-        
-        .transmitter-btn.start {
-            background: #22c55e;
-            color: black;
-        }
-        
-        .transmitter-btn.stop {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .transmitter-btn:disabled {
-            background: #334155;
-            color: #64748b;
-            cursor: not-allowed;
-        }
+        .transmitter-controls { display: flex; gap: 10px; margin-top: 15px; }
+        .transmitter-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: 900; font-size: 1rem; cursor: pointer; text-transform: uppercase; }
+        .transmitter-btn.start { background: #22c55e; color: black; }
+        .transmitter-btn.stop { background: #ef4444; color: white; }
+        .transmitter-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
 
-        .transmitter-vu {
-            margin-top: 15px;
-            padding: 10px;
-            background: #1a1a1a;
-            border-radius: 6px;
-        }
-        
-        .transmitter-vu-bar {
-            height: 10px;
-            background: #222;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .transmitter-vu-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #22c55e, #facc15, #ef4444);
-            transition: width 0.1s;
-        }
+        .transmitter-vu { margin-top: 15px; padding: 10px; background: #1a1a1a; border-radius: 6px; }
+        .transmitter-vu-bar { height: 10px; background: #222; border-radius: 5px; overflow: hidden; }
+        .transmitter-vu-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #facc15, #ef4444); transition: width 0.1s; }
 
-        .transmitter-footer {
-            margin-top: 15px;
-            font-size: 0.7rem;
-            color: #64748b;
-        }
+        .transmitter-footer { margin-top: 15px; font-size: 0.7rem; color: #64748b; }
         
-        .return-video-box {
-            margin-top: 15px;
-            padding: 10px;
-            background: #0a1a2a;
-            border: 2px solid #3b82f6;
-            border-radius: 8px;
-        }
-        
-        .return-video-label {
-            font-size: 0.7rem;
-            color: #3b82f6;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .return-video {
-            width: 100%;
-            height: 150px;
-            background: #000;
-            border-radius: 6px;
-            object-fit: cover;
-        }
+        .return-video-box { margin-top: 15px; padding: 10px; background: #0a1a2a; border: 2px solid #3b82f6; border-radius: 8px; }
+        .return-video-label { font-size: 0.7rem; color: #3b82f6; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
+        .return-video { width: 100%; height: 150px; background: #000; border-radius: 6px; object-fit: cover; }
+
+        /* Selector de dispositivos */
+        .device-selector { margin: 15px 0; text-align: left; }
+        .device-selector label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+        .device-selector select { width: 100%; background: #1a1a1a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 0.9rem; }
 
         /* VISTA DE OBS - SIMPLE, SOLO VIDEO */
-        .obs-view {
-            width: 100vw;
-            height: 100vh;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
+        .obs-view { width: 100vw; height: 100vh; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .obs-video { width: 100%; height: 100%; object-fit: contain; }
+        .obs-overlay { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 6px; font-size: 0.8rem; color: white; }
+        .obs-tally { position: absolute; top: 20px; right: 20px; width: 30px; height: 30px; border-radius: 50%; background: #333; border: 2px solid #555; }
+        .obs-tally.preview { background: #f59e0b; border-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
+        .obs-tally.onair { background: #ef4444; border-color: #ef4444; box-shadow: 0 0 30px #ef4444; animation: obsTallyPulse 0.5s infinite; }
         
-        .obs-video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        
-        .obs-overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 15px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: white;
-        }
-        
-        .obs-tally {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: #333;
-            border: 2px solid #555;
-        }
-        
-        .obs-tally.preview {
-            background: #f59e0b;
-            border-color: #f59e0b;
-            box-shadow: 0 0 20px #f59e0b;
-        }
-        
-        .obs-tally.onair {
-            background: #ef4444;
-            border-color: #ef4444;
-            box-shadow: 0 0 30px #ef4444;
-            animation: obsTallyPulse 0.5s infinite;
-        }
-        
-        @keyframes obsTallyPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        @keyframes obsTallyPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
@@ -555,11 +208,18 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const PEER_CONFIG = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }] } };
+        const PEER_CONFIG = { 
+            config: { 
+                'iceServers': [
+                    { url: 'stun:stun.l.google.com:19302' },
+                    { url: 'stun:stun1.l.google.com:19302' }
+                ] 
+            } 
+        };
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 
         // Componente de Canal en Dashboard
-        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive, baseUrl, tallyState, reporterStreams, obsConnections, onObsConnect }) => {
+        const ChannelBox = ({ channelNum, roomCode, peerRef, onTallyChange, returnStream, isReturnActive, baseUrl, tallyState, reporterStreams, onStreamUpdate }) => {
             const [status, setStatus] = useState('offline');
             const [reporterInfo, setReporterInfo] = useState({ name: '', kbps: '128' });
             const [vuLevel, setVuLevel] = useState(0);
@@ -567,11 +227,13 @@
             const [copiedObs, setCopiedObs] = useState(false);
             const [copiedReporter, setCopiedReporter] = useState(false);
             const [audioEnabled, setAudioEnabled] = useState(false);
+            const [hasStream, setHasStream] = useState(false);
             
             const audioElRef = useRef(null);
             const videoElRef = useRef(null);
             const analyserRef = useRef(null);
             const animRef = useRef(null);
+            const obsCallRef = useRef(null);
             
             // URLs
             const obsUrl = peerRef.current?.id 
@@ -582,44 +244,49 @@
                 ? `${baseUrl}?mode=tx&room=${roomCode}&ch=${channelNum}&producer=${peerRef.current.id}`
                 : 'Conectando...';
 
-            // Mostrar stream del reportero cuando llega
+            // Verificar si hay stream disponible
             useEffect(() => {
                 const stream = reporterStreams[channelNum];
-                if (stream && videoElRef.current) {
-                    videoElRef.current.srcObject = stream;
-                    videoElRef.current.play().catch(e => {});
+                if (stream && stream.active) {
+                    setHasStream(true);
+                    if (videoElRef.current) {
+                        videoElRef.current.srcObject = stream;
+                        videoElRef.current.play().catch(e => console.log('Error playing video:', e));
+                    }
                     
-                    // Audio solo si está en ON AIR
                     if (audioElRef.current) {
                         audioElRef.current.srcObject = stream;
                         audioElRef.current.volume = volume;
-                        // Inicialmente muteado hasta que esté en ON AIR
                         audioElRef.current.muted = true;
-                        audioElRef.current.play().catch(e => {});
+                        audioElRef.current.play().catch(e => console.log('Error playing audio:', e));
                     }
                     
                     setupVUMeter(stream);
-                    setStatus('preview');
-                    setReporterInfo({ name: `Reportero ${channelNum}`, kbps: '128' });
+                    if (status === 'offline') {
+                        setStatus('preview');
+                    }
+                } else {
+                    setHasStream(false);
+                    if (status !== 'offline') {
+                        setStatus('offline');
+                        setVuLevel(0);
+                    }
                 }
             }, [reporterStreams[channelNum]]);
 
-            // Actualizar tally visual y control de audio
+            // Control de tally y audio
             useEffect(() => {
                 const currentState = tallyState[channelNum];
                 
-                // Actualizar estado visual
-                if (currentState === 'onair' && status !== 'offline') {
+                if (currentState === 'onair' && hasStream) {
                     setStatus('onair');
                     setAudioEnabled(true);
-                    // Activar audio
                     if (audioElRef.current) {
                         audioElRef.current.muted = false;
                     }
-                } else if (currentState === 'preview' && status !== 'offline') {
+                } else if (currentState === 'preview' && hasStream) {
                     setStatus('preview');
                     setAudioEnabled(false);
-                    // Mutear audio
                     if (audioElRef.current) {
                         audioElRef.current.muted = true;
                     }
@@ -630,10 +297,12 @@
                         audioElRef.current.muted = true;
                     }
                 }
-            }, [tallyState, status]);
+            }, [tallyState, hasStream]);
 
             const setupVUMeter = (stream) => {
                 try {
+                    if (animRef.current) cancelAnimationFrame(animRef.current);
+                    
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
                     const ctx = new AudioCtx();
                     const analyser = ctx.createAnalyser();
@@ -645,15 +314,18 @@
                     const dataArray = new Uint8Array(analyser.frequencyBinCount);
                     
                     const update = () => {
+                        if (!analyserRef.current) return;
                         analyser.getByteFrequencyData(dataArray);
                         let sum = 0;
                         for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                        const level = (sum / dataArray.length) * 1.5;
+                        const level = (sum / dataArray.length) * 2;
                         setVuLevel(Math.min(level, 100));
                         animRef.current = requestAnimationFrame(update);
                     };
                     update();
-                } catch(e) {}
+                } catch(e) {
+                    console.error('VU Meter error:', e);
+                }
             };
 
             const copyObsUrl = () => {
@@ -672,7 +344,6 @@
 
             const toggleOnAir = () => {
                 const newState = status === 'onair' ? 'preview' : 'onair';
-                // Si ponemos en onair, los demás canales van a preview
                 onTallyChange(channelNum, newState);
             };
 
@@ -689,7 +360,6 @@
                         </div>
                     </div>
 
-                    {/* URL PARA OBS */}
                     <div className={`url-container-obs ${copiedObs ? 'copied' : ''}`} onClick={copyObsUrl}>
                         <div className="url-label">
                             <span>📺 PARA OBS/VMIX</span>
@@ -701,7 +371,6 @@
                         </button>
                     </div>
 
-                    {/* URL PARA REPORTERO */}
                     <div className={`url-container-reporter ${copiedReporter ? 'copied' : ''}`} onClick={copyReporterUrl}>
                         <div className="url-label">
                             <span>📱 PARA REPORTERO (CELULAR)</span>
@@ -713,13 +382,12 @@
                         </button>
                     </div>
 
-                    {/* VIDEO PREVIEW */}
                     <video 
                         ref={videoElRef}
                         autoPlay 
                         playsInline 
                         muted
-                        style={{width: '100%', height: '100px', background: '#000', borderRadius: '6px', marginBottom: '10px', objectFit: 'cover', display: status === 'offline' ? 'none' : 'block'}}
+                        style={{width: '100%', height: '120px', background: '#000', borderRadius: '6px', marginBottom: '10px', objectFit: 'cover', display: hasStream ? 'block' : 'none'}}
                     />
 
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
@@ -729,12 +397,12 @@
                             {status === 'preview' && '● PREVIO (MUTEADO)'}
                             {status === 'onair' && '🔴 AL AIRE (AUDIO ON)'}
                         </span>
-                        {status !== 'offline' && (
+                        {hasStream && (
                             <span style={{fontSize: '0.7rem', color: '#64748b'}}>128 kbps</span>
                         )}
                     </div>
 
-                    {status !== 'offline' && (
+                    {hasStream && (
                         <>
                             <div className="vu-container">
                                 <div className="vu-bar" style={{width: `${vuLevel}%`, opacity: audioEnabled ? 1 : 0.3}}></div>
@@ -759,6 +427,7 @@
                             <div style={{display: 'flex', gap: '8px', marginTop: '10px'}}>
                                 <button 
                                     onClick={toggleOnAir}
+                                    disabled={!hasStream}
                                     style={{
                                         flex: 1,
                                         padding: '8px',
@@ -768,7 +437,8 @@
                                         color: status === 'onair' ? 'white' : 'black',
                                         fontWeight: 'bold',
                                         fontSize: '0.75rem',
-                                        cursor: 'pointer'
+                                        cursor: hasStream ? 'pointer' : 'not-allowed',
+                                        opacity: hasStream ? 1 : 0.5
                                     }}
                                 >
                                     {status === 'onair' ? '🔴 AL AIRE' : '● PREVIO'}
@@ -781,9 +451,10 @@
                         </>
                     )}
 
-                    {status === 'offline' && (
-                        <div style={{fontSize: '0.75rem', color: '#64748b', textAlign: 'center', padding: '10px'}}>
-                            Esperando conexión del reportero...
+                    {!hasStream && (
+                        <div style={{fontSize: '0.75rem', color: '#64748b', textAlign: 'center', padding: '20px'}}>
+                            Esperando conexión del reportero...<br/>
+                            <span style={{fontSize: '0.65rem'}}>Comparte la URL amarilla</span>
                         </div>
                     )}
                 </div>
@@ -809,10 +480,7 @@
             const [messages, setMessages] = useState([]);
             const [chatInput, setChatInput] = useState('');
             
-            // Streams de reporteros recibidos en el dashboard
             const [reporterStreams, setReporterStreams] = useState({});
-            
-            // Conexiones con OBS para cada canal
             const [obsConnections, setObsConnections] = useState({});
             
             const [reporterChannel, setReporterChannel] = useState('');
@@ -824,6 +492,13 @@
             const [txLevel, setTxLevel] = useState(0);
             const [tallyMode, setTallyMode] = useState('offline');
             
+            // Dispositivos del transmitter
+            const [videoDevices, setVideoDevices] = useState([]);
+            const [audioDevices, setAudioDevices] = useState([]);
+            const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
+            const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
+            const [showDeviceSelector, setShowDeviceSelector] = useState(true);
+            
             const videoRef = useRef(null);
             const returnVideoRef = useRef(null);
             const peerRef = useRef(null);
@@ -833,6 +508,7 @@
             const messagesEndRef = useRef(null);
             const txAnimRef = useRef(null);
             const returnVideoStreamRef = useRef(null);
+            const producerCallRef = useRef(null);
 
             const [baseUrl, setBaseUrl] = useState('');
 
@@ -847,15 +523,13 @@
                 const prodId = params.get('producer');
 
                 if (mode === 'tx' && room && ch && prodId) {
-                    // Modo transmitter (reportero)
                     setIsProducer(false);
                     setUserMode('tx');
                     setRoomCode(room);
                     setReporterChannel(ch);
                     setProducerId(prodId);
-                    setInRoom(true);
+                    loadTransmitterDevices();
                 } else if (mode === 'obs' && room && ch && prodId) {
-                    // Modo OBS
                     setIsProducer(false);
                     setUserMode('obs');
                     setRoomCode(room);
@@ -863,11 +537,43 @@
                     setProducerId(prodId);
                     setInRoom(true);
                 } else {
-                    // Modo productor
                     setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
                     loadAudioDevices();
                 }
             }, []);
+
+            const loadTransmitterDevices = async () => {
+                try {
+                    // Primero pedir permiso
+                    await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                    
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    
+                    const videos = devices.filter(d => d.kind === 'videoinput');
+                    const audios = devices.filter(d => d.kind === 'audioinput');
+                    
+                    setVideoDevices(videos);
+                    setAudioDevices(audios);
+                    
+                    // Seleccionar defaults
+                    const backCamera = videos.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+                    const frontCamera = videos.find(d => d.label.toLowerCase().includes('front') || d.label.toLowerCase().includes('delantera'));
+                    
+                    if (backCamera) {
+                        setSelectedVideoDevice(backCamera.deviceId);
+                    } else if (videos.length > 0) {
+                        setSelectedVideoDevice(videos[0].deviceId);
+                    }
+                    
+                    if (audios.length > 0) {
+                        setSelectedAudioDevice(audios[0].deviceId);
+                    }
+                    
+                    setInRoom(true);
+                } catch(e) {
+                    alert('Error al acceder a dispositivos: ' + e.message);
+                }
+            };
 
             const loadAudioDevices = async () => {
                 try {
@@ -880,7 +586,6 @@
                 } catch(e) {}
             };
 
-            // Iniciar MQTT
             const initMQTT = (room, peerId, isProd) => {
                 const client = mqtt.connect(MQTT_BROKER, {
                     clientId: `mqtt_${isProd ? 'prod' : 'rep'}_${peerId}_${Date.now()}`
@@ -914,9 +619,9 @@
                 return client;
             };
 
-            // Modo OBS - Recibe del productor
+            // Modo OBS - Se conecta directamente al productor
             useEffect(() => {
-                if (userMode !== 'obs' || !inRoom) return;
+                if (userMode !== 'obs' || !inRoom || !producerId) return;
 
                 const initObs = async () => {
                     try {
@@ -927,72 +632,70 @@
                         peerRef.current = peer;
 
                         peer.on('open', (id) => {
+                            console.log('OBS: Peer abierto con ID:', id);
                             initMQTT(roomCode, id, false);
                             
-                            // El OBS espera que el productor le llame con el stream
-                            peer.on('call', (call) => {
-                                console.log('OBS: Recibiendo llamada del productor');
-                                call.answer(); // Answer without stream
+                            // Llamar al productor para recibir el stream
+                            console.log('OBS: Llamando al productor:', producerId);
+                            const call = peer.call(producerId, new MediaStream());
+                            
+                            call.on('stream', (remoteStream) => {
+                                console.log('OBS: Stream recibido del productor');
+                                setConnectionStatus('SEÑAL RECIBIDA');
                                 
-                                call.on('stream', (remoteStream) => {
-                                    console.log('OBS: Stream recibido');
-                                    setConnectionStatus('SEÑAL RECIBIDA');
-                                    
-                                    if (videoRef.current) {
-                                        videoRef.current.srcObject = remoteStream;
-                                        videoRef.current.play().catch(e => {});
-                                    }
-                                });
-                                
-                                call.on('close', () => {
-                                    console.log('OBS: Llamada cerrada');
-                                    setConnectionStatus('DESCONECTADO');
-                                });
-                                
-                                call.on('error', (err) => {
-                                    console.error('OBS Error en llamada:', err);
-                                });
+                                if (videoRef.current) {
+                                    videoRef.current.srcObject = remoteStream;
+                                    videoRef.current.play().catch(e => {});
+                                }
                             });
-
-                            // Notificar al productor que estamos listos
-                            // Usamos un timeout para asegurar que el peer está listo
-                            setTimeout(() => {
-                                console.log('OBS: Notificando al productor:', producerId);
-                            }, 1000);
+                            
+                            call.on('error', (err) => {
+                                console.error('OBS: Error en llamada:', err);
+                                setConnectionStatus('ERROR LLAMADA');
+                            });
+                            
+                            call.on('close', () => {
+                                console.log('OBS: Llamada cerrada');
+                                setConnectionStatus('DESCONECTADO');
+                            });
                         });
 
                         peer.on('error', (err) => {
-                            console.error('OBS Error:', err);
-                            setConnectionStatus('ERROR');
+                            console.error('OBS Peer Error:', err);
+                            setConnectionStatus('ERROR: ' + err.type);
                         });
 
                     } catch(e) {
+                        console.error('OBS Init Error:', e);
                         setConnectionStatus('ERROR');
                     }
                 };
 
                 initObs();
-            }, [userMode, inRoom]);
+            }, [userMode, inRoom, producerId, roomCode, reporterChannel]);
 
             // Modo Transmitter (Reportero)
             const startTransmission = async () => {
                 try {
                     setConnectionStatus('INICIANDO...');
                     
-                    const stream = await navigator.mediaDevices.getUserMedia({
+                    const constraints = {
                         audio: {
+                            deviceId: selectedAudioDevice ? { exact: selectedAudioDevice } : undefined,
                             echoCancellation: false,
                             noiseSuppression: false,
                             autoGainControl: false,
                             channelCount: 2
                         },
                         video: {
+                            deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
                             width: { ideal: 1280 },
                             height: { ideal: 720 },
-                            facingMode: "environment"
+                            facingMode: selectedVideoDevice ? undefined : "environment"
                         }
-                    });
+                    };
 
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
                     setLocalStream(stream);
                     
                     if (videoRef.current) {
@@ -1004,9 +707,10 @@
                     peerRef.current = peer;
 
                     peer.on('open', (id) => {
+                        console.log('TX: Peer abierto, llamando al productor:', producerId);
                         initMQTT(roomCode, id, false);
 
-                        // Llamar al productor
+                        // Llamar al productor con el stream
                         const call = peer.call(producerId, stream, {
                             metadata: {
                                 name: `Móvil CH${reporterChannel}`,
@@ -1014,16 +718,24 @@
                                 kbps: 128
                             }
                         });
+                        
+                        producerCallRef.current = call;
+
+                        call.on('error', (err) => {
+                            console.error('TX: Error en llamada al productor:', err);
+                            setConnectionStatus('ERROR CONEXIÓN');
+                        });
 
                         setIsTransmitting(true);
                         setConnectionStatus('CONECTADO');
+                        setShowDeviceSelector(false);
 
-                        // Recibir retorno del productor (AUDIO + VIDEO)
+                        // Recibir retorno del productor
                         peer.on('call', (incomingCall) => {
                             console.log('TX: Recibiendo retorno del productor');
                             incomingCall.answer();
                             incomingCall.on('stream', (returnStream) => {
-                                console.log('TX: Retorno recibido (audio+video)');
+                                console.log('TX: Retorno recibido');
                                 if (returnVideoRef.current) {
                                     returnVideoRef.current.srcObject = returnStream;
                                     returnVideoRef.current.play().catch(e => {});
@@ -1050,8 +762,9 @@
                     update();
 
                 } catch(e) {
+                    console.error('Error iniciando transmisión:', e);
                     setConnectionStatus('ERROR CÁMARA/MIC');
-                    alert('Error al acceder a cámara/micrófono');
+                    alert('Error al acceder a cámara/micrófono: ' + e.message);
                 }
             };
 
@@ -1064,6 +777,37 @@
                 setTxLevel(0);
                 setConnectionStatus('DETENIDO');
                 setTallyMode('offline');
+                setShowDeviceSelector(true);
+            };
+
+            const switchCamera = async () => {
+                if (!isTransmitting || !localStream) return;
+                
+                // Detener tracks actuales
+                localStream.getVideoTracks().forEach(t => t.stop());
+                
+                // Encontrar otra cámara
+                const currentDevice = videoDevices.find(d => d.deviceId === selectedVideoDevice);
+                const otherCamera = videoDevices.find(d => d.deviceId !== selectedVideoDevice);
+                
+                if (otherCamera) {
+                    try {
+                        const newStream = await navigator.mediaDevices.getUserMedia({
+                            video: { deviceId: { exact: otherCamera.deviceId } },
+                            audio: false // Mantener audio actual
+                        });
+                        
+                        const newVideoTrack = newStream.getVideoTracks()[0];
+                        const sender = producerCallRef.current?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+                        
+                        if (sender) {
+                            await sender.replaceTrack(newVideoTrack);
+                            setSelectedVideoDevice(otherCamera.deviceId);
+                        }
+                    } catch(e) {
+                        console.error('Error cambiando cámara:', e);
+                    }
+                }
             };
 
             // Modo Productor
@@ -1077,6 +821,7 @@
                 peerRef.current = peer;
 
                 peer.on('open', (id) => {
+                    console.log('Productor: Peer abierto con ID:', id);
                     initMQTT(roomCode, id, true);
                     setConnectionStatus('ONLINE');
                     setInRoom(true);
@@ -1085,27 +830,34 @@
                 // Recibir llamadas de reporteros
                 peer.on('call', (call) => {
                     const channel = call.metadata?.channel;
+                    console.log(`Productor: Llamada entrante del canal ${channel}`, call.metadata);
+                    
                     if (!channel) return;
 
-                    console.log(`Productor: Reportero conectado al canal ${channel}`);
-
-                    call.answer(); // Answer without stream
+                    call.answer(); // Responder sin enviar stream
 
                     call.on('stream', (remoteStream) => {
-                        console.log(`Productor: Stream recibido del canal ${channel}`);
+                        console.log(`Productor: Stream recibido del canal ${channel}`, remoteStream.getTracks());
                         
-                        // Guardar stream para mostrar en dashboard
+                        // Guardar stream
                         setReporterStreams(prev => ({
                             ...prev,
                             [channel]: remoteStream
                         }));
 
                         // Reenviar a OBS si está conectado
-                        const obsConn = obsConnections[channel];
-                        if (obsConn && obsConn.open) {
-                            console.log(`Productor: Reenviando a OBS canal ${channel}`);
-                            const obsCall = peer.call(obsConn.peer, remoteStream);
-                        }
+                        const obsId = `obs_${roomCode}_CH${channel}_`;
+                        console.log(`Productor: Intentando conectar con OBS: ${obsId}`);
+                        
+                        // El OBS debería llamarnos, pero también podemos intentar llamarlo
+                        // Esperamos un momento por si el OBS ya está conectado
+                        setTimeout(() => {
+                            const obsCall = peer.call(obsId, remoteStream);
+                            if (obsCall) {
+                                console.log(`Productor: Llamada a OBS iniciada`);
+                                setObsConnections(prev => ({...prev, [channel]: obsCall}));
+                            }
+                        }, 2000);
                     });
                     
                     call.on('close', () => {
@@ -1116,20 +868,27 @@
                             return newStreams;
                         });
                     });
+                    
+                    call.on('error', (err) => {
+                        console.error(`Productor: Error en canal ${channel}:`, err);
+                    });
                 });
 
                 peer.on('error', (err) => {
                     console.error('Productor Error:', err);
                     setConnectionStatus('ERROR');
                 });
+                
+                // También escuchar conexiones entrantes de OBS
+                peer.on('connection', (conn) => {
+                    console.log('Productor: Conexión de datos recibida:', conn.peer);
+                });
             };
 
             const handleTallyChange = (channel, state) => {
-                // Si ponemos un canal en onair, los demás van a preview (solo uno al aire)
                 const newStates = {...tallyStates};
                 
                 if (state === 'onair') {
-                    // Poner todos los demás en preview o offline
                     Object.keys(newStates).forEach(ch => {
                         if (parseInt(ch) !== channel && newStates[ch] === 'onair') {
                             newStates[ch] = 'preview';
@@ -1143,7 +902,6 @@
                 setTallyStates(newStates);
 
                 if (mqttClientRef.current?.connected) {
-                    // Enviar estado de todos los canales
                     Object.keys(newStates).forEach(ch => {
                         mqttClientRef.current.publish(
                             `sc_radio_v1/${roomCode}/tally`,
@@ -1155,7 +913,6 @@
 
             const toggleReturn = async () => {
                 if (isReturnActive) {
-                    // Detener retorno
                     if (returnStream) returnStream.getTracks().forEach(t => t.stop());
                     if (returnAnimRef.current) cancelAnimationFrame(returnAnimRef.current);
                     if (returnVideoStreamRef.current) {
@@ -1166,7 +923,6 @@
                     setReturnLevel(0);
                 } else {
                     try {
-                        // Crear stream de retorno (AUDIO + VIDEO negro/placeholder)
                         const audioStream = await navigator.mediaDevices.getUserMedia({
                             audio: {
                                 deviceId: selectedReturnDevice ? { exact: selectedReturnDevice } : undefined,
@@ -1177,7 +933,6 @@
                             }
                         });
                         
-                        // Crear video track negro para el retorno
                         const canvas = document.createElement('canvas');
                         canvas.width = 640;
                         canvas.height = 480;
@@ -1185,7 +940,6 @@
                         ctx.fillStyle = '#000000';
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         
-                        // Texto en el video de retorno
                         ctx.fillStyle = '#3b82f6';
                         ctx.font = 'bold 30px Inter';
                         ctx.textAlign = 'center';
@@ -1197,25 +951,24 @@
                         const videoStream = canvas.captureStream(30);
                         returnVideoStreamRef.current = videoStream;
                         
-                        // Combinar audio y video
                         const combinedStream = new MediaStream([
                             ...audioStream.getAudioTracks(),
                             ...videoStream.getVideoTracks()
                         ]);
                         
-                        setReturnStream(audioStream); // Guardar solo el audio para el VU meter
+                        setReturnStream(audioStream);
                         
                         // Enviar a todos los reporteros conectados
                         Object.keys(reporterStreams).forEach(ch => {
-                            if (peerRef.current && reporterStreams[ch]) {
-                                console.log(`Enviando retorno al canal ${ch}`);
-                                const call = peerRef.current.call(`tx_${roomCode}_CH${ch}_`, combinedStream);
+                            if (peerRef.current) {
+                                const txId = `tx_${roomCode}_CH${ch}_`;
+                                console.log(`Enviando retorno a: ${txId}`);
+                                const call = peerRef.current.call(txId, combinedStream);
                             }
                         });
                         
                         setIsReturnActive(true);
 
-                        // VU Meter del retorno
                         const AudioCtx = window.AudioContext || window.webkitAudioContext;
                         returnAudioCtxRef.current = new AudioCtx();
                         const analyser = returnAudioCtxRef.current.createAnalyser();
@@ -1307,6 +1060,59 @@
                                  isTransmitting ? 'CONECTADO' : 'STANDBY'}
                             </div>
 
+                            {/* Selector de dispositivos */}
+                            {showDeviceSelector && !isTransmitting && (
+                                <div style={{background: '#1a1a1a', padding: '15px', borderRadius: '8px', margin: '15px 0'}}>
+                                    <div className="device-selector">
+                                        <label>📹 Cámara</label>
+                                        <select 
+                                            value={selectedVideoDevice} 
+                                            onChange={(e) => setSelectedVideoDevice(e.target.value)}
+                                        >
+                                            {videoDevices.map((d, i) => (
+                                                <option key={d.deviceId} value={d.deviceId}>
+                                                    {d.label || `Cámara ${i+1}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="device-selector" style={{marginTop: '10px'}}>
+                                        <label>🎤 Micrófono</label>
+                                        <select 
+                                            value={selectedAudioDevice} 
+                                            onChange={(e) => setSelectedAudioDevice(e.target.value)}
+                                        >
+                                            {audioDevices.map((d, i) => (
+                                                <option key={d.deviceId} value={d.deviceId}>
+                                                    {d.label || `Micrófono ${i+1}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <button 
+                                        className="btn btn-secondary"
+                                        onClick={async () => {
+                                            // Preview de cámara seleccionada
+                                            try {
+                                                const stream = await navigator.mediaDevices.getUserMedia({
+                                                    video: { deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined },
+                                                    audio: false
+                                                });
+                                                if (videoRef.current) {
+                                                    videoRef.current.srcObject = stream;
+                                                }
+                                            } catch(e) {
+                                                console.error('Error en preview:', e);
+                                            }
+                                        }}
+                                    >
+                                        👁️ Vista Previa
+                                    </button>
+                                </div>
+                            )}
+
                             <video 
                                 ref={videoRef}
                                 autoPlay 
@@ -1317,7 +1123,7 @@
 
                             {isTransmitting && (
                                 <div className="return-video-box">
-                                    <div className="return-video-label">📺 RETORNO DEL ESTUDIO (AUDIO+VIDEO)</div>
+                                    <div className="return-video-label">📺 RETORNO DEL ESTUDIO</div>
                                     <video 
                                         ref={returnVideoRef}
                                         autoPlay 
@@ -1330,12 +1136,21 @@
                             <div className="transmitter-controls">
                                 {!isTransmitting ? (
                                     <button className="transmitter-btn start" onClick={startTransmission}>
-                                        ▶ INICIAR
+                                        ▶ INICIAR TRANSMISIÓN
                                     </button>
                                 ) : (
-                                    <button className="transmitter-btn stop" onClick={stopTransmission}>
-                                        ⏹ DETENER
-                                    </button>
+                                    <>
+                                        <button className="transmitter-btn stop" onClick={stopTransmission}>
+                                            ⏹ DETENER
+                                        </button>
+                                        <button 
+                                            className="transmitter-btn start" 
+                                            onClick={switchCamera}
+                                            style={{background: '#3b82f6', color: 'white'}}
+                                        >
+                                            🔄 CAMBIAR CÁMARA
+                                        </button>
+                                    </>
                                 )}
                             </div>
 
@@ -1445,12 +1260,12 @@
                     <div className="main-content">
                         <div className="channels-panel">
                             <div className="instructions">
-                                <h3>📋 Flujo de Señal v4.0</h3>
-                                <p><strong>1.</strong> Reportero abre URL amarilla en celular<br/>
-                                <strong>2.</strong> Reportero presiona INICIAR → Señal llega al dashboard<br/>
-                                <strong>3.</strong> Usa URL azul en OBS para recibir la señal<br/>
+                                <h3>📋 Instrucciones v4.0</h3>
+                                <p><strong>1.</strong> Comparte URL amarilla con el reportero<br/>
+                                <strong>2.</strong> Reportero selecciona cámara frontal/trasera y micrófono<br/>
+                                <strong>3.</strong> Usa URL azul en OBS Browser Source<br/>
                                 <strong>4.</strong> Solo el canal en "AL AIRE" tiene audio activo<br/>
-                                <strong>5.</strong> Los demás canales están en previo muteados</p>
+                                <strong>5.</strong> Los demás canales permanecen en previo muteados</p>
                             </div>
                             
                             <div className="channels-grid">
@@ -1466,8 +1281,9 @@
                                         baseUrl={baseUrl}
                                         tallyState={tallyStates}
                                         reporterStreams={reporterStreams}
-                                        obsConnections={obsConnections}
-                                        onObsConnect={(conn) => setObsConnections(prev => ({...prev, [ch]: conn}))}
+                                        onStreamUpdate={(stream) => {
+                                            setReporterStreams(prev => ({...prev, [ch]: stream}));
+                                        }}
                                     />
                                 ))}
                             </div>
