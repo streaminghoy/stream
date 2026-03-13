@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall V12 MULTI-CAM (Estable)</title>
+    <title>StreamCall V13 PRO (Audio Fix)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -34,6 +34,8 @@
         .obs-layout { width: 100vw; height: 100vh; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
         .obs-video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
         .obs-status { position: relative; z-index: 9999; background: rgba(0,0,0,0.85); color: #facc15; padding: 20px 30px; border-radius: 12px; font-family: monospace; font-size: 16px; border: 2px solid #facc15; text-align: center; }
+        
+        .interaction-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(220, 38, 38, 0.95); color: white; z-index: 99999; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; cursor: pointer; text-align: center; padding: 20px; text-transform: uppercase; }
 
         /* --- DIRECTOR MULTI-CAM --- */
         .director-layout { display: flex; flex-direction: column; height: 100vh; background: #000; }
@@ -94,14 +96,21 @@
         };
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 
-        // COMPONENTE ESTABLE DE VIDEO: Evita que React reinicie el srcObject al cambiar el estado
-        const VideoPlayer = ({ stream, muted, className }) => {
+        // COMPONENTE ESTABLE DE VIDEO CON DETECCIÓN DE AUTOPLAY
+        const VideoPlayer = ({ stream, muted, className, onPlayError }) => {
             const videoRef = useRef(null);
             useEffect(() => {
                 if (videoRef.current && stream) {
                     videoRef.current.srcObject = stream;
+                    let playPromise = videoRef.current.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.warn("Autoplay bloqueado por el navegador:", error);
+                            if (onPlayError) onPlayError();
+                        });
+                    }
                 }
-            }, [stream]);
+            }, [stream, onPlayError]);
             return <video ref={videoRef} className={className} autoPlay playsInline muted={muted}></video>;
         };
 
@@ -139,22 +148,13 @@
                         const slotId = parseInt(match[1]);
                         call.answer(); 
                         call.on('stream', (stream) => {
-                            setSlots(prev => ({
-                                ...prev,
-                                [slotId]: { ...prev[slotId], connected: true, stream: stream }
-                            }));
+                            setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], connected: true, stream: stream } }));
                         });
                         call.on('close', () => {
-                            setSlots(prev => ({
-                                ...prev,
-                                [slotId]: { ...prev[slotId], connected: false, stream: null }
-                            }));
+                            setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], connected: false, stream: null } }));
                         });
                         call.on('error', () => {
-                            setSlots(prev => ({
-                                ...prev,
-                                [slotId]: { ...prev[slotId], connected: false, stream: null }
-                            }));
+                            setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], connected: false, stream: null } }));
                         });
                     }
                 });
@@ -175,15 +175,11 @@
                     try {
                         const s = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: selectedAudio }, video: true });
                         returnStreamRef.current = s;
-                        
-                        // FIX: Escalonar las llamadas para no saturar el servidor PeerJS
                         let delay = 0;
                         [1, 2, 3, 4].forEach(slotId => {
                             if (slots[slotId].connected) {
-                                setTimeout(() => {
-                                    peer.current.call(`sc_guest_${roomName.toUpperCase()}_${slotId}`, s);
-                                }, delay);
-                                delay += 300; // 300ms entre cada llamada
+                                setTimeout(() => { peer.current.call(`sc_guest_${roomName.toUpperCase()}_${slotId}`, s); }, delay);
+                                delay += 300;
                             }
                         });
                         setTalkbackActive(true);
@@ -249,6 +245,7 @@
         const ObsView = ({ roomName, slotId }) => {
             const [status, setStatus] = useState(`ESPERANDO SEÑAL (MÓVIL ${slotId})`);
             const [stream, setStream] = useState(null);
+            const [needsInteraction, setNeedsInteraction] = useState(false);
             const peer = useRef(null);
 
             useEffect(() => {
@@ -267,9 +264,20 @@
                 return () => peer.current?.destroy();
             }, [roomName, slotId]);
 
+            const handleInteract = () => {
+                setNeedsInteraction(false);
+                const videos = document.querySelectorAll('video');
+                videos.forEach(v => v.play().catch(e => console.log(e)));
+            };
+
             return (
                 <div className="obs-layout">
-                    {stream && <VideoPlayer stream={stream} muted={false} className="obs-video" />}
+                    {needsInteraction && (
+                        <div className="interaction-overlay" onClick={handleInteract}>
+                            🎵 HAZ CLIC AQUÍ PARA HABILITAR EL AUDIO<br/><span style={{fontSize:'1rem', marginTop:'10px', display:'block'}}>Si ves esto en OBS, marca "Controlar audio mediante OBS" en las propiedades de la fuente.</span>
+                        </div>
+                    )}
+                    {stream && <VideoPlayer stream={stream} muted={false} className="obs-video" onPlayError={() => setNeedsInteraction(true)} />}
                     {!stream && <div className="obs-status">{status}</div>}
                 </div>
             );
@@ -304,7 +312,7 @@
                         const newVideoTrack = newVideoState.getVideoTracks()[0];
                         localStream.current.removeTrack(videoTrack);
                         localStream.current.addTrack(newVideoTrack);
-                        setMyStreamState({...localStream.current}); // Forzar render
+                        setMyStreamState({...localStream.current});
                         
                         Object.values(peer.current.connections).forEach(connArray => {
                             connArray.forEach(connection => {
@@ -323,9 +331,7 @@
                 
                 const mq = mqtt.connect(MQTT_BROKER);
                 mqttClient.current = mq;
-                mq.on('connect', () => {
-                    mq.subscribe(`sc_tally/${roomName.toUpperCase()}/${slotId}`);
-                });
+                mq.on('connect', () => { mq.subscribe(`sc_tally/${roomName.toUpperCase()}/${slotId}`); });
                 mq.on('message', (t, msg) => {
                     const data = JSON.parse(msg.toString());
                     setTally(data.state);
@@ -345,21 +351,13 @@
                         peer.current = new Peer(`sc_guest_${baseId}_${slotId}`, PEER_CONFIG);
                         
                         peer.current.on('open', () => {
-                            // FIX: Escalonar las llamadas de salida para asegurar la conexión
-                            setTimeout(() => {
-                                peer.current.call(`sc_dir_${baseId}`, localStream.current);
-                            }, 200);
-                            
-                            setTimeout(() => {
-                                peer.current.call(`sc_obs_${baseId}_${slotId}`, localStream.current);
-                            }, 600);
+                            setTimeout(() => { peer.current.call(`sc_dir_${baseId}`, localStream.current); }, 200);
+                            setTimeout(() => { peer.current.call(`sc_obs_${baseId}_${slotId}`, localStream.current); }, 600);
                         });
 
                         peer.current.on('call', (c) => {
                             c.answer(localStream.current); 
-                            c.on('stream', (rem) => { 
-                                setReturnStream(rem);
-                            });
+                            c.on('stream', (rem) => { setReturnStream(rem); });
                         });
                     } catch (e) { alert("Error cámara/micrófono"); }
                 };
@@ -425,9 +423,7 @@
                 let s = params.get('slot') || '1';
                 
                 if (m && r) { 
-                    setRoomName(r); 
-                    setMode(m); 
-                    setSlotId(s);
+                    setRoomName(r); setMode(m); setSlotId(s);
                     if (m === 'obs') document.body.classList.add('obs-mode'); 
                 } else {
                     setRoomName(Math.random().toString(36).substring(2, 6).toUpperCase());
