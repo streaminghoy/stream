@@ -249,30 +249,29 @@
                 const stream = reporterStreams[channelNum];
                 if (stream && stream.active) {
                     setHasStream(true);
+                    
                     if (videoElRef.current) {
                         videoElRef.current.srcObject = stream;
-                        videoElRef.current.play().catch(e => console.log('Error playing video:', e));
+                        videoElRef.current.play().catch(e => console.error('Video Play Error:', e));
                     }
                     
                     if (audioElRef.current) {
                         audioElRef.current.srcObject = stream;
+                        // El volumen se controla aquí
                         audioElRef.current.volume = volume;
-                        audioElRef.current.muted = true;
-                        audioElRef.current.play().catch(e => console.log('Error playing audio:', e));
+                        // Si está en PREVIEW, muteamos. Si está ON AIR, desmuteamos.
+                        audioElRef.current.muted = (tallyState[channelNum] !== 'onair');
+                        
+                        audioElRef.current.play().catch(e => console.error('Audio Play Error:', e));
                     }
                     
                     setupVUMeter(stream);
-                    if (status === 'offline') {
-                        setStatus('preview');
-                    }
+                    if (status === 'offline') setStatus('preview');
                 } else {
                     setHasStream(false);
-                    if (status !== 'offline') {
-                        setStatus('offline');
-                        setVuLevel(0);
-                    }
+                    if (status !== 'offline') setStatus('offline');
                 }
-            }, [reporterStreams[channelNum]]);
+            }, [reporterStreams[channelNum], tallyState[channelNum]]); // Agregamos tallyState a la dependencia
 
             // Control de tally y audio
             useEffect(() => {
