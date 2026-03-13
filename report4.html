@@ -515,26 +515,7 @@
             const [txLevel, setTxLevel] = useState(0);
             const [tallyMode, setTallyMode] = useState('offline');
             
-            // Dispositivos del transmitter
-            const [videoDevices, setVideoDevices] = useState([]);
-            const [audioDevices, setAudioDevices] = useState([]);
-            const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
-            const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
-            const [showDeviceSelector, setShowDeviceSelector] = useState(true);
-            
-            const videoRef = useRef(null);
-            const returnVideoRef = useRef(null);
-            const peerRef = useRef(null);
-            const mqttClientRef = useRef(null);
-            const returnAudioCtxRef = useRef(null);
-            const returnAnimRef = useRef(null);
-            const messagesEndRef = useRef(null);
-            const txAnimRef = useRef(null);
-            const returnVideoStreamRef = useRef(null);
-            const producerCallRef = useRef(null);
-
-            const [baseUrl, setBaseUrl] = useState('');
-
+            // 3. useEffect: Gestión de entrada y dispositivos (MODIFICADO)
             useEffect(() => {
                 const url = window.location.href.split('?')[0];
                 setBaseUrl(url);
@@ -551,6 +532,7 @@
                     setRoomCode(room);
                     setReporterChannel(ch);
                     setProducerId(prodId);
+                    // IMPORTANTE: Cargamos dispositivos para el celular
                     loadTransmitterDevices();
                 } else if (mode === 'obs' && room && ch && prodId) {
                     setIsProducer(false);
@@ -560,27 +542,38 @@
                     setProducerId(prodId);
                     setInRoom(true);
                 } else {
+                    // Si es el PRODUCTOR, creamos un ID de sala y cargamos sus micros
+                    // Mantenemos el nombre del productor para el ID del Peer de forma estática
                     setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase());
                     loadAudioDevices();
                 }
             }, []);
 
+            // Cargador de dispositivos del reportero (MODIFICADO)
             const loadTransmitterDevices = async () => {
                 try {
-                    // Primero pedir permiso
-                    await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                    // Pedimos permisos con constraints de alta calidad para radio/TV
+                    await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }, 
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    });
                     
                     const devices = await navigator.mediaDevices.enumerateDevices();
-                    
                     const videos = devices.filter(d => d.kind === 'videoinput');
                     const audios = devices.filter(d => d.kind === 'audioinput');
                     
                     setVideoDevices(videos);
                     setAudioDevices(audios);
                     
-                    // Seleccionar defaults
+                    // Selección inteligente de cámara
                     const backCamera = videos.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-                    const frontCamera = videos.find(d => d.label.toLowerCase().includes('front') || d.label.toLowerCase().includes('delantera'));
                     
                     if (backCamera) {
                         setSelectedVideoDevice(backCamera.deviceId);
@@ -594,55 +587,12 @@
                     
                     setInRoom(true);
                 } catch(e) {
-                    alert('Error al acceder a dispositivos: ' + e.message);
+                    console.error('Error dispositivos:', e);
+                    alert('Error: Por favor permite el acceso a la cámara y micrófono.');
                 }
             };
 
-            const loadAudioDevices = async () => {
-                try {
-                    const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    tempStream.getTracks().forEach(t => t.stop());
-                    const devs = await navigator.mediaDevices.enumerateDevices();
-                    const audios = devs.filter(d => d.kind === 'audioinput');
-                    setReturnDevices(audios);
-                    if (audios.length > 0) setSelectedReturnDevice(audios[0].deviceId);
-                } catch(e) {}
-            };
-
-            const initMQTT = (room, peerId, isProd) => {
-                const client = mqtt.connect(MQTT_BROKER, {
-                    clientId: `mqtt_${isProd ? 'prod' : 'rep'}_${peerId}_${Date.now()}`
-                });
-                
-                client.on('connect', () => {
-                    client.subscribe(`sc_radio_v1/${room}/tally`);
-                    if (isProd) client.subscribe(`sc_radio_v1/${room}/chat`);
-                });
-
-                client.on('message', (topic, msg) => {
-                    try {
-                        const data = JSON.parse(msg.toString());
-                        
-                        if (topic.includes('/tally')) {
-                            if (userMode === 'tx' && data.channel == reporterChannel) {
-                                setTallyMode(data.state);
-                            } else if (isProd) {
-                                setTallyStates(prev => ({
-                                    ...prev,
-                                    [data.channel]: data.state
-                                }));
-                            }
-                        } else if (topic.includes('/chat') && isProd) {
-                            setMessages(prev => [...prev, data].slice(-50));
-                        }
-                    } catch(e) {}
-                });
-
-                mqttClientRef.current = client;
-                return client;
-            };
-
-            // Modo OBS - Se conecta directamente al productor
+            // Modo OBS - Receptor de señal (CORREGIDO PARA AUDIO Y VIDEO)
             useEffect(() => {
                 if (userMode !== 'obs' || !inRoom || !producerId) return;
 
@@ -650,42 +600,56 @@
                     try {
                         setConnectionStatus('CONECTANDO...');
                         
-                        const myId = `obs_${roomCode}_CH${reporterChannel}_${Math.random().toString(16).slice(2, 8)}`;
+                        // ID FIJO y predecible (sin el random al final) 
+                        // para que el Productor te encuentre fácil
+                        const myId = `obs_${roomCode}_CH${reporterChannel}`;
+                        
+                        if (peerRef.current) {
+                            peerRef.current.destroy();
+                        }
+                        
                         const peer = new Peer(myId, PEER_CONFIG);
                         peerRef.current = peer;
 
                         peer.on('open', (id) => {
-                            console.log('OBS: Peer abierto con ID:', id);
+                            console.log('OBS: Receptor listo con ID:', id);
                             initMQTT(roomCode, id, false);
+                            setConnectionStatus('ESPERANDO SEÑAL...');
+                        });
+
+                        // RECIBIR LA LLAMADA DEL PRODUCTOR
+                        // Esto permite que el audio fluya correctamente
+                        peer.on('call', (incomingCall) => {
+                            console.log('OBS: Recibiendo llamada del Productor...');
                             
-                            // Llamar al productor para recibir el stream
-                            console.log('OBS: Llamando al productor:', producerId);
-                            const call = peer.call(producerId, new MediaStream());
-                            
-                            call.on('stream', (remoteStream) => {
-                                console.log('OBS: Stream recibido del productor');
-                                setConnectionStatus('SEÑAL RECIBIDA');
+                            // Contestamos para recibir el stream
+                            incomingCall.answer();
+
+                            incomingCall.on('stream', (remoteStream) => {
+                                console.log('OBS: ¡Señal de audio y video recibida!');
+                                setConnectionStatus('EN VIVO');
                                 
                                 if (videoRef.current) {
                                     videoRef.current.srcObject = remoteStream;
-                                    videoRef.current.play().catch(e => {});
+                                    // IMPORTANTE: Muted en false y volumen en 1 para que OBS detecte el audio
+                                    videoRef.current.muted = false;
+                                    videoRef.current.volume = 1;
+                                    
+                                    videoRef.current.play().catch(e => {
+                                        console.warn('OBS: El audio requiere interacción o permisos.');
+                                    });
                                 }
-                            });
-                            
-                            call.on('error', (err) => {
-                                console.error('OBS: Error en llamada:', err);
-                                setConnectionStatus('ERROR LLAMADA');
-                            });
-                            
-                            call.on('close', () => {
-                                console.log('OBS: Llamada cerrada');
-                                setConnectionStatus('DESCONECTADO');
                             });
                         });
 
                         peer.on('error', (err) => {
                             console.error('OBS Peer Error:', err);
-                            setConnectionStatus('ERROR: ' + err.type);
+                            // Si el ID ya existe, es que quedó una sesión colgada
+                            if(err.type === 'id-taken') {
+                                setConnectionStatus('ID OCUPADO - REINTENTANDO...');
+                            } else {
+                                setConnectionStatus('ERROR: ' + err.type);
+                            }
                         });
 
                     } catch(e) {
@@ -695,9 +659,13 @@
                 };
 
                 initObs();
+                
+                return () => {
+                    if (peerRef.current) peerRef.current.destroy();
+                };
             }, [userMode, inRoom, producerId, roomCode, reporterChannel]);
 
-            // Modo Transmitter (Reportero)
+            // Modo Transmitter (Reportero) - MODIFICADO
             const startTransmission = async () => {
                 try {
                     setConnectionStatus('INICIANDO...');
@@ -705,16 +673,14 @@
                     const constraints = {
                         audio: {
                             deviceId: selectedAudioDevice ? { exact: selectedAudioDevice } : undefined,
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false,
-                            channelCount: 2
+                            echoCancellation: true, // Mejor activarlo para retorno
+                            noiseSuppression: true,
+                            autoGainControl: true
                         },
                         video: {
                             deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
                             width: { ideal: 1280 },
-                            height: { ideal: 720 },
-                            facingMode: selectedVideoDevice ? undefined : "environment"
+                            height: { ideal: 720 }
                         }
                     };
 
@@ -725,13 +691,83 @@
                         videoRef.current.srcObject = stream;
                     }
 
-                    const myId = `tx_${roomCode}_CH${reporterChannel}_${Math.random().toString(16).slice(2, 8)}`;
+                    // ID FIJO: Quitamos el random para que el productor pueda encontrarnos siempre
+                    const myId = `tx_${roomCode}_CH${reporterChannel}`;
+                    
+                    // Si ya existe un peer (de un intento anterior), lo destruimos
+                    if (peerRef.current) peerRef.current.destroy();
+                    
                     const peer = new Peer(myId, PEER_CONFIG);
                     peerRef.current = peer;
 
                     peer.on('open', (id) => {
-                        console.log('TX: Peer abierto, llamando al productor:', producerId);
+                        console.log('TX: Conectado con ID:', id);
                         initMQTT(roomCode, id, false);
+
+                        // LLAMAR AL PRODUCTOR
+                        const call = peer.call(producerId, stream, {
+                            metadata: {
+                                name: `Móvil CH${reporterChannel}`,
+                                channel: parseInt(reporterChannel),
+                                kbps: 128
+                            }
+                        });
+                        
+                        producerCallRef.current = call;
+                        setIsTransmitting(true);
+                        setConnectionStatus('CONECTADO');
+                        setShowDeviceSelector(false);
+                    });
+
+                    // RECIBIR RETORNO (AUDIO Y VIDEO DEL ESTUDIO)
+                    peer.on('call', (incomingCall) => {
+                        console.log('TX: Recibiendo retorno del estudio...');
+                        // Respondemos para aceptar el video/audio de vuelta
+                        incomingCall.answer(); 
+                        
+                        incomingCall.on('stream', (remoteReturnStream) => {
+                            console.log('TX: Señal de retorno activa');
+                            if (returnVideoRef.current) {
+                                returnVideoRef.current.srcObject = remoteReturnStream;
+                                // Muy importante: desmutear el retorno para oír al director
+                                returnVideoRef.current.muted = false;
+                                returnVideoRef.current.play().catch(e => console.error("Error play retorno:", e));
+                            }
+                        });
+                    });
+
+                    // Manejo de errores de conexión
+                    peer.on('error', (err) => {
+                        console.error('Peer Error:', err);
+                        if (err.type === 'id-taken') {
+                            setConnectionStatus('ID OCUPADO - REINTENTANDO...');
+                        }
+                    });
+
+                    // VU Meter del reportero
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    const ctx = new AudioCtx();
+                    const analyser = ctx.createAnalyser();
+                    const source = ctx.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    const update = () => {
+                        if (!peerRef.current || peerRef.current.destroyed) return;
+                        analyser.getByteFrequencyData(dataArray);
+                        let sum = 0;
+                        for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                        setTxLevel(Math.min((sum / dataArray.length) * 2, 100));
+                        txAnimRef.current = requestAnimationFrame(update);
+                    };
+                    update();
+
+                } catch(e) {
+                    console.error('Error iniciando transmisión:', e);
+                    setConnectionStatus('ERROR CÁMARA/MIC');
+                    alert('Error: ' + e.message);
+                }
+            };
 
                         // Llamar al productor con el stream
                         const call = peer.call(producerId, stream, {
@@ -806,29 +842,42 @@
             const switchCamera = async () => {
                 if (!isTransmitting || !localStream) return;
                 
-                // Detener tracks actuales
-                localStream.getVideoTracks().forEach(t => t.stop());
-                
-                // Encontrar otra cámara
-                const currentDevice = videoDevices.find(d => d.deviceId === selectedVideoDevice);
+                // 1. Buscamos la otra cámara
                 const otherCamera = videoDevices.find(d => d.deviceId !== selectedVideoDevice);
                 
                 if (otherCamera) {
                     try {
+                        // 2. Pedimos el nuevo track de video
                         const newStream = await navigator.mediaDevices.getUserMedia({
-                            video: { deviceId: { exact: otherCamera.deviceId } },
-                            audio: false // Mantener audio actual
+                            video: { 
+                                deviceId: { exact: otherCamera.deviceId },
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 }
+                            },
+                            audio: false // Fundamental: NO pedir audio para no cortar la voz
                         });
                         
                         const newVideoTrack = newStream.getVideoTracks()[0];
+                        
+                        // 3. Reemplazamos el track en el stream que ves en la pantalla del móvil
+                        const oldVideoTrack = localStream.getVideoTracks()[0];
+                        if (oldVideoTrack) {
+                            oldVideoTrack.stop(); // Cerramos la cámara anterior para no gastar batería
+                            localStream.removeTrack(oldVideoTrack);
+                        }
+                        localStream.addTrack(newVideoTrack);
+
+                        // 4. Reemplazamos el track en la conexión que va al Productor (y de ahí a OBS)
                         const sender = producerCallRef.current?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
                         
                         if (sender) {
                             await sender.replaceTrack(newVideoTrack);
                             setSelectedVideoDevice(otherCamera.deviceId);
+                            console.log("Cámara cambiada y transmitiendo...");
                         }
                     } catch(e) {
                         console.error('Error cambiando cámara:', e);
+                        alert("Error al acceder a la otra cámara.");
                     }
                 }
             };
@@ -1085,20 +1134,49 @@
                 };
             }, []);
 
-            // --- VISTA DE OBS ---
+            // --- VISTA DE OBS (MODIFICADA PARA FORZAR AUDIO) ---
             if (userMode === 'obs' && inRoom) {
                 return (
-                    <div className="obs-view">
+                    <div className="obs-view" style={{ background: '#000', width: '100vw', height: '100vh' }}>
                         <video 
                             ref={videoRef}
                             autoPlay 
                             playsInline
+                            // Eliminamos 'muted' para que el audio fluya a OBS
+                            // Agregamos volume para asegurar que esté al máximo
+                            onLoadedMetadata={(e) => {
+                                e.target.volume = 1;
+                                e.target.muted = false;
+                            }}
                             className="obs-video"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
-                        <div className="obs-overlay">
-                            CANAL {reporterChannel} • {connectionStatus}
+                        
+                        {/* Overlay informativo (se puede ocultar en OBS con CSS si quieres) */}
+                        <div className="obs-overlay" style={{
+                            position: 'absolute', 
+                            top: '10px', 
+                            left: '10px', 
+                            background: 'rgba(0,0,0,0.5)', 
+                            color: 'white', 
+                            padding: '5px', 
+                            fontSize: '12px',
+                            fontFamily: 'monospace'
+                        }}>
+                            CH {reporterChannel} | {connectionStatus}
                         </div>
-                        <div className={`obs-tally ${tallyMode}`}></div>
+
+                        {/* Tally visual para el retorno de cámara si es necesario */}
+                        <div className={`obs-tally ${tallyMode}`} style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '10px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: tallyMode === 'onair' ? '#ef4444' : tallyMode === 'preview' ? '#f59e0b' : '#333',
+                            boxShadow: tallyMode === 'onair' ? '0 0 15px #ef4444' : 'none'
+                        }}></div>
                     </div>
                 );
             }
