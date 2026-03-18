@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamMaster Suite - Unified Overlay</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Oswald:wght@500;700&display=swap');
+        
+        html, body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; height: 100%; overflow: hidden; }
+        body.dashboard-mode { background-color: #0f172a; color: white; overflow-y: auto !important; }
+        body.overlay-mode { background-color: transparent !important; }
+
+        /* --- ESTILO SELECCIÓN (EL DE LA IMAGEN) --- */
+        .selection-widget {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .sel-header {
+            width: 100%;
+            background: #0047ff;
+            color: white;
+            padding: 8px 0;
+            text-align: center;
+            font-weight: 900;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        .sel-body {
+            width: 95%;
+            background: #0a0e1a;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.2;
+            border-bottom: 4px solid #0047ff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .sel-clock-wrap {
+            margin-top: -10px;
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, #1a2a4a 0%, #050a14 100%);
+            border: 6px solid #eab308;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .sel-date { font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 15px; padding: 1px 10px; margin-bottom: 5px; }
+        .sel-time { font-family: 'Oswald', sans-serif; font-size: 2.8rem; font-weight: 500; line-height: 1; }
+        .sel-st { border-top: 1px solid rgba(255,255,255,0.2); width: 80%; margin-top: 5px; padding-top: 2px; font-size: 1.2rem; }
+
+        /* --- TICKER CLÁSICO --- */
+        .master-ticker {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 60px;
+            background: #0f172a; display: flex; align-items: center; z-index: 100;
+        }
+        .ticker-label { height: 100%; display: flex; align-items: center; padding: 0 30px; font-weight: 900; color: white; font-size: 1.2rem; }
+        .ticker-scroll { flex: 1; overflow: hidden; white-space: nowrap; color: white; font-size: 1.3rem; font-weight: 700; }
+
+        @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Dashboard Styles */
+        .panel { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
+        .btn-action { background: #334155; padding: 8px 15px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; transition: 0.2s; }
+        .btn-action.active { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const App = () => {
+            const [mode, setMode] = useState('dashboard');
+            const [status, setStatus] = useState('offline');
+            const [time, setTime] = useState(new Date());
+            const clientRef = useRef(null);
+
+            const [config, setConfig] = useState({
+                id: 'stream_' + Math.floor(Math.random() * 999),
+                style: 'news-style', // 'news-style' (Imagen) | 'ticker'
+                color: '#0047ff',
+                visible: true,
+                title: 'SELECCIÓN',
+                content: 'SCALONI DIO LA LISTA PARA EL AMISTOSO DEL 31 DE MARZO',
+                city: 'Buenos Aires',
+                temp: 23.9,
+                rssUrl: 'https://feeds.elpais.com/mr/elpais/EM/cl/portada.xml',
+                speed: 30
+            });
+
+            // Reloj
+            useEffect(() => {
+                const t = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(t);
+            }, []);
+
+            // MQTT Logic
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const m = params.get('mode') || 'dashboard';
+                const session = params.get('id') || config.id;
+                setMode(m);
+                
+                document.body.className = m + '-mode';
+
+                const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+                client.on('connect', () => {
+                    setStatus('online');
+                    client.subscribe(`streammaster/${session}`);
+                });
+
+                client.on('message', (topic, msg) => {
+                    if (m === 'overlay') setConfig(JSON.parse(msg.toString()));
+                });
+
+                clientRef.current = client;
+                return () => client.end();
+            }, []);
+
+            const update = (newConf) => {
+                setConfig(newConf);
+                if (clientRef.current?.connected) {
+                    clientRef.current.publish(`streammaster/${newConf.id}`, JSON.stringify(newConf), { retain: true });
+                }
+            };
+
+            const fetchWeather = async () => {
+                try {
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=-34.61&longitude=-58.38&current_weather=true`);
+                    const data = await res.json();
+                    update({...config, temp: data.current_weather.temperature});
+                } catch(e) { alert("Error clima"); }
+            };
+
+            if (mode === 'overlay') {
+                if (!config.visible) return null;
+                return (
+                    <div className="relative w-full h-full">
+                        {config.style === 'news-style' ? (
+                            <div className="selection-widget">
+                                <div className="sel-header" style={{backgroundColor: config.color}}>{config.title}</div>
+                                <div className="sel-body" style={{borderBottomColor: config.color}}>{config.content}</div>
+                                <div className="sel-clock-wrap">
+                                    <div className="sel-date">
+                                        <span className="font-bold">{time.getDate()}</span> Mar
+                                    </div>
+                                    <div className="sel-time">
+                                        {time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}
+                                    </div>
+                                    <div className="sel-st">
+                                        ST <span className="font-bold">{config.temp}°</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="master-ticker" style={{borderTop: `4px solid ${config.color}`}}>
+                                <div className="ticker-label" style={{backgroundColor: config.color}}>{config.title}</div>
+                                <div className="ticker-scroll">
+                                    <div style={{animation: `scroll ${config.speed}s linear infinite`}}>
+                                        • {config.content} • {config.content}
+                                    </div>
+                                </div>
+                                <div className="bg-black h-full px-4 flex items-center font-bold">
+                                    {time.getHours()}:{time.getMinutes().toString().padStart(2, '0')} | {config.temp}°
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-8 max-w-4xl mx-auto">
+                    <div className="flex justify-between items-center mb-8 bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <h1 className="text-2xl font-black italic">STREAM<span className="text-blue-500">MASTER</span> <span className="text-xs bg-blue-600 px-2 py-1 rounded">V5</span></h1>
+                        <div className="flex gap-4 items-center">
+                            <span className={status === 'online' ? 'text-green-400' : 'text-red-400'}>● {status.toUpperCase()}</span>
+                            <button className="bg-blue-600 px-4 py-2 rounded font-bold text-sm" onClick={() => {
+                                const url = `${window.location.href.split('?')[0]}?mode=overlay&id=${config.id}`;
+                                navigator.clipboard.writeText(url);
+                                alert("URL de OBS Copiada");
+                            }}>COPIAR LINK OBS</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="panel flex flex-col gap-4">
+                            <h2 className="text-blue-400 font-bold border-b border-slate-700 pb-2">CONTENIDO</h2>
+                            <div>
+                                <label className="text-xs text-slate-400">TÍTULO (HEADER)</label>
+                                <input className="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1" 
+                                    value={config.title} onChange={e => update({...config, title: e.target.value.toUpperCase()})} />
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-400">TEXTO PRINCIPAL</label>
+                                <textarea className="w-full bg-slate-900 border border-slate-700 p-2 rounded mt-1 h-24" 
+                                    value={config.content} onChange={e => update({...config, content: e.target.value.toUpperCase()})} />
+                            </div>
+                        </div>
+
+                        <div className="panel flex flex-col gap-4">
+                            <h2 className="text-blue-400 font-bold border-b border-slate-700 pb-2">ESTILO Y CLIMA</h2>
+                            <div className="flex gap-2">
+                                <button className={`flex-1 btn-action ${config.style==='news-style'?'active':''}`} onClick={()=>update({...config, style:'news-style'})}>NOTICIERO (IMAGEN)</button>
+                                <button className={`flex-1 btn-action ${config.style==='ticker'?'active':''}`} onClick={()=>update({...config, style:'ticker'})}>CINTA (TICKER)</button>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <label className="text-xs text-slate-400">COLOR ACENTO</label>
+                                    <input type="color" className="w-full h-10 rounded mt-1 bg-transparent cursor-pointer" 
+                                        value={config.color} onChange={e => update({...config, color: e.target.value})} />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="text-xs text-slate-400">TEMPERATURA (°C)</label>
+                                    <div className="flex gap-2 mt-1">
+                                        <input type="number" className="w-full bg-slate-900 p-2 rounded" value={config.temp} 
+                                            onChange={e => update({...config, temp: e.target.value})} />
+                                        <button className="bg-slate-700 p-2 rounded" onClick={fetchWeather}>☁️</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button className={`w-full py-3 rounded font-bold ${config.visible ? 'bg-green-600' : 'bg-red-600'}`} 
+                                onClick={()=>update({...config, visible: !config.visible})}>
+                                {config.visible ? 'WIDGET ACTIVO' : 'WIDGET OCULTO'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
