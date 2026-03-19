@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Unified V5 - Weather & News</title>
+    <title>StreamMaster PRO - Zapping Style</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -12,26 +12,148 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
-        /* --- TUS ESTILOS ORIGINALES INTEGRADOS --- */
-        html, body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; width: 100%; height: 100%; }
-        body.dashboard-mode { background-color: #0f172a; color: white; overflow-y: auto !important; }
-        body.overlay-mode { background-color: transparent !important; overflow: hidden !important; }
-
-        /* Clima Styles */
-        .weather-pill { position: absolute; top: 40px; right: 40px; background: rgba(15, 23, 42, 0.9); padding: 10px 25px; border-radius: 50px; display: flex; align-items: center; gap: 15px; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: white; }
-        .weather-card { position: absolute; top: 150px; left: 50px; min-width: 300px; background: rgba(255,255,255,0.95); color: #0f172a; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
-        .forecast-container { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; }
-        .fc-card { background: rgba(15, 23, 42, 0.95); width: 220px; padding: 20px; border-radius: 15px; text-align: center; color: white; border: 2px solid rgba(255,255,255,0.1); }
-
-        /* News Styles */
-        .news-ticker { position: absolute; bottom: 30px; left: 0; width: 100%; height: 70px; background: #0f172a; border-top: 6px solid; display: flex; align-items: center; }
-        .ticker-label { height: 100%; padding: 0 40px; display: flex; align-items: center; font-weight: 900; color: white; font-size: 1.8rem; }
-        .ticker-content { flex: 1; overflow: hidden; white-space: nowrap; height: 100%; display: flex; align-items: center; }
-        .ticker-move { display: inline-block; font-size: 1.6rem; font-weight: 700; color: white; padding-left: 100%; }
-
-        @keyframes scroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+        /* --- ESTILOS BASE --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Oswald:wght@500;700&display=swap');
         
-        /* Dashboard UI */
+        html, body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; width: 100%; height: 100%; overflow: hidden; }
+        body.dashboard-mode { background-color: #0f172a; color: white; overflow-y: auto !important; }
+        body.overlay-mode { background-color: transparent !important; }
+
+        /* --- NUEVO DISEÑO ZAPPING STYLE --- */
+
+        /* CONTENEDOR PRINCIPAL (Abajo Izquierda) */
+        .zapping-container {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 1. TARJETA DE NOTICIA (Rectángulo redondeado arriba) */
+        .zap-news-card {
+            width: 380px;
+            background: rgba(10, 14, 26, 0.95);
+            border-radius: 18px;
+            overflow: hidden;
+            border-bottom: 5px solid; /* Color dinámico */
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .zap-news-card.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .zap-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 3px solid rgba(255,255,255,0.1);
+        }
+        
+        .zap-card-body {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .zap-card-source {
+            font-size: 0.9rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            /* Color dinámico */
+        }
+        
+        .zap-card-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            line-height: 1.3;
+            color: white;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* 2. WIDGET CIRCULAR (Reloj y Clima abajo) */
+        .zap-clock-widget {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, #1a2a4a 0%, #050a14 100%);
+            border: 8px solid #eab308; /* Borde amarillo fijo como la imagen */
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 30px rgba(0,0,0,1), 0 15px 30px rgba(0,0,0,0.7);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animación interna del círculo */
+        .zap-clock-widget::before {
+            content: '';
+            position: absolute;
+            width: 150%;
+            height: 150%;
+            background: conic-gradient(from 0deg, transparent, rgba(59, 130, 246, 0.2), transparent 50%);
+            animation: rotateBg 6s linear infinite;
+            z-index: 1;
+        }
+
+        .zap-clock-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: white;
+        }
+
+        .zap-time {
+            font-family: 'Oswald', sans-serif;
+            font-size: 3.8rem;
+            font-weight: 500;
+            line-height: 1;
+            margin-bottom: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .zap-temp-box {
+            border-top: 1px solid rgba(255,255,255,0.3);
+            width: 100px;
+            padding-top: 2px;
+            margin-top: 5px;
+        }
+
+        .zap-temp {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        .zap-st {
+            font-size: 0.9rem;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-right: 4px;
+        }
+
+        /* --- ANIMACIONES --- */
+        @keyframes rotateBg {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* UI Dashboard */
         .panel { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
         input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; }
         .btn { background: #334155; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
@@ -48,23 +170,53 @@
         const App = () => {
             const [mode, setMode] = useState('dashboard');
             const [status, setStatus] = useState('offline');
+            const [time, setTime] = useState(new Date());
+            const [cardActive, setCardActive] = useState(true); // Para la animación de fade
             const clientRef = useRef(null);
 
             // --- ESTADO UNIFICADO ---
             const [data, setData] = useState({
-                sessionId: 'stream_' + Math.floor(Math.random() * 9999),
+                sessionId: 'stream_zapping_' + Math.floor(Math.random() * 9999),
+                visible: true,
                 weather: {
-                    visible: false, style: 'impact', view: 'current', city: 'Buenos Aires', temp: 24, desc: 'Soleado',
-                    forecast: { morn: 18, aft: 26, night: 20 }
+                    city: 'Buenos Aires', temp: 23.9,
                 },
                 newsConfig: {
-                    visible: false, style: 'ticker', activeIndex: 0, feedTitle: 'NOTICIAS', color: '#ef4444', speed: 60, rssUrl: 'https://feeds.elpais.com/mr/elpais/EM/cl/portada.xml'
+                    feedTitle: 'ULTIMO MOMENTO', color: '#ef4444', speed: 20, rssUrl: 'https://feeds.elpais.com/mr/elpais/EM/cl/portada.xml',
+                    useManualText: false, manualText: 'TEXTO DE PRUEBA MANUAL'
                 },
-                newsItems: []
+                newsItems: [],
+                activeIndex: 0
             });
 
             const [searchInput, setSearchInput] = useState("");
             const [loading, setLoading] = useState(false);
+
+            // Reloj en tiempo real
+            useEffect(() => {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // LÓGICA DE ROTACIÓN AUTOMÁTICA (Cada 20 segundos)
+            useEffect(() => {
+                if (data.newsItems.length > 0) {
+                    const rotationTimer = setInterval(() => {
+                        setCardActive(false); // Inicia fade out
+                        
+                        setTimeout(() => {
+                            setData(prev => ({
+                                ...prev,
+                                activeIndex: (prev.activeIndex + 1) % prev.newsItems.length
+                            }));
+                            setCardActive(true); // Inicia fade in
+                        }, 500); // Tiempo del fade out
+
+                    }, data.newsConfig.speed * 1000); // 20 segundos por defecto
+
+                    return () => clearInterval(rotationTimer);
+                }
+            }, [data.newsItems, data.newsConfig.speed]);
 
             // --- CONEXIÓN MQTT ---
             useEffect(() => {
@@ -77,7 +229,7 @@
                 const client = mqtt.connect(`wss://${MQTT_CONFIG.host}:${MQTT_CONFIG.port}${MQTT_CONFIG.path}`);
                 client.on('connect', () => {
                     setStatus('online');
-                    client.subscribe(`stream_unified/${id}`);
+                    client.subscribe(`stream_zapping/${id}`);
                 });
                 client.on('message', (t, msg) => {
                     if (m === 'overlay') setData(JSON.parse(msg.toString()));
@@ -89,11 +241,11 @@
             const sync = (newData) => {
                 setData(newData);
                 if (clientRef.current?.connected) {
-                    clientRef.current.publish(`stream_unified/${data.sessionId}`, JSON.stringify(newData), { retain: true });
+                    clientRef.current.publish(`stream_zapping/${data.sessionId}`, JSON.stringify(newData), { retain: true });
                 }
             };
 
-            // --- LÓGICA CLIMA (Tus funciones originales) ---
+            // --- LÓGICA CLIMA (Original) ---
             const fetchWeather = async () => {
                 if(!searchInput) return;
                 setLoading(true);
@@ -102,121 +254,139 @@
                     const geoData = await geoRes.json();
                     if(geoData.results) {
                         const { latitude, longitude, name } = geoData.results[0];
-                        const weaRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=temperature_2m&timezone=auto`);
+                        const weaRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
                         const weaData = await weaRes.json();
                         
                         const newData = { ...data };
-                        newData.weather = {
-                            ...data.weather,
-                            city: name,
-                            temp: Math.round(weaData.current_weather.temperature),
-                            forecast: {
-                                morn: Math.round(weaData.hourly.temperature_2m[9]),
-                                aft: Math.round(weaData.hourly.temperature_2m[15]),
-                                night: Math.round(weaData.hourly.temperature_2m[21])
-                            },
-                            visible: true
-                        };
+                        newData.weather = { city: name, temp: weaData.current_weather.temperature };
                         sync(newData);
                     }
                 } catch (e) { alert("Error clima"); }
                 setLoading(false);
             };
 
-            // --- LÓGICA NOTICIAS (Tus funciones originales) ---
+            // --- LÓGICA NOTICIAS (Original mejorada para extraer imagen) ---
             const fetchNews = async () => {
                 setLoading(true);
                 try {
                     const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(data.newsConfig.rssUrl)}`);
                     const json = await res.json();
                     if (json.status === 'ok') {
-                        const newData = { ...data, newsItems: json.items.slice(0, 10) };
+                        // Limpiamos los ítems para asegurar que tengan imagen o placeholder
+                        const processedItems = json.items.map(item => {
+                            let img = item.enclosure?.link || item.thumbnail;
+                            if (!img) {
+                                // Intenta buscar una imagen en la descripción HTML
+                                const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
+                                img = imgMatch ? imgMatch[1] : 'https://via.placeholder.com/400x200?text=NOTICIA';
+                            }
+                            return { ...item, image: img };
+                        });
+
+                        const newData = { ...data, newsItems: processedItems.slice(0, 10), activeIndex: 0 };
                         sync(newData);
                     }
                 } catch (e) { alert("Error RSS"); }
                 setLoading(false);
             };
 
-            // --- RENDER OVERLAY ---
+            // --- RENDER OVERLAY (ZAPPING STYLE) ---
             if (mode === 'overlay') {
-                return (
-                    <div>
-                        {/* WIDGET CLIMA */}
-                        {data.weather.visible && (
-                            <div>
-                                {data.weather.style === 'discrete' && <div className="weather-pill"><b>{data.weather.city}</b> 🌤️ {data.weather.temp}°</div>}
-                                {data.weather.style === 'impact' && data.weather.view === 'current' && (
-                                    <div className="weather-card">
-                                        <div style={{background:'#3b82f6', color:'white', padding:15, textAlign:'center', fontWeight:'bold'}}>{data.weather.city.toUpperCase()}</div>
-                                        <div style={{padding:30, textAlign:'center', fontSize:'5rem', fontWeight:'800'}}>{data.weather.temp}°</div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                if (!data.visible) return null;
+                const currentItem = data.newsItems[data.activeIndex];
 
-                        {/* WIDGET NOTICIAS */}
-                        {data.newsConfig.visible && (
-                            <div>
-                                {data.newsConfig.style === 'ticker' && (
-                                    <div className="news-ticker" style={{borderTopColor: data.newsConfig.color}}>
-                                        <div className="ticker-label" style={{backgroundColor: data.newsConfig.color}}>{data.newsConfig.feedTitle}</div>
-                                        <div className="ticker-content">
-                                            <div className="ticker-move" style={{animation: `scroll ${data.newsConfig.speed}s linear infinite`}}>
-                                                {data.newsItems.map(n => ` 🔴 ${n.title} `).join('     ')}
-                                            </div>
-                                        </div>
+                return (
+                    <div className="w-full h-full relative overflow-hidden">
+                        <div className="zapping-container">
+                            
+                            {/* 1. TARJETA DE NOTICIA (Fade y Slide Up) */}
+                            {currentItem && (
+                                <div className={`zap-news-card ${cardActive ? 'active' : ''}`} style={{borderBottomColor: data.newsConfig.color}}>
+                                    <img src={currentItem.image} className="zap-card-img" onError={(e)=>e.target.style.display='none'}/>
+                                    <div className="zap-card-body">
+                                        <div className="zap-card-source" style={{color: data.newsConfig.color}}>{data.newsConfig.feedTitle}</div>
+                                        <div className="zap-card-title">{currentItem.title.toUpperCase()}</div>
                                     </div>
-                                )}
+                                </div>
+                            )}
+
+                            {/* 2. WIDGET CIRCULAR (Reloj y Clima) */}
+                            <div className="zap-clock-widget">
+                                <div className="zap-clock-content">
+                                    <div className="zap-time">
+                                        {time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}
+                                    </div>
+                                    <div className="zap-temp-box">
+                                        <span className="zap-temp"><span className="zap-st">ST</span>{data.weather.temp}°</span>
+                                    </div>
+                                </div>
                             </div>
-                        )}
+
+                        </div>
                     </div>
                 );
             }
 
-            // --- RENDER DASHBOARD ---
+            // --- RENDER DASHBOARD (Actualizado para el nuevo diseño) ---
             return (
-                <div className="p-8 max-w-5xl mx-auto">
-                    <h1 className="text-2xl font-black mb-6 border-b border-slate-700 pb-4">STREAM UNIFIED CONTROL</h1>
+                <div className="p-8 max-w-5xl mx-auto space-y-6 dashboard-mode text-white">
+                    <header className="flex justify-between items-center border-b border-slate-700 pb-4">
+                        <h1 className="text-2xl font-black italic">STREAM<span className="text-blue-500">MASTER</span> PRO <span className="text-xs bg-red-600 px-2 py-1 rounded">ZAPPING</span></h1>
+                        <div className="flex items-center gap-4">
+                            <span className={status==='online'?'text-green-400':'text-red-400'}>● {status.toUpperCase()}</span>
+                            <button className="bg-slate-700 text-white px-4 py-2 rounded font-bold text-xs" 
+                                onClick={() => { navigator.clipboard.writeText(`${window.location.href.split('?')[0]}?mode=overlay&id=${data.sessionId}`); alert("Link copiado para OBS"); }}>
+                                COPIAR URL OVERLAY
+                            </button>
+                        </div>
+                    </header>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         
                         {/* PANEL CLIMA */}
-                        <div className="panel">
-                            <h2 className="text-blue-400 font-bold mb-4 uppercase text-sm">Control de Clima</h2>
-                            <div className="flex gap-2 mb-4">
+                        <div className="panel space-y-4">
+                            <h2 className="text-blue-400 font-bold uppercase text-sm border-b border-slate-700 pb-2">Clima (Abajo-Izquierda)</h2>
+                            <div className="flex gap-2">
                                 <input className="flex-1" placeholder="Buscar ciudad..." value={searchInput} onChange={e=>setSearchInput(e.target.value)} />
                                 <button className="btn active" onClick={fetchWeather}>BUSCAR</button>
                             </div>
-                            <div className="flex gap-2">
-                                <button className={`btn ${data.weather.visible?'active':''}`} onClick={()=>sync({...data, weather: {...data.weather, visible: !data.weather.visible}})}>
-                                    {data.weather.visible ? 'OCULTAR' : 'MOSTRAR'}
-                                </button>
-                                <button className={`btn ${data.weather.style==='impact'?'active':''}`} onClick={()=>sync({...data, weather: {...data.weather, style: 'impact'}})}>IMPACTO</button>
-                                <button className={`btn ${data.weather.style==='discrete'?'active':''}`} onClick={()=>sync({...data, weather: {...data.weather, style: 'discrete'}})}>PILL</button>
+                            <div className="p-4 bg-slate-900 rounded flex justify-between items-center">
+                                <span>{data.weather.city}</span>
+                                <span className="font-bold text-2xl text-yellow-500">{data.weather.temp}°C</span>
                             </div>
                         </div>
 
                         {/* PANEL NOTICIAS (RSS) */}
-                        <div className="panel">
-                            <h2 className="text-red-400 font-bold mb-4 uppercase text-sm">Carga de Notas (RSS)</h2>
-                            <div className="flex gap-2 mb-4">
-                                <input className="flex-1" value={data.newsConfig.rssUrl} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, rssUrl: e.target.value}})} />
+                        <div className="panel space-y-4">
+                            <h2 className="text-red-400 font-bold uppercase text-sm border-b border-slate-700 pb-2">Noticias (Arriba-Izquierda)</h2>
+                            <input className="w-full" value={data.newsConfig.rssUrl} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, rssUrl: e.target.value}})} placeholder="URL RSS..." />
+                            <div className="flex gap-2">
+                                <input placeholder="Título (ej: ULTIMO MOMENTO)" className="flex-1" value={data.newsConfig.feedTitle} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, feedTitle: e.target.value.toUpperCase()}})} />
                                 <button className="btn active" onClick={fetchNews}>CARGAR</button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <button className={`btn ${data.newsConfig.visible?'active':''}`} onClick={()=>sync({...data, newsConfig: {...data.newsConfig, visible: !data.newsConfig.visible}})}>
-                                    {data.newsConfig.visible ? 'OCULTAR' : 'MOSTRAR'}
-                                </button>
-                                <input type="color" value={data.newsConfig.color} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, color: e.target.value}})} />
-                                <input placeholder="Título" value={data.newsConfig.feedTitle} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, feedTitle: e.target.value}})} />
                             </div>
                         </div>
 
-                    </div>
+                        {/* PANEL ESTILO GLOBAL */}
+                        <div className="panel md:col-span-2 space-y-4">
+                            <h2 className="text-green-400 font-bold uppercase text-sm border-b border-slate-700 pb-2">Configuración Visual</h2>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                                <div className="flex items-center gap-2 bg-slate-900 p-2 rounded border border-slate-700">
+                                    <label className="text-xs text-slate-400">Color Acento:</label>
+                                    <input type="color" className="h-8 w-12 cursor-pointer bg-transparent" value={data.newsConfig.color} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, color: e.target.value}})} />
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-900 p-2 rounded border border-slate-700">
+                                    <label className="text-xs text-slate-400">Rotación (seg):</label>
+                                    <input type="number" min="5" className="w-20 text-center" value={data.newsConfig.speed} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, speed: parseInt(e.target.value) || 20}})} />
+                                </div>
+                                <div>
+                                    <button className={`w-full py-3 rounded font-bold ${data.visible?'bg-green-600':'bg-red-600'}`} onClick={()=>sync({...data, visible: !data.visible})}>
+                                        {data.visible ? 'ON AIR' : 'HIDDEN'}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500">Noticias cargadas: {data.newsItems.length}</p>
+                            </div>
+                        </div>
 
-                    <div className="mt-10 p-4 bg-slate-900 rounded border border-slate-700">
-                        <p className="text-xs text-slate-500 mb-2">URL PARA OBS/VMIX:</p>
-                        <code className="text-blue-400 break-all">{window.location.href.split('?')[0]}?mode=overlay&id={data.sessionId}</code>
                     </div>
                 </div>
             );
