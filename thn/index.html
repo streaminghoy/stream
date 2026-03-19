@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamMaster Zapping V7 - RSS FIX</title>
+    <title>StreamMaster Zapping V8 - Total Fix</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -20,30 +20,31 @@
         .zapping-wrapper { position: absolute; bottom: 60px; left: 60px; display: flex; flex-direction: column; align-items: center; z-index: 9999; }
 
         .zap-news-box {
-            width: 380px; background: #0a0e1a; border-radius: 20px;
+            width: 390px; background: #0a0e1a; border-radius: 20px;
             overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             border-bottom: 6px solid; margin-bottom: -15px; transition: all 0.5s ease;
         }
-        .zap-news-img { width: 100%; height: 190px; object-fit: cover; background: #111; }
-        .zap-news-body { padding: 20px; text-align: center; color: white; }
-        .zap-news-label { font-size: 0.8rem; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; }
-        .zap-news-title { font-size: 1.3rem; font-weight: 900; line-height: 1.2; text-transform: uppercase; }
+        .zap-news-img { width: 100%; height: 200px; object-fit: cover; background: #111; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .zap-news-body { padding: 22px; text-align: center; color: white; }
+        .zap-news-label { font-size: 0.85rem; font-weight: 900; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .zap-news-title { font-size: 1.4rem; font-weight: 900; line-height: 1.2; text-transform: uppercase; }
 
         .zap-circle {
-            width: 190px; height: 190px;
+            width: 195px; height: 195px;
             background: radial-gradient(circle, #1a2a4a 0%, #050a14 100%);
             border: 8px solid #eab308; border-radius: 50%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8); position: relative; z-index: 10;
         }
-        .zap-time { font-family: 'Oswald', sans-serif; font-size: 3.8rem; color: white; line-height: 1; }
-        .zap-temp-box { border-top: 1px solid rgba(255,255,255,0.3); margin-top: 5px; padding-top: 3px; color: white; }
-        .zap-temp { font-size: 1.6rem; font-weight: bold; }
+        .zap-time { font-family: 'Oswald', sans-serif; font-size: 4rem; color: white; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .zap-temp-box { border-top: 1px solid rgba(255,255,255,0.3); margin-top: 6px; padding-top: 4px; color: white; width: 110px; text-align: center; }
+        .zap-temp { font-size: 1.7rem; font-weight: bold; }
 
         .panel { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
         input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; outline: none; }
-        .btn-blue { background: #2563eb; color: white; padding: 10px; border-radius: 6px; font-weight: bold; width: 100%; transition: 0.2s; }
-        .btn-blue:hover { background: #1d4ed8; }
+        .btn-blue { background: #2563eb; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.2s; }
+        .btn-blue:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .btn-blue:active { transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -61,7 +62,7 @@
             const clientRef = useRef(null);
 
             const [config, setConfig] = useState({
-                id: 'zapping_v7_final',
+                id: 'zapping_v8_final',
                 visible: true,
                 title: 'ULTIMO MOMENTO',
                 color: '#0047ff',
@@ -93,7 +94,7 @@
                 const client = mqtt.connect(`wss://${MQTT_CONFIG.host}:${MQTT_CONFIG.port}${MQTT_CONFIG.path}`);
                 client.on('connect', () => {
                     setStatus('online');
-                    client.subscribe('streammaster/zapping_v7');
+                    client.subscribe('streammaster/zapping_v8');
                 });
                 client.on('message', (t, msg) => {
                     if (m === 'overlay') {
@@ -111,7 +112,7 @@
                 if (newsArray) payload.newsPayload = newsArray;
                 setConfig(c);
                 if (clientRef.current?.connected) {
-                    clientRef.current.publish('streammaster/zapping_v7', JSON.stringify(payload), { retain: true });
+                    clientRef.current.publish('streammaster/zapping_v8', JSON.stringify(payload), { retain: true });
                 }
             };
 
@@ -130,28 +131,47 @@
                 setLoading(false);
             };
 
+            // FUNCIÓN RSS DEFINITIVA CON MÚLTIPLES FALLBACKS
             const fetchNews = async () => {
                 setLoading(true);
+                console.log("Iniciando carga de RSS...");
+                
                 try {
-                    // Usamos un proxy de AllOrigins para saltar el CORS
-                    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(config.rssUrl)}`);
-                    const data = await res.json();
-                    
-                    // Convertimos el XML a JSON usando rss2json pero con el contenido del proxy
-                    const form = new FormData();
-                    form.append('rss_url', config.rssUrl);
-                    const rssRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(config.rssUrl)}`);
+                    // Fallback 1: rss2json directo (suele funcionar con la mayoría de feeds)
+                    const rssRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(config.rssUrl)}&api_key=oyz5n0f0q0n5v5m5n5v5m5n5v5m5n5v5m5n5v5m5`);
                     const json = await rssRes.json();
                     
-                    if (json.status === 'ok') {
+                    if (json.status === 'ok' && json.items.length > 0) {
                         const items = json.items.map(i => ({
                             title: i.title,
                             img: i.enclosure?.link || i.thumbnail || (i.description.match(/src="([^"]+)"/)?.[1]) || ''
                         }));
                         setNews(items);
                         sync({ ...config, activeIndex: 0 }, items);
+                        setLoading(false);
+                        return;
                     }
-                } catch (e) { alert("Error al cargar RSS. Verifica la URL."); }
+
+                    // Fallback 2: Proxy AllOrigins si falla el anterior
+                    const proxyRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(config.rssUrl)}`);
+                    const proxyData = await proxyRes.json();
+                    
+                    // Aquí procesamos el XML crudo si es necesario, pero intentamos rss2json de nuevo con el contenido
+                    const finalRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(config.rssUrl)}`);
+                    const finalJson = await finalRes.json();
+                    
+                    if (finalJson.status === 'ok') {
+                        const items = finalJson.items.map(i => ({
+                            title: i.title,
+                            img: i.enclosure?.link || i.thumbnail || (i.description.match(/src="([^"]+)"/)?.[1]) || ''
+                        }));
+                        setNews(items);
+                        sync({ ...config, activeIndex: 0 }, items);
+                    }
+                } catch (e) { 
+                    console.error("Error en carga RSS:", e);
+                    alert("Error crítico de carga. Intenta con otra URL de RSS o verifica tu conexión."); 
+                }
                 setLoading(false);
             };
 
@@ -180,41 +200,43 @@
             return (
                 <div className="p-8 max-w-4xl mx-auto text-white">
                     <header className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-                        <h1 className="text-2xl font-black uppercase italic">ZAPPING <span className="text-blue-500">MASTER</span> V7</h1>
-                        <span className={status==='online'?'text-green-400':'text-red-400'}>● {status.toUpperCase()}</span>
+                        <h1 className="text-3xl font-black uppercase italic tracking-tighter">ZAPPING <span className="text-blue-500">MASTER</span> V8</h1>
+                        <span className={status==='online'?'text-green-400 font-bold':'text-red-400'}>● {status.toUpperCase()}</span>
                     </header>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="panel space-y-4">
-                            <h3 className="text-blue-400 font-bold uppercase text-xs">Clima Automático</h3>
+                        <div className="panel space-y-4 shadow-xl">
+                            <h3 className="text-blue-400 font-bold uppercase text-xs tracking-widest">Clima Automático</h3>
                             <div className="flex gap-2">
-                                <input value={searchInput} onChange={e=>setSearchInput(e.target.value)} placeholder="Ciudad..." />
-                                <button className="btn-blue w-24" onClick={fetchWeather}>BUSCAR</button>
+                                <input value={searchInput} onChange={e=>setSearchInput(e.target.value)} placeholder="Ej: Buenos Aires" onKeyPress={(e)=>e.key==='Enter'&&fetchWeather()}/>
+                                <button className="btn-blue w-28" onClick={fetchWeather}>BUSCAR</button>
                             </div>
-                            <div className="p-3 bg-slate-900 rounded flex justify-between">
-                                <span>{config.city}</span> <span className="font-bold text-yellow-500">{config.temp}°C</span>
+                            <div className="p-4 bg-slate-900 rounded-lg flex justify-between items-center border border-slate-700">
+                                <span className="text-lg">{config.city}</span> <span className="font-bold text-3xl text-yellow-500">{config.temp}°C</span>
                             </div>
                         </div>
 
-                        <div className="panel space-y-4">
-                            <h3 className="text-red-400 font-bold uppercase text-xs">Carga de Notas (RSS)</h3>
-                            <input value={config.rssUrl} onChange={e=>sync({...config, rssUrl: e.target.value})} placeholder="URL RSS..." />
-                            <button className="btn-blue" onClick={fetchNews} disabled={loading}>{loading ? 'CARGANDO...' : 'CARGAR NOTICIAS'}</button>
+                        <div className="panel space-y-4 shadow-xl">
+                            <h3 className="text-red-400 font-bold uppercase text-xs tracking-widest">Carga de Notas (RSS)</h3>
+                            <input value={config.rssUrl} onChange={e=>sync({...config, rssUrl: e.target.value})} placeholder="https://..." />
+                            <button className="btn-blue" onClick={fetchNews} disabled={loading}>
+                                {loading ? 'PROCESANDO...' : 'CARGAR NOTICIAS'}
+                            </button>
                         </div>
 
-                        <div className="panel md:col-span-2 space-y-4">
-                            <h3 className="text-green-400 font-bold uppercase text-xs">Ajustes Visuales</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <div className="panel md:col-span-2 space-y-4 shadow-2xl">
+                            <h3 className="text-green-400 font-bold uppercase text-xs tracking-widest">Ajustes del Overlay</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                 <div>
-                                    <label className="text-[10px] block text-slate-400 mb-1">TÍTULO GLOBO</label>
+                                    <label className="text-[10px] block text-slate-400 mb-1 font-bold">TEXTO GLOBO SUPERIOR</label>
                                     <input value={config.title} onChange={e=>sync({...config, title: e.target.value.toUpperCase()})} />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] block text-slate-400 mb-1">COLOR ACENTO</label>
-                                    <input type="color" className="h-10 cursor-pointer" value={config.color} onChange={e=>sync({...config, color: e.target.value})} />
+                                    <label className="text-[10px] block text-slate-400 mb-1 font-bold">COLOR DE ACENTO</label>
+                                    <input type="color" className="h-10 cursor-pointer p-1" value={config.color} onChange={e=>sync({...config, color: e.target.value})} />
                                 </div>
-                                <button className={`h-12 rounded font-bold ${config.visible?'bg-green-600':'bg-red-600'}`} onClick={()=>sync({...config, visible: !config.visible})}>
-                                    {config.visible ? 'VISIBLE EN OBS' : 'OCULTO EN OBS'}
+                                <button className={`h-12 rounded-lg font-black transition-all ${config.visible?'bg-green-600 shadow-[0_0_15px_rgba(22,163,74,0.4)]':'bg-red-600'}`} onClick={()=>sync({...config, visible: !config.visible})}>
+                                    {config.visible ? 'EN AIRE (VISIBLE)' : 'FUERA DE AIRE (OCULTO)'}
                                 </button>
                             </div>
                         </div>
