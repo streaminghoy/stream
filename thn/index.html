@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Zapping Master V12 - Auto + Manual</title>
+    <title>Zapping Master V12 - Auto + Manual Fix</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -30,7 +30,6 @@
             position: relative; overflow: hidden;
         }
         
-        /* BORDES DINÁMICOS */
         .shape-rect { border-radius: 15px; }
         .shape-capsule { border-radius: 50px; }
         .shape-modern { border-radius: 60px 0 60px 0; }
@@ -55,19 +54,16 @@
             line-height: 1.2; text-transform: uppercase;
         }
 
-        /* --- CÍRCULO Y ANIMACIONES PRO --- */
+        /* --- CÍRCULO Y ANIMACIONES --- */
         .zap-circle {
             width: 185px; height: 185px;
             background: radial-gradient(circle at 30% 30%, #1e3a5f 0%, #0a0e1a 50%, #000 100%);
             border: 3px solid; border-radius: 50%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 
-                inset 0 0 40px rgba(0,0,0,0.8),
-                0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
             position: relative; z-index: 20;
         }
 
-        /* Animación PRO 1: Pulse Glow */
         .anim-pulse::before {
             content: '';
             position: absolute;
@@ -81,7 +77,6 @@
             50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 40px currentColor, 0 0 60px currentColor; }
         }
 
-        /* Animación PRO 2: Radar Sweep */
         .anim-radar-pro::before {
             content: '';
             position: absolute;
@@ -106,7 +101,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Animación PRO 3: Neon Orbit */
         .anim-neon::before {
             content: '';
             position: absolute;
@@ -128,7 +122,6 @@
         @keyframes orbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes orbitReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
 
-        /* Animación PRO 4: Breathing Ring */
         .anim-breathe::before {
             content: '';
             position: absolute;
@@ -151,7 +144,6 @@
             50% { transform: scale(1.05); opacity: 0.8; }
         }
 
-        /* Animación PRO 5: Digital Glitch */
         .anim-glitch {
             animation: glitch 0.3s infinite;
         }
@@ -161,9 +153,7 @@
             width: 100%; height: 100%;
             border-radius: 50%;
             border: 2px solid currentColor;
-            box-shadow: 
-                -2px 0 10px currentColor,
-                2px 0 10px currentColor;
+            box-shadow: -2px 0 10px currentColor, 2px 0 10px currentColor;
             animation: glitchBorder 2s ease-in-out infinite;
         }
         @keyframes glitch {
@@ -217,7 +207,7 @@
             50% { transform: scale(1.05); opacity: 0.9; } 
         }
 
-        /* Dashboard UI Mejorado */
+        /* Dashboard UI */
         .panel { 
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
             border: 1px solid #334155; 
@@ -258,7 +248,6 @@
             box-shadow: 0 0 15px currentColor;
         }
 
-        /* Inputs corregidos - AHORA SE VE EL TEXTO */
         .dashboard-input {
             background: #0f172a !important;
             border: 2px solid #334155;
@@ -278,9 +267,8 @@
             color: #64748b;
         }
 
-        /* Feed de noticias */
         .news-feed-container {
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
             border-radius: 12px;
             background: #0f172a;
@@ -324,11 +312,6 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        
-        .news-feed-item.active .news-feed-title {
-            color: #60a5fa;
-            font-weight: 600;
-        }
 
         .news-feed-status {
             font-size: 11px;
@@ -340,22 +323,6 @@
         .status-loaded { background: #10b981; color: #000; }
         .status-error { background: #ef4444; color: #fff; }
 
-        /* Scrollbar personalizada */
-        .news-feed-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        .news-feed-container::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        .news-feed-container::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 3px;
-        }
-        .news-feed-container::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-
-        /* Botones principales */
         .btn-primary {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
@@ -367,7 +334,6 @@
             cursor: pointer;
             transition: all 0.2s ease;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         .btn-primary:hover {
             transform: translateY(-1px);
@@ -385,36 +351,6 @@
             cursor: pointer;
             transition: all 0.2s ease;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .btn-danger:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-        }
-
-        .color-picker-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #0f172a;
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-        }
-        
-        .color-picker {
-            width: 32px;
-            height: 32px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            background: transparent;
-        }
-        
-        .color-label {
-            font-size: 11px;
-            color: #94a3b8;
-            font-weight: 600;
         }
 
         .toggle-btn {
@@ -430,19 +366,13 @@
         .toggle-visible {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
         }
         .toggle-hidden {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-        }
-        .toggle-btn:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
         }
 
-        /* NUEVO: Selector de fuente */
+        /* Selector de fuente */
         .source-selector {
             display: flex;
             gap: 10px;
@@ -466,10 +396,9 @@
             background: #3b82f6;
             border-color: #3b82f6;
             color: white;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
 
-        /* NUEVO: Panel noticias manuales */
+        /* Noticias manuales */
         .manual-news-form {
             display: flex;
             gap: 10px;
@@ -489,12 +418,18 @@
             background: #1e293b;
             border-radius: 8px;
             margin-bottom: 8px;
-            border: 1px solid #334155;
+            border: 2px solid #334155;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .manual-news-item:hover {
+            border-color: #475569;
         }
         
         .manual-news-item.active {
             border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
+            background: rgba(59, 130, 246, 0.15);
         }
         
         .manual-news-img-preview {
@@ -524,7 +459,7 @@
             white-space: nowrap;
         }
 
-        /* NUEVO: Controles de rotación */
+        /* Controles de rotación */
         .rotation-controls {
             display: flex;
             align-items: center;
@@ -568,7 +503,6 @@
             align-items: center;
             justify-content: center;
             font-size: 14px;
-            transition: all 0.2s;
         }
         
         .play-pause-btn:hover {
@@ -576,12 +510,6 @@
             transform: scale(1.1);
         }
 
-        .interval-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
         .interval-selector select {
             background: #0f172a;
             border: 1px solid #334155;
@@ -605,7 +533,6 @@
             const [rssStatus, setRssStatus] = useState('idle');
             const clientRef = useRef(null);
             
-            // NUEVO: Intervalo de rotación
             const [rotationInterval, setRotationInterval] = useState(10);
             const [isPlaying, setIsPlaying] = useState(true);
             const rotationTimerRef = useRef(null);
@@ -623,45 +550,82 @@
                 alertText: 'AHORA',
                 animType: 'anim-pulse',
                 shapeType: 'shape-rect',
-                // NUEVO: Fuente de noticias
-                newsSource: 'rss', // 'rss' o 'manual'
+                newsSource: 'rss',
                 manualNewsIndex: 0
             });
 
             const [news, setNews] = useState([]);
             const [citySearch, setCitySearch] = useState("Buenos Aires");
             
-            // NUEVO: Noticias manuales
+            // Estado global de noticias manuales
             const [manualNews, setManualNews] = useState([
-                {id: 1, title: 'Noticia manual de ejemplo', img: ''}
+                {id: 1, title: 'Ejemplo: Noticia manual de prueba', img: ''}
             ]);
+            
             const [newManualTitle, setNewManualTitle] = useState('');
             const [newManualImg, setNewManualImg] = useState('');
 
-            // NUEVO: Auto-rotación de noticias
-            const rotateNews = useCallback(() => {
-                setConfig(prev => {
-                    if (prev.newsSource === 'rss' && news.length > 0) {
-                        const nextIndex = (prev.activeIndex + 1) % news.length;
-                        sync({...prev, activeIndex: nextIndex}, news);
-                        return {...prev, activeIndex: nextIndex};
-                    } else if (prev.newsSource === 'manual' && manualNews.length > 0) {
-                        const nextIndex = (prev.manualNewsIndex + 1) % manualNews.length;
-                        sync({...prev, manualNewsIndex: nextIndex}, null, manualNews);
-                        return {...prev, manualNewsIndex: nextIndex};
+            // CORREGIDO: Función para obtener noticia actual que funciona en ambos modos
+            const getCurrentNews = useCallback(() => {
+                if (config.newsSource === 'manual') {
+                    // Para manual, usar el índice actual
+                    const item = manualNews[config.manualNewsIndex];
+                    if (item) {
+                        return {
+                            title: item.title,
+                            img: item.img || ''
+                        };
                     }
-                    return prev;
-                });
-            }, [news.length, manualNews.length]);
+                    return { title: 'Sin noticias manuales', img: '' };
+                }
+                // Para RSS
+                const item = news[config.activeIndex];
+                if (item) {
+                    return {
+                        title: item.title,
+                        img: item.img || ''
+                    };
+                }
+                return { title: 'CARGANDO NOTICIAS...', img: '' };
+            }, [config.newsSource, config.manualNewsIndex, config.activeIndex, manualNews, news]);
+
+            // CORREGIDO: Rotación con sincronización MQTT
+            const rotateNews = useCallback(() => {
+                if (!clientRef.current?.connected) return;
+                
+                let newConfig;
+                
+                if (config.newsSource === 'rss' && news.length > 0) {
+                    const nextIndex = (config.activeIndex + 1) % news.length;
+                    newConfig = { ...config, activeIndex: nextIndex };
+                } else if (config.newsSource === 'manual' && manualNews.length > 0) {
+                    const nextIndex = (config.manualNewsIndex + 1) % manualNews.length;
+                    newConfig = { ...config, manualNewsIndex: nextIndex };
+                } else {
+                    return;
+                }
+                
+                // Enviar por MQTT con los datos de noticias incluidos
+                const payload = {
+                    ...newConfig,
+                    newsPayload: news,
+                    manualNewsPayload: manualNews,
+                    currentNews: getCurrentNews() // Incluir noticia actual explícitamente
+                };
+                
+                clientRef.current.publish('streammaster/v12', JSON.stringify(payload), { retain: true });
+                setConfig(newConfig);
+                
+            }, [config, news, manualNews]);
 
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
                 return () => clearInterval(t);
             }, []);
 
-            // NUEVO: Timer de rotación
+            // Timer de rotación
             useEffect(() => {
-                if (isPlaying) {
+                if (isPlaying && clientRef.current?.connected) {
                     rotationTimerRef.current = setInterval(rotateNews, rotationInterval * 1000);
                 }
                 return () => {
@@ -681,24 +645,31 @@
                     client.subscribe('streammaster/v12');
                 });
                 client.on('message', (t, msg) => {
-                    if (m === 'overlay') {
-                        try {
-                            const parsed = JSON.parse(msg.toString());
-                            setConfig(c => ({...c, ...parsed}));
+                    try {
+                        const parsed = JSON.parse(msg.toString());
+                        
+                        if (m === 'overlay') {
+                            // En overlay, actualizar config y noticias
+                            setConfig(prev => ({...prev, ...parsed}));
                             if (parsed.newsPayload) setNews(parsed.newsPayload);
                             if (parsed.manualNewsPayload) setManualNews(parsed.manualNewsPayload);
-                        } catch(e) {}
-                    }
+                        }
+                    } catch(e) {}
                 });
                 clientRef.current = client;
                 return () => client.end();
             }, []);
 
-            const sync = (c, n = null, m = null) => {
-                const payload = { ...c };
-                if (n) payload.newsPayload = n;
-                if (m) payload.manualNewsPayload = m;
-                setConfig(c);
+            // CORREGIDO: Función sync que incluye SIEMPRE ambos arrays de noticias
+            const sync = (newConfig) => {
+                const payload = {
+                    ...newConfig,
+                    newsPayload: news,
+                    manualNewsPayload: manualNews
+                };
+                
+                setConfig(newConfig);
+                
                 if (clientRef.current?.connected) {
                     clientRef.current.publish('streammaster/v12', JSON.stringify(payload), { retain: true });
                 }
@@ -708,16 +679,12 @@
                 try {
                     const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(citySearch)}&count=1&format=json`);
                     const gData = await geo.json();
-                    if(gData.results && gData.results.length > 0) {
+                    if(gData.results?.length > 0) {
                         const wea = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${gData.results[0].latitude}&longitude=${gData.results[0].longitude}&current_weather=true`);
                         const wData = await wea.json();
                         sync({ ...config, temp: wData.current_weather.temperature });
-                    } else {
-                        alert("Ciudad no encontrada");
                     }
-                } catch (e) { 
-                    alert("Error al obtener el clima"); 
-                }
+                } catch (e) { alert("Error clima"); }
             };
 
             const fetchNews = async () => {
@@ -725,43 +692,47 @@
                 try {
                     const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(config.rssUrl)}&t=${Date.now()}`);
                     const json = await res.json();
-                    if (json.status === 'ok' && json.items && json.items.length > 0) {
+                    if (json.status === 'ok' && json.items?.length > 0) {
                         const items = json.items.map((i, idx) => ({ 
                             id: idx,
                             title: i.title, 
                             img: i.enclosure?.link || i.thumbnail || (i.description?.match(/src="([^"]+)"/)?.[1]) || '' 
                         }));
                         setNews(items);
-                        // Si está en RSS, resetear índice
+                        // Si estamos en RSS, resetear a 0 y enviar todo
                         if (config.newsSource === 'rss') {
-                            sync({ ...config, activeIndex: 0 }, items);
-                        } else {
-                            sync({ ...config }, items);
+                            sync({ ...config, activeIndex: 0 });
                         }
                         setRssStatus('loaded');
                     } else {
-                        setNews([]);
                         setRssStatus('error');
                     }
-                } catch (e) { 
-                    setNews([]);
-                    setRssStatus('error');
-                }
+                } catch (e) { setRssStatus('error'); }
             };
 
+            // CORREGIDO: Seleccionar noticia RSS con sync completo
             const selectNews = (index) => {
-                sync({ ...config, activeIndex: index, newsSource: 'rss' });
+                sync({ 
+                    ...config, 
+                    activeIndex: index, 
+                    newsSource: 'rss' 
+                });
             };
 
+            // CORREGIDO: Seleccionar noticia manual con sync completo
             const selectManualNews = (index) => {
-                sync({ ...config, manualNewsIndex: index, newsSource: 'manual' });
+                sync({ 
+                    ...config, 
+                    manualNewsIndex: index, 
+                    newsSource: 'manual' 
+                });
             };
 
+            // CORREGIDO: Cambiar fuente con sync
             const switchSource = (source) => {
                 sync({ ...config, newsSource: source });
             };
 
-            // NUEVO: Agregar noticia manual
             const addManualNews = () => {
                 if (!newManualTitle.trim()) return;
                 const newItem = {
@@ -773,37 +744,39 @@
                 setManualNews(updated);
                 setNewManualTitle('');
                 setNewManualImg('');
-                sync({ ...config }, null, updated);
+                
+                // Sync con nuevas noticias manuales
+                const newConfig = { ...config };
+                clientRef.current?.publish('streammaster/v12', JSON.stringify({
+                    ...newConfig,
+                    newsPayload: news,
+                    manualNewsPayload: updated
+                }), { retain: true });
             };
 
-            // NUEVO: Eliminar noticia manual
             const removeManualNews = (id, e) => {
                 e.stopPropagation();
                 const updated = manualNews.filter(item => item.id !== id);
                 setManualNews(updated);
-                // Ajustar índice si es necesario
-                if (config.manualNewsIndex >= updated.length) {
-                    sync({ ...config, manualNewsIndex: 0 }, null, updated);
-                } else {
-                    sync({ ...config }, null, updated);
-                }
+                
+                let newIndex = config.manualNewsIndex;
+                if (newIndex >= updated.length) newIndex = 0;
+                
+                // Sync con noticias actualizadas
+                const newConfig = { ...config, manualNewsIndex: newIndex };
+                clientRef.current?.publish('streammaster/v12', JSON.stringify({
+                    ...newConfig,
+                    newsPayload: news,
+                    manualNewsPayload: updated
+                }), { retain: true });
             };
 
-            const togglePlayPause = () => {
-                setIsPlaying(!isPlaying);
-            };
+            const togglePlayPause = () => setIsPlaying(!isPlaying);
 
-            // Determinar noticia actual a mostrar
-            const getCurrentNews = () => {
-                if (config.newsSource === 'manual' && manualNews.length > 0) {
-                    return manualNews[config.manualNewsIndex] || { title: 'Sin noticias manuales', img: '' };
-                }
-                return news[config.activeIndex] || { title: 'CARGANDO NOTICIAS...', img: '' };
-            };
+            const currentItem = getCurrentNews();
 
             if (mode === 'overlay') {
                 if (!config.visible) return null;
-                const item = getCurrentNews();
                 
                 return (
                     <div className="zapping-wrapper">
@@ -812,23 +785,24 @@
                                 {config.newsSource === 'manual' ? 'NOTICIA' : config.title}
                             </div>
                             <div className="zap-news-img-container">
-                                {item.img && <img src={item.img} className="zap-news-img" />}
+                                {currentItem.img && <img src={currentItem.img} className="zap-news-img" />}
                             </div>
                             <div className="zap-news-body">
-                                <div className="zap-news-title">{item.title}</div>
+                                <div className="zap-news-title">{currentItem.title}</div>
                             </div>
                         </div>
                         <div className={`zap-circle ${config.animType}`} style={{borderColor: config.circleColor, color: config.circleColor}}>
                             <div className="zap-time">{time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}</div>
                             <div className="zap-widget-bot">
-                                {config.alertVisible ? <div className="zap-alert">{config.alertText}</div> : <div className="zap-temp">{config.temp}°</div>}
+                                {config.alertVisible ? 
+                                    <div className="zap-alert">{config.alertText}</div> : 
+                                    <div className="zap-temp">{config.temp}°</div>
+                                }
                             </div>
                         </div>
                     </div>
                 );
             }
-
-            const currentItem = getCurrentNews();
 
             return (
                 <div className="p-6 max-w-6xl mx-auto text-white">
@@ -837,7 +811,7 @@
                             <h1 className="text-3xl font-black italic tracking-tight">
                                 ZAPPING MASTER <span className="text-blue-500 text-lg">V12 AUTO</span>
                             </h1>
-                            <p className="text-slate-400 text-sm mt-1">Auto-rotación + Noticias Manuales</p>
+                            <p className="text-slate-400 text-sm mt-1">Auto-rotación + Manual Fix</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${status==='online'?'bg-green-500/20 text-green-400':'bg-red-500/20 text-red-400'}`}>
@@ -852,7 +826,7 @@
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {/* Panel Clima */}
                         <div className="panel">
-                            <h3 className="panel-title text-blue-400">🌤️ Clima en Vivo</h3>
+                            <h3 className="panel-title text-blue-400">🌤️ Clima</h3>
                             <div className="flex gap-3">
                                 <input 
                                     className="dashboard-input flex-1" 
@@ -864,52 +838,46 @@
                             </div>
                             <div className="mt-3 flex items-center gap-3">
                                 <div className="text-3xl font-bold">{config.temp}°C</div>
-                                <div className="text-slate-400 text-sm">Temperatura actual</div>
                             </div>
                         </div>
 
                         {/* Panel Alerta */}
                         <div className="panel">
-                            <h3 className="panel-title text-red-400">🚨 Alerta en Círculo</h3>
+                            <h3 className="panel-title text-red-400">🚨 Alerta</h3>
                             <div className="flex gap-3">
                                 <input 
                                     className="dashboard-input flex-1" 
                                     value={config.alertText} 
                                     onChange={e => sync({...config, alertText: e.target.value.toUpperCase()})}
-                                    placeholder="Texto de alerta..."
                                 />
                                 <button 
                                     onClick={() => sync({...config, alertVisible: !config.alertVisible})} 
-                                    className={`px-5 rounded-lg font-bold text-sm transition-all ${config.alertVisible ? 'bg-red-500 hover:bg-red-600' : 'bg-slate-600 hover:bg-slate-500'}`}
+                                    className={`px-5 rounded-lg font-bold text-sm ${config.alertVisible ? 'bg-red-500' : 'bg-slate-600'}`}
                                 >
-                                    {config.alertVisible ? 'ACTIVA' : 'INACTIVA'}
+                                    {config.alertVisible ? 'ON' : 'OFF'}
                                 </button>
                             </div>
                         </div>
 
-                        {/* NUEVO: Panel de Fuentes con Selector */}
+                        {/* Panel Fuentes - CORREGIDO */}
                         <div className="panel lg:col-span-2">
                             <h3 className="panel-title text-purple-400">📰 Fuentes de Noticias</h3>
                             
-                            {/* Selector de fuente */}
                             <div className="source-selector">
                                 <button 
                                     className={`source-btn ${config.newsSource === 'rss' ? 'active' : ''}`}
                                     onClick={() => switchSource('rss')}
                                 >
-                                    📡 FEED RSS
-                                    {config.newsSource === 'rss' && <span className="ml-2">✓</span>}
+                                    📡 RSS {config.newsSource === 'rss' && '✓'}
                                 </button>
                                 <button 
                                     className={`source-btn ${config.newsSource === 'manual' ? 'active' : ''}`}
                                     onClick={() => switchSource('manual')}
                                 >
-                                    ✏️ NOTICIAS MANUALES
-                                    {config.newsSource === 'manual' && <span className="ml-2">✓</span>}
+                                    ✏️ MANUAL {config.newsSource === 'manual' && '✓'}
                                 </button>
                             </div>
 
-                            {/* Contenido según fuente seleccionada */}
                             {config.newsSource === 'rss' ? (
                                 <div>
                                     <div className="flex gap-3 mb-3">
@@ -917,10 +885,10 @@
                                             className="dashboard-input flex-1" 
                                             value={config.rssUrl} 
                                             onChange={e => sync({...config, rssUrl: e.target.value})}
-                                            placeholder="URL del feed RSS..."
+                                            placeholder="URL RSS..."
                                         />
                                         <button onClick={fetchNews} className="btn-danger">Cargar</button>
-                                        <span className={`news-feed-status ${rssStatus === 'loading' ? 'status-loading' : rssStatus === 'loaded' ? 'status-loaded' : rssStatus === 'error' ? 'status-error' : 'bg-slate-600'}`}>
+                                        <span className={`news-feed-status ${rssStatus === 'loaded' ? 'status-loaded' : rssStatus === 'error' ? 'status-error' : 'bg-slate-600'}`}>
                                             {rssStatus === 'idle' ? 'SIN CARGAR' : rssStatus === 'loading' ? '...' : rssStatus === 'loaded' ? `${news.length}` : 'ERR'}
                                         </span>
                                     </div>
@@ -936,7 +904,7 @@
                                                     {item.img && <img src={item.img} className="news-feed-thumb" alt="" />}
                                                     <div className="news-feed-title">{item.title}</div>
                                                     {config.activeIndex === idx && config.newsSource === 'rss' && (
-                                                        <span className="ml-auto text-blue-400 text-xs">●</span>
+                                                        <span className="ml-auto text-blue-400 text-xs">● EN VIVO</span>
                                                     )}
                                                 </div>
                                             ))}
@@ -945,24 +913,22 @@
                                 </div>
                             ) : (
                                 <div>
-                                    {/* Formulario noticias manuales */}
                                     <div className="manual-news-form">
                                         <input 
                                             className="dashboard-input flex-1"
                                             value={newManualTitle}
                                             onChange={e => setNewManualTitle(e.target.value)}
-                                            placeholder="Título de la noticia..."
+                                            placeholder="Título noticia..."
                                         />
                                         <input 
                                             className="dashboard-input flex-1"
                                             value={newManualImg}
                                             onChange={e => setNewManualImg(e.target.value)}
-                                            placeholder="URL de imagen (opcional)..."
+                                            placeholder="URL imagen..."
                                         />
-                                        <button onClick={addManualNews} className="btn-primary">+ Agregar</button>
+                                        <button onClick={addManualNews} className="btn-primary">+</button>
                                     </div>
                                     
-                                    {/* Lista noticias manuales */}
                                     <div className="manual-news-list">
                                         {manualNews.map((item, idx) => (
                                             <div 
@@ -973,16 +939,13 @@
                                                 {item.img && <img src={item.img} className="manual-news-img-preview" alt="" />}
                                                 <div className="manual-news-content">
                                                     <div className="manual-news-title-text">{item.title}</div>
-                                                    {item.img && <div className="manual-news-img-url">{item.img}</div>}
                                                 </div>
                                                 <button 
                                                     onClick={(e) => removeManualNews(item.id, e)}
-                                                    className="w-8 h-8 bg-red-600 rounded-lg text-white font-bold hover:bg-red-700"
-                                                >
-                                                    ×
-                                                </button>
+                                                    className="w-8 h-8 bg-red-600 rounded-lg text-white font-bold"
+                                                >×</button>
                                                 {config.manualNewsIndex === idx && config.newsSource === 'manual' && (
-                                                    <span className="text-blue-400 text-xs ml-2">●</span>
+                                                    <span className="text-blue-400 text-xs ml-2">● EN VIVO</span>
                                                 )}
                                             </div>
                                         ))}
@@ -990,50 +953,50 @@
                                 </div>
                             )}
 
-                            {/* Controles de rotación */}
+                            {/* Controles rotación */}
                             <div className="rotation-controls">
                                 <button className="play-pause-btn" onClick={togglePlayPause}>
                                     {isPlaying ? '⏸' : '▶'}
                                 </button>
                                 <div className="rotation-indicator">
-                                    <div className="rotation-dot"></div>
-                                    <span>Rotación automática {isPlaying ? 'activa' : 'pausada'}</span>
+                                    <div className={`rotation-dot ${!isPlaying ? 'bg-yellow-500' : ''}`}></div>
+                                    <span>{isPlaying ? 'Auto-rotación ON' : 'Pausado'}</span>
                                 </div>
                                 <div className="interval-selector">
-                                    <span className="text-sm text-slate-400">Intervalo:</span>
+                                    <span className="text-sm text-slate-400">Cada:</span>
                                     <select 
                                         value={rotationInterval} 
                                         onChange={e => setRotationInterval(Number(e.target.value))}
                                     >
-                                        <option value={5}>5 seg</option>
-                                        <option value={10}>10 seg</option>
-                                        <option value={15}>15 seg</option>
-                                        <option value={20}>20 seg</option>
-                                        <option value={30}>30 seg</option>
-                                        <option value={60}>1 min</option>
+                                        <option value={5}>5s</option>
+                                        <option value={10}>10s</option>
+                                        <option value={15}>15s</option>
+                                        <option value={20}>20s</option>
+                                        <option value={30}>30s</option>
+                                        <option value={60}>1m</option>
                                     </select>
                                 </div>
-                                <div className="ml-auto text-sm text-slate-400">
-                                    Mostrando: <span className="text-white font-bold">{currentItem?.title?.substring(0, 30)}...</span>
+                                <div className="ml-auto text-sm">
+                                    <span className="text-slate-400">Actual: </span>
+                                    <span className="text-white font-bold">{currentItem.title.substring(0, 25)}...</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Panel Animaciones */}
                         <div className="panel">
-                            <h3 className="panel-title text-yellow-400">✨ Animación Círculo</h3>
+                            <h3 className="panel-title text-yellow-400">✨ Animación</h3>
                             <div className="grid grid-cols-3 gap-2">
                                 {[
-                                    {id: 'anim-pulse', name: 'Pulse', color: '#eab308'},
-                                    {id: 'anim-radar-pro', name: 'Radar', color: '#3b82f6'},
-                                    {id: 'anim-neon', name: 'Neon', color: '#a855f7'},
-                                    {id: 'anim-breathe', name: 'Breathe', color: '#10b981'},
-                                    {id: 'anim-glitch', name: 'Glitch', color: '#ef4444'}
+                                    {id: 'anim-pulse', name: 'Pulse'},
+                                    {id: 'anim-radar-pro', name: 'Radar'},
+                                    {id: 'anim-neon', name: 'Neon'},
+                                    {id: 'anim-breathe', name: 'Breathe'},
+                                    {id: 'anim-glitch', name: 'Glitch'}
                                 ].map(a => (
                                     <div 
                                         key={a.id} 
-                                        className={`btn-opt ${config.animType === a.id ? 'active' : ''}`} 
-                                        style={{color: config.animType === a.id ? a.color : ''}}
+                                        className={`btn-opt ${config.animType === a.id ? 'active' : ''}`}
                                         onClick={() => sync({...config, animType: a.id})}
                                     >
                                         {a.name}
@@ -1044,7 +1007,7 @@
 
                         {/* Panel Formas */}
                         <div className="panel">
-                            <h3 className="panel-title text-green-400">🔷 Forma Noticia</h3>
+                            <h3 className="panel-title text-green-400">🔷 Forma</h3>
                             <div className="flex gap-2">
                                 {['shape-rect', 'shape-capsule', 'shape-modern', 'shape-glass'].map(s => (
                                     <div 
@@ -1058,49 +1021,30 @@
                             </div>
                         </div>
 
-                        {/* Panel Config General */}
+                        {/* Panel Config */}
                         <div className="panel lg:col-span-2">
-                            <h3 className="panel-title text-slate-300">⚙️ Configuración General</h3>
+                            <h3 className="panel-title text-slate-300">⚙️ General</h3>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div>
-                                    <label className="text-xs text-slate-400 uppercase font-bold mb-2 block">Título Globo</label>
+                                    <label className="text-xs text-slate-500 uppercase font-bold mb-2 block">Título</label>
                                     <input 
                                         className="dashboard-input" 
                                         value={config.title} 
                                         onChange={e => sync({...config, title: e.target.value.toUpperCase()})}
                                     />
                                 </div>
-                                
-                                <div className="flex gap-3">
-                                    <div className="color-picker-wrapper flex-1">
-                                        <input 
-                                            type="color" 
-                                            className="color-picker" 
-                                            value={config.newsColor} 
-                                            onChange={e => sync({...config, newsColor: e.target.value})}
-                                        />
-                                        <span className="color-label">Noticia</span>
-                                    </div>
-                                    <div className="color-picker-wrapper flex-1">
-                                        <input 
-                                            type="color" 
-                                            className="color-picker" 
-                                            value={config.circleColor} 
-                                            onChange={e => sync({...config, circleColor: e.target.value})}
-                                        />
-                                        <span className="color-label">Círculo</span>
-                                    </div>
+                                <div className="flex gap-2">
+                                    <input type="color" className="w-12 h-10 rounded cursor-pointer" value={config.newsColor} onChange={e => sync({...config, newsColor: e.target.value})}/>
+                                    <input type="color" className="w-12 h-10 rounded cursor-pointer" value={config.circleColor} onChange={e => sync({...config, circleColor: e.target.value})}/>
                                 </div>
-                                
                                 <button 
                                     className={`toggle-btn ${config.visible ? 'toggle-visible' : 'toggle-hidden'}`} 
                                     onClick={() => sync({...config, visible: !config.visible})}
                                 >
-                                    {config.visible ? '✓ VISIBLE' : '✕ OCULTO'}
+                                    {config.visible ? 'VISIBLE' : 'OCULTO'}
                                 </button>
-                                
                                 <button 
-                                    className="bg-slate-700 hover:bg-slate-600 h-12 rounded-lg text-sm font-bold" 
+                                    className="bg-slate-700 h-12 rounded-lg text-sm font-bold" 
                                     onClick={() => {
                                         navigator.clipboard.writeText(window.location.href.split('?')[0] + '?mode=overlay');
                                         alert('Link copiado!');
@@ -1114,59 +1058,27 @@
                     
                     {/* Preview */}
                     <div className="mt-6 panel">
-                        <h3 className="panel-title text-slate-300">👁️ Preview - {config.newsSource === 'rss' ? 'RSS' : 'MANUAL'}</h3>
+                        <h3 className="panel-title text-slate-300">👁️ Preview ({config.newsSource.toUpperCase()})</h3>
                         <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{height: '250px'}}>
                             <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900">
-                                <div className="absolute bottom-8 left-8">
-                                    <div 
-                                        className={`zap-news-box ${config.shapeType}`} 
-                                        style={{
-                                            borderBottomColor: config.newsColor, 
-                                            width: '320px',
-                                            transform: 'scale(0.8)',
-                                            transformOrigin: 'bottom left'
-                                        }}
-                                    >
-                                        <div 
-                                            className="zap-news-header" 
-                                            style={{backgroundColor: config.newsColor, fontSize: '1.1rem'}}
-                                        >
+                                <div className="absolute bottom-8 left-8" style={{transform: 'scale(0.7)', transformOrigin: 'bottom left'}}>
+                                    <div className={`zap-news-box ${config.shapeType}`} style={{borderBottomColor: config.newsColor, width: '380px'}}>
+                                        <div className="zap-news-header" style={{backgroundColor: config.newsColor}}>
                                             {config.newsSource === 'manual' ? 'NOTICIA' : config.title}
                                         </div>
-                                        <div className="zap-news-img-container" style={{height: '140px'}}>
-                                            {currentItem?.img && (
-                                                <img 
-                                                    src={currentItem.img} 
-                                                    className="zap-news-img" 
-                                                    style={{opacity: 0.8}}
-                                                />
-                                            )}
+                                        <div className="zap-news-img-container" style={{height: '160px'}}>
+                                            {currentItem.img && <img src={currentItem.img} className="zap-news-img" />}
                                         </div>
-                                        <div className="zap-news-body" style={{minHeight: '60px'}}>
-                                            <div className="zap-news-title" style={{fontSize: '0.9rem'}}>
-                                                {currentItem?.title || 'Sin noticias'}
-                                            </div>
+                                        <div className="zap-news-body">
+                                            <div className="zap-news-title">{currentItem.title}</div>
                                         </div>
                                     </div>
-                                    <div 
-                                        className={`zap-circle ${config.animType}`} 
-                                        style={{
-                                            borderColor: config.circleColor, 
-                                            color: config.circleColor,
-                                            width: '150px',
-                                            height: '150px',
-                                            transform: 'scale(0.8)',
-                                            transformOrigin: 'top center',
-                                            marginTop: '-15px'
-                                        }}
-                                    >
-                                        <div className="zap-time" style={{fontSize: '2.5rem'}}>
-                                            {time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}
-                                        </div>
-                                        <div className="zap-widget-bot" style={{width: '100px', height: '35px'}}>
+                                    <div className={`zap-circle ${config.animType}`} style={{borderColor: config.circleColor, color: config.circleColor, marginTop: '-20px'}}>
+                                        <div className="zap-time">{time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}</div>
+                                        <div className="zap-widget-bot">
                                             {config.alertVisible ? 
-                                                <div className="zap-alert" style={{width: '100px', height: '28px', fontSize: '0.85rem'}}>{config.alertText}</div> : 
-                                                <div className="zap-temp" style={{fontSize: '1.3rem'}}>{config.temp}°</div>
+                                                <div className="zap-alert">{config.alertText}</div> : 
+                                                <div className="zap-temp">{config.temp}°</div>
                                             }
                                         </div>
                                     </div>
