@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Zapping Master V12 - TV Edition</title>
+    <title>Zapping Master V12 - Auto + Manual</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -22,7 +22,7 @@
             z-index: 9999;
         }
 
-        /* FORMATOS DE NOTICIA ORIGINALES */
+        /* --- FORMATOS DE NOTICIA --- */
         .zap-news-box {
             width: 380px; background: #0a0e1a; 
             box-shadow: 0 15px 40px rgba(0,0,0,0.7);
@@ -30,6 +30,7 @@
             position: relative; overflow: hidden;
         }
         
+        /* BORDES DINÁMICOS */
         .shape-rect { border-radius: 15px; }
         .shape-capsule { border-radius: 50px; }
         .shape-modern { border-radius: 60px 0 60px 0; }
@@ -54,16 +55,19 @@
             line-height: 1.2; text-transform: uppercase;
         }
 
-        /* CÍRCULO CON ANIMACIONES PRO */
+        /* --- CÍRCULO Y ANIMACIONES PRO --- */
         .zap-circle {
             width: 185px; height: 185px;
             background: radial-gradient(circle at 30% 30%, #1e3a5f 0%, #0a0e1a 50%, #000 100%);
             border: 3px solid; border-radius: 50%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 
+                inset 0 0 40px rgba(0,0,0,0.8),
+                0 10px 30px rgba(0,0,0,0.5);
             position: relative; z-index: 20;
         }
 
+        /* Animación PRO 1: Pulse Glow */
         .anim-pulse::before {
             content: '';
             position: absolute;
@@ -77,6 +81,7 @@
             50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 40px currentColor, 0 0 60px currentColor; }
         }
 
+        /* Animación PRO 2: Radar Sweep */
         .anim-radar-pro::before {
             content: '';
             position: absolute;
@@ -101,6 +106,7 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Animación PRO 3: Neon Orbit */
         .anim-neon::before {
             content: '';
             position: absolute;
@@ -122,6 +128,7 @@
         @keyframes orbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes orbitReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
 
+        /* Animación PRO 4: Breathing Ring */
         .anim-breathe::before {
             content: '';
             position: absolute;
@@ -144,6 +151,7 @@
             50% { transform: scale(1.05); opacity: 0.8; }
         }
 
+        /* Animación PRO 5: Digital Glitch */
         .anim-glitch {
             animation: glitch 0.3s infinite;
         }
@@ -153,7 +161,9 @@
             width: 100%; height: 100%;
             border-radius: 50%;
             border: 2px solid currentColor;
-            box-shadow: -2px 0 10px currentColor, 2px 0 10px currentColor;
+            box-shadow: 
+                -2px 0 10px currentColor,
+                2px 0 10px currentColor;
             animation: glitchBorder 2s ease-in-out infinite;
         }
         @keyframes glitch {
@@ -207,125 +217,7 @@
             50% { transform: scale(1.05); opacity: 0.9; } 
         }
 
-        /* NUEVO: BREAKING NEWS BANNER */
-        .breaking-banner {
-            position: absolute;
-            top: 30px;
-            left: 0;
-            width: 100%;
-            height: 70px;
-            background: linear-gradient(90deg, #dc2626 0%, #991b1b 100%);
-            display: flex;
-            align-items: center;
-            padding: 0 50px;
-            transform: translateY(-120px);
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 10000;
-            box-shadow: 0 10px 40px rgba(220, 38, 38, 0.5);
-        }
-        
-        .breaking-banner.active {
-            transform: translateY(0);
-        }
-        
-        .breaking-label {
-            font-family: 'Oswald', sans-serif;
-            font-size: 2.2rem;
-            font-weight: 900;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-right: 25px;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 20px;
-            border-radius: 8px;
-            animation: breakingPulse 1s ease-in-out infinite;
-        }
-        
-        @keyframes breakingPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        .breaking-text {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.3rem;
-            color: white;
-            font-weight: 600;
-            flex: 1;
-        }
-
-        /* NUEVO: LOGO BUG */
-        .tv-bug {
-            position: absolute;
-            top: 40px;
-            right: 40px;
-            padding: 12px 24px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            border: 2px solid rgba(255,255,255,0.3);
-            font-family: 'Oswald', sans-serif;
-            font-weight: 900;
-            font-size: 1.4rem;
-            color: white;
-            z-index: 9998;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .tv-bug.visible {
-            opacity: 1;
-        }
-
-        /* NUEVO: TICKER SCROLL */
-        .ticker-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 40px;
-            background: rgba(0,0,0,0.9);
-            border-top: 3px solid #0047ff;
-            overflow: hidden;
-            z-index: 9997;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .ticker-container.visible {
-            opacity: 1;
-        }
-        
-        .ticker-content {
-            display: flex;
-            align-items: center;
-            height: 100%;
-            white-space: nowrap;
-            animation: tickerScroll 30s linear infinite;
-        }
-        
-        @keyframes tickerScroll {
-            0% { transform: translateX(100vw); }
-            100% { transform: translateX(-100%); }
-        }
-        
-        .ticker-item {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.95rem;
-            color: white;
-            padding: 0 50px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .ticker-separator {
-            color: #0047ff;
-            font-weight: 900;
-        }
-
-        /* Dashboard UI */
+        /* Dashboard UI Mejorado */
         .panel { 
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
             border: 1px solid #334155; 
@@ -366,6 +258,7 @@
             box-shadow: 0 0 15px currentColor;
         }
 
+        /* Inputs corregidos - AHORA SE VE EL TEXTO */
         .dashboard-input {
             background: #0f172a !important;
             border: 2px solid #334155;
@@ -385,8 +278,9 @@
             color: #64748b;
         }
 
+        /* Feed de noticias */
         .news-feed-container {
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             border-radius: 12px;
             background: #0f172a;
@@ -446,6 +340,7 @@
         .status-loaded { background: #10b981; color: #000; }
         .status-error { background: #ef4444; color: #fff; }
 
+        /* Scrollbar personalizada */
         .news-feed-container::-webkit-scrollbar {
             width: 6px;
         }
@@ -456,7 +351,11 @@
             background: #475569;
             border-radius: 3px;
         }
+        .news-feed-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
 
+        /* Botones principales */
         .btn-primary {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
@@ -493,6 +392,31 @@
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
         }
 
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0f172a;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        
+        .color-picker {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+        
+        .color-label {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
         .toggle-btn {
             padding: 12px 24px;
             border-radius: 10px;
@@ -518,29 +442,153 @@
             filter: brightness(1.1);
         }
 
-        .toggle-switch {
+        /* NUEVO: Selector de fuente */
+        .source-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .source-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #334155;
+            background: #1e293b;
+            color: #94a3b8;
+        }
+        
+        .source-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        /* NUEVO: Panel noticias manuales */
+        .manual-news-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .manual-news-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .manual-news-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 12px;
+            padding: 10px;
             background: #1e293b;
             border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
+            margin-bottom: 8px;
+            border: 1px solid #334155;
         }
-        .toggle-switch:hover {
+        
+        .manual-news-item.active {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .manual-news-img-preview {
+            width: 60px;
+            height: 45px;
+            border-radius: 6px;
+            object-fit: cover;
             background: #334155;
         }
-        .toggle-indicator {
-            width: 12px;
-            height: 12px;
+        
+        .manual-news-content {
+            flex: 1;
+        }
+        
+        .manual-news-title-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        .manual-news-img-url {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* NUEVO: Controles de rotación */
+        .rotation-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            background: #1e293b;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .rotation-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .rotation-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #64748b;
+            background: #10b981;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .play-pause-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
             transition: all 0.2s;
         }
-        .toggle-indicator.on {
-            background: #10b981;
-            box-shadow: 0 0 10px #10b981;
+        
+        .play-pause-btn:hover {
+            background: #2563eb;
+            transform: scale(1.1);
+        }
+
+        .interval-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .interval-selector select {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -548,7 +596,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         const App = () => {
             const [mode, setMode] = useState('dashboard');
@@ -556,6 +604,11 @@
             const [status, setStatus] = useState('offline');
             const [rssStatus, setRssStatus] = useState('idle');
             const clientRef = useRef(null);
+            
+            // NUEVO: Intervalo de rotación
+            const [rotationInterval, setRotationInterval] = useState(10);
+            const [isPlaying, setIsPlaying] = useState(true);
+            const rotationTimerRef = useRef(null);
 
             const [config, setConfig] = useState({
                 id: 'sm_v12_final',
@@ -565,28 +618,56 @@
                 circleColor: '#eab308',
                 rssUrl: 'https://streaminghoy.com.ar/rss',
                 temp: 23.9,
-                city: 'Buenos Aires',
                 activeIndex: 0,
                 alertVisible: false,
                 alertText: 'AHORA',
                 animType: 'anim-pulse',
                 shapeType: 'shape-rect',
-                // NUEVOS FEATURES TV
-                showBug: false,
-                bugText: 'CANAL 5',
-                showTicker: false,
-                tickerText: 'Síguenos en redes sociales • Instagram: @canal5 • Twitter: @canal5 • Próximo programa: 20:00hs',
-                breakingActive: false,
-                breakingText: 'ÚLTIMO MOMENTO: Información en desarrollo'
+                // NUEVO: Fuente de noticias
+                newsSource: 'rss', // 'rss' o 'manual'
+                manualNewsIndex: 0
             });
 
             const [news, setNews] = useState([]);
             const [citySearch, setCitySearch] = useState("Buenos Aires");
+            
+            // NUEVO: Noticias manuales
+            const [manualNews, setManualNews] = useState([
+                {id: 1, title: 'Noticia manual de ejemplo', img: ''}
+            ]);
+            const [newManualTitle, setNewManualTitle] = useState('');
+            const [newManualImg, setNewManualImg] = useState('');
+
+            // NUEVO: Auto-rotación de noticias
+            const rotateNews = useCallback(() => {
+                setConfig(prev => {
+                    if (prev.newsSource === 'rss' && news.length > 0) {
+                        const nextIndex = (prev.activeIndex + 1) % news.length;
+                        sync({...prev, activeIndex: nextIndex}, news);
+                        return {...prev, activeIndex: nextIndex};
+                    } else if (prev.newsSource === 'manual' && manualNews.length > 0) {
+                        const nextIndex = (prev.manualNewsIndex + 1) % manualNews.length;
+                        sync({...prev, manualNewsIndex: nextIndex}, null, manualNews);
+                        return {...prev, manualNewsIndex: nextIndex};
+                    }
+                    return prev;
+                });
+            }, [news.length, manualNews.length]);
 
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
                 return () => clearInterval(t);
             }, []);
+
+            // NUEVO: Timer de rotación
+            useEffect(() => {
+                if (isPlaying) {
+                    rotationTimerRef.current = setInterval(rotateNews, rotationInterval * 1000);
+                }
+                return () => {
+                    if (rotationTimerRef.current) clearInterval(rotationTimerRef.current);
+                };
+            }, [isPlaying, rotationInterval, rotateNews]);
 
             useEffect(() => {
                 const p = new URLSearchParams(window.location.search);
@@ -605,6 +686,7 @@
                             const parsed = JSON.parse(msg.toString());
                             setConfig(c => ({...c, ...parsed}));
                             if (parsed.newsPayload) setNews(parsed.newsPayload);
+                            if (parsed.manualNewsPayload) setManualNews(parsed.manualNewsPayload);
                         } catch(e) {}
                     }
                 });
@@ -612,9 +694,10 @@
                 return () => client.end();
             }, []);
 
-            const sync = (c, n = null) => {
+            const sync = (c, n = null, m = null) => {
                 const payload = { ...c };
                 if (n) payload.newsPayload = n;
+                if (m) payload.manualNewsPayload = m;
                 setConfig(c);
                 if (clientRef.current?.connected) {
                     clientRef.current.publish('streammaster/v12', JSON.stringify(payload), { retain: true });
@@ -628,7 +711,7 @@
                     if(gData.results && gData.results.length > 0) {
                         const wea = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${gData.results[0].latitude}&longitude=${gData.results[0].longitude}&current_weather=true`);
                         const wData = await wea.json();
-                        sync({ ...config, temp: wData.current_weather.temperature, city: gData.results[0].name });
+                        sync({ ...config, temp: wData.current_weather.temperature });
                     } else {
                         alert("Ciudad no encontrada");
                     }
@@ -649,7 +732,12 @@
                             img: i.enclosure?.link || i.thumbnail || (i.description?.match(/src="([^"]+)"/)?.[1]) || '' 
                         }));
                         setNews(items);
-                        sync({ ...config, activeIndex: 0 }, items);
+                        // Si está en RSS, resetear índice
+                        if (config.newsSource === 'rss') {
+                            sync({ ...config, activeIndex: 0 }, items);
+                        } else {
+                            sync({ ...config }, items);
+                        }
                         setRssStatus('loaded');
                     } else {
                         setNews([]);
@@ -662,78 +750,101 @@
             };
 
             const selectNews = (index) => {
-                sync({ ...config, activeIndex: index });
+                sync({ ...config, activeIndex: index, newsSource: 'rss' });
             };
 
-            const toggleBreaking = () => {
-                sync({ ...config, breakingActive: !config.breakingActive });
+            const selectManualNews = (index) => {
+                sync({ ...config, manualNewsIndex: index, newsSource: 'manual' });
+            };
+
+            const switchSource = (source) => {
+                sync({ ...config, newsSource: source });
+            };
+
+            // NUEVO: Agregar noticia manual
+            const addManualNews = () => {
+                if (!newManualTitle.trim()) return;
+                const newItem = {
+                    id: Date.now(),
+                    title: newManualTitle,
+                    img: newManualImg
+                };
+                const updated = [...manualNews, newItem];
+                setManualNews(updated);
+                setNewManualTitle('');
+                setNewManualImg('');
+                sync({ ...config }, null, updated);
+            };
+
+            // NUEVO: Eliminar noticia manual
+            const removeManualNews = (id, e) => {
+                e.stopPropagation();
+                const updated = manualNews.filter(item => item.id !== id);
+                setManualNews(updated);
+                // Ajustar índice si es necesario
+                if (config.manualNewsIndex >= updated.length) {
+                    sync({ ...config, manualNewsIndex: 0 }, null, updated);
+                } else {
+                    sync({ ...config }, null, updated);
+                }
+            };
+
+            const togglePlayPause = () => {
+                setIsPlaying(!isPlaying);
+            };
+
+            // Determinar noticia actual a mostrar
+            const getCurrentNews = () => {
+                if (config.newsSource === 'manual' && manualNews.length > 0) {
+                    return manualNews[config.manualNewsIndex] || { title: 'Sin noticias manuales', img: '' };
+                }
+                return news[config.activeIndex] || { title: 'CARGANDO NOTICIAS...', img: '' };
             };
 
             if (mode === 'overlay') {
                 if (!config.visible) return null;
-                
-                const item = news[config.activeIndex] || { title: 'CARGANDO NOTICIAS...', img: '' };
+                const item = getCurrentNews();
                 
                 return (
-                    <div>
-                        {/* NUEVO: Breaking News Banner */}
-                        <div className={`breaking-banner ${config.breakingActive ? 'active' : ''}`}>
-                            <span className="breaking-label">⚡ BREAKING</span>
-                            <span className="breaking-text">{config.breakingText}</span>
-                        </div>
-                        
-                        {/* NUEVO: Logo Bug */}
-                        <div className={`tv-bug ${config.showBug ? 'visible' : ''}`}>
-                            {config.bugText}
-                        </div>
-                        
-                        {/* NUEVO: Ticker */}
-                        <div className={`ticker-container ${config.showTicker ? 'visible' : ''}`}>
-                            <div className="ticker-content">
-                                <span className="ticker-item">
-                                    {config.tickerText}
-                                    <span className="ticker-separator">★</span>
-                                    {config.tickerText}
-                                    <span className="ticker-separator">★</span>
-                                    {config.tickerText}
-                                </span>
+                    <div className="zapping-wrapper">
+                        <div className={`zap-news-box ${config.shapeType}`} style={{borderBottomColor: config.newsColor}}>
+                            <div className="zap-news-header" style={{backgroundColor: config.newsColor}}>
+                                {config.newsSource === 'manual' ? 'NOTICIA' : config.title}
+                            </div>
+                            <div className="zap-news-img-container">
+                                {item.img && <img src={item.img} className="zap-news-img" />}
+                            </div>
+                            <div className="zap-news-body">
+                                <div className="zap-news-title">{item.title}</div>
                             </div>
                         </div>
-                        
-                        {/* ORIGINAL: Zapping Wrapper */}
-                        <div className="zapping-wrapper">
-                            <div className={`zap-news-box ${config.shapeType}`} style={{borderBottomColor: config.newsColor}}>
-                                <div className="zap-news-header" style={{backgroundColor: config.newsColor}}>{config.title}</div>
-                                <div className="zap-news-img-container">
-                                    {item.img && <img src={item.img} className="zap-news-img" />}
-                                </div>
-                                <div className="zap-news-body">
-                                    <div className="zap-news-title">{item.title}</div>
-                                </div>
-                            </div>
-                            <div className={`zap-circle ${config.animType}`} style={{borderColor: config.circleColor, color: config.circleColor}}>
-                                <div className="zap-time">{time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}</div>
-                                <div className="zap-widget-bot">
-                                    {config.alertVisible ? <div className="zap-alert">{config.alertText}</div> : <div className="zap-temp">{config.temp}°</div>}
-                                </div>
+                        <div className={`zap-circle ${config.animType}`} style={{borderColor: config.circleColor, color: config.circleColor}}>
+                            <div className="zap-time">{time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}</div>
+                            <div className="zap-widget-bot">
+                                {config.alertVisible ? <div className="zap-alert">{config.alertText}</div> : <div className="zap-temp">{config.temp}°</div>}
                             </div>
                         </div>
                     </div>
                 );
             }
 
+            const currentItem = getCurrentNews();
+
             return (
                 <div className="p-6 max-w-6xl mx-auto text-white">
                     <header className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
                         <div>
                             <h1 className="text-3xl font-black italic tracking-tight">
-                                ZAPPING MASTER <span className="text-blue-500 text-lg">V12 TV</span>
+                                ZAPPING MASTER <span className="text-blue-500 text-lg">V12 AUTO</span>
                             </h1>
-                            <p className="text-slate-400 text-sm mt-1">Dashboard de Control - Broadcast</p>
+                            <p className="text-slate-400 text-sm mt-1">Auto-rotación + Noticias Manuales</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${status==='online'?'bg-green-500/20 text-green-400':'bg-red-500/20 text-red-400'}`}>
                                 ● MQTT {status.toUpperCase()}
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${isPlaying ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                {isPlaying ? '▶ AUTO' : '⏸ PAUSA'}
                             </span>
                         </div>
                     </header>
@@ -753,7 +864,7 @@
                             </div>
                             <div className="mt-3 flex items-center gap-3">
                                 <div className="text-3xl font-bold">{config.temp}°C</div>
-                                <div className="text-slate-400 text-sm">{config.city}</div>
+                                <div className="text-slate-400 text-sm">Temperatura actual</div>
                             </div>
                         </div>
 
@@ -776,86 +887,136 @@
                             </div>
                         </div>
 
-                        {/* NUEVO: Panel Breaking News */}
+                        {/* NUEVO: Panel de Fuentes con Selector */}
                         <div className="panel lg:col-span-2">
-                            <h3 className="panel-title text-red-500">🔴 Breaking News Banner</h3>
-                            <div className="flex gap-3 mb-3">
-                                <input 
-                                    className="dashboard-input flex-1" 
-                                    value={config.breakingText} 
-                                    onChange={e => sync({...config, breakingText: e.target.value})}
-                                    placeholder="Texto del breaking news..."
-                                />
+                            <h3 className="panel-title text-purple-400">📰 Fuentes de Noticias</h3>
+                            
+                            {/* Selector de fuente */}
+                            <div className="source-selector">
                                 <button 
-                                    onClick={toggleBreaking}
-                                    className={`px-6 rounded-lg font-bold text-sm transition-all ${config.breakingActive ? 'bg-red-600 animate-pulse' : 'bg-slate-600'}`}
+                                    className={`source-btn ${config.newsSource === 'rss' ? 'active' : ''}`}
+                                    onClick={() => switchSource('rss')}
                                 >
-                                    {config.breakingActive ? 'ON AIR' : 'ACTIVAR'}
+                                    📡 FEED RSS
+                                    {config.newsSource === 'rss' && <span className="ml-2">✓</span>}
+                                </button>
+                                <button 
+                                    className={`source-btn ${config.newsSource === 'manual' ? 'active' : ''}`}
+                                    onClick={() => switchSource('manual')}
+                                >
+                                    ✏️ NOTICIAS MANUALES
+                                    {config.newsSource === 'manual' && <span className="ml-2">✓</span>}
                                 </button>
                             </div>
-                        </div>
 
-                        {/* NUEVO: Panel Elementos TV */}
-                        <div className="panel">
-                            <h3 className="panel-title text-purple-400">📺 Elementos Broadcast</h3>
-                            <div className="space-y-3">
-                                <div className="toggle-switch" onClick={() => sync({...config, showBug: !config.showBug})}>
-                                    <div className={`toggle-indicator ${config.showBug ? 'on' : ''}`}></div>
-                                    <span className="text-sm font-semibold">Logo Bug</span>
-                                    <input 
-                                        className="dashboard-input flex-1 ml-2 text-sm"
-                                        value={config.bugText}
-                                        onChange={e => {e.stopPropagation(); sync({...config, bugText: e.target.value})}}
-                                        onClick={e => e.stopPropagation()}
-                                        placeholder="Texto del bug..."
-                                    />
-                                </div>
-                                <div className="toggle-switch" onClick={() => sync({...config, showTicker: !config.showTicker})}>
-                                    <div className={`toggle-indicator ${config.showTicker ? 'on' : ''}`}></div>
-                                    <span className="text-sm font-semibold">Ticker Inferior</span>
-                                </div>
-                                {config.showTicker && (
-                                    <input 
-                                        className="dashboard-input text-sm"
-                                        value={config.tickerText}
-                                        onChange={e => sync({...config, tickerText: e.target.value})}
-                                        placeholder="Texto del ticker..."
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Panel RSS con Feed */}
-                        <div className="panel">
-                            <h3 className="panel-title text-green-400">📰 Fuentes RSS</h3>
-                            <div className="flex gap-3 mb-3">
-                                <input 
-                                    className="dashboard-input flex-1 text-sm" 
-                                    value={config.rssUrl} 
-                                    onChange={e => sync({...config, rssUrl: e.target.value})}
-                                    placeholder="URL del feed RSS..."
-                                />
-                                <button onClick={fetchNews} className="btn-danger text-xs px-3">Cargar</button>
-                                <span className={`news-feed-status self-center ${rssStatus === 'loading' ? 'status-loading' : rssStatus === 'loaded' ? 'status-loaded' : rssStatus === 'error' ? 'status-error' : 'bg-slate-600'}`}>
-                                    {rssStatus === 'idle' ? 'SIN CARGAR' : rssStatus === 'loading' ? '...' : rssStatus === 'loaded' ? `${news.length}` : 'ERR'}
-                                </span>
-                            </div>
-                            
-                            {news.length > 0 && (
-                                <div className="news-feed-container max-h-48">
-                                    {news.map((item, idx) => (
-                                        <div 
-                                            key={idx} 
-                                            className={`news-feed-item ${config.activeIndex === idx ? 'active' : ''}`}
-                                            onClick={() => selectNews(idx)}
-                                        >
-                                            {item.img && <img src={item.img} className="news-feed-thumb" alt="" />}
-                                            <div className="news-feed-title">{item.title}</div>
-                                            {config.activeIndex === idx && <span className="ml-auto text-blue-400 text-xs">●</span>}
+                            {/* Contenido según fuente seleccionada */}
+                            {config.newsSource === 'rss' ? (
+                                <div>
+                                    <div className="flex gap-3 mb-3">
+                                        <input 
+                                            className="dashboard-input flex-1" 
+                                            value={config.rssUrl} 
+                                            onChange={e => sync({...config, rssUrl: e.target.value})}
+                                            placeholder="URL del feed RSS..."
+                                        />
+                                        <button onClick={fetchNews} className="btn-danger">Cargar</button>
+                                        <span className={`news-feed-status ${rssStatus === 'loading' ? 'status-loading' : rssStatus === 'loaded' ? 'status-loaded' : rssStatus === 'error' ? 'status-error' : 'bg-slate-600'}`}>
+                                            {rssStatus === 'idle' ? 'SIN CARGAR' : rssStatus === 'loading' ? '...' : rssStatus === 'loaded' ? `${news.length}` : 'ERR'}
+                                        </span>
+                                    </div>
+                                    
+                                    {news.length > 0 && (
+                                        <div className="news-feed-container">
+                                            {news.map((item, idx) => (
+                                                <div 
+                                                    key={idx} 
+                                                    className={`news-feed-item ${config.activeIndex === idx && config.newsSource === 'rss' ? 'active' : ''}`}
+                                                    onClick={() => selectNews(idx)}
+                                                >
+                                                    {item.img && <img src={item.img} className="news-feed-thumb" alt="" />}
+                                                    <div className="news-feed-title">{item.title}</div>
+                                                    {config.activeIndex === idx && config.newsSource === 'rss' && (
+                                                        <span className="ml-auto text-blue-400 text-xs">●</span>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
+                                </div>
+                            ) : (
+                                <div>
+                                    {/* Formulario noticias manuales */}
+                                    <div className="manual-news-form">
+                                        <input 
+                                            className="dashboard-input flex-1"
+                                            value={newManualTitle}
+                                            onChange={e => setNewManualTitle(e.target.value)}
+                                            placeholder="Título de la noticia..."
+                                        />
+                                        <input 
+                                            className="dashboard-input flex-1"
+                                            value={newManualImg}
+                                            onChange={e => setNewManualImg(e.target.value)}
+                                            placeholder="URL de imagen (opcional)..."
+                                        />
+                                        <button onClick={addManualNews} className="btn-primary">+ Agregar</button>
+                                    </div>
+                                    
+                                    {/* Lista noticias manuales */}
+                                    <div className="manual-news-list">
+                                        {manualNews.map((item, idx) => (
+                                            <div 
+                                                key={item.id}
+                                                className={`manual-news-item ${config.manualNewsIndex === idx && config.newsSource === 'manual' ? 'active' : ''}`}
+                                                onClick={() => selectManualNews(idx)}
+                                            >
+                                                {item.img && <img src={item.img} className="manual-news-img-preview" alt="" />}
+                                                <div className="manual-news-content">
+                                                    <div className="manual-news-title-text">{item.title}</div>
+                                                    {item.img && <div className="manual-news-img-url">{item.img}</div>}
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => removeManualNews(item.id, e)}
+                                                    className="w-8 h-8 bg-red-600 rounded-lg text-white font-bold hover:bg-red-700"
+                                                >
+                                                    ×
+                                                </button>
+                                                {config.manualNewsIndex === idx && config.newsSource === 'manual' && (
+                                                    <span className="text-blue-400 text-xs ml-2">●</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
+
+                            {/* Controles de rotación */}
+                            <div className="rotation-controls">
+                                <button className="play-pause-btn" onClick={togglePlayPause}>
+                                    {isPlaying ? '⏸' : '▶'}
+                                </button>
+                                <div className="rotation-indicator">
+                                    <div className="rotation-dot"></div>
+                                    <span>Rotación automática {isPlaying ? 'activa' : 'pausada'}</span>
+                                </div>
+                                <div className="interval-selector">
+                                    <span className="text-sm text-slate-400">Intervalo:</span>
+                                    <select 
+                                        value={rotationInterval} 
+                                        onChange={e => setRotationInterval(Number(e.target.value))}
+                                    >
+                                        <option value={5}>5 seg</option>
+                                        <option value={10}>10 seg</option>
+                                        <option value={15}>15 seg</option>
+                                        <option value={20}>20 seg</option>
+                                        <option value={30}>30 seg</option>
+                                        <option value={60}>1 min</option>
+                                    </select>
+                                </div>
+                                <div className="ml-auto text-sm text-slate-400">
+                                    Mostrando: <span className="text-white font-bold">{currentItem?.title?.substring(0, 30)}...</span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Panel Animaciones */}
@@ -883,7 +1044,7 @@
 
                         {/* Panel Formas */}
                         <div className="panel">
-                            <h3 className="panel-title text-cyan-400">🔷 Forma Noticia</h3>
+                            <h3 className="panel-title text-green-400">🔷 Forma Noticia</h3>
                             <div className="flex gap-2">
                                 {['shape-rect', 'shape-capsule', 'shape-modern', 'shape-glass'].map(s => (
                                     <div 
@@ -902,29 +1063,42 @@
                             <h3 className="panel-title text-slate-300">⚙️ Configuración General</h3>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div>
-                                    <label className="text-xs text-slate-500 uppercase font-bold mb-2 block">Título Globo</label>
+                                    <label className="text-xs text-slate-400 uppercase font-bold mb-2 block">Título Globo</label>
                                     <input 
                                         className="dashboard-input" 
                                         value={config.title} 
                                         onChange={e => sync({...config, title: e.target.value.toUpperCase()})}
                                     />
                                 </div>
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <label className="text-xs text-slate-500 uppercase font-bold mb-2 block">Color Noticia</label>
-                                        <input type="color" className="w-full h-10 rounded cursor-pointer" value={config.newsColor} onChange={e => sync({...config, newsColor: e.target.value})}/>
+                                
+                                <div className="flex gap-3">
+                                    <div className="color-picker-wrapper flex-1">
+                                        <input 
+                                            type="color" 
+                                            className="color-picker" 
+                                            value={config.newsColor} 
+                                            onChange={e => sync({...config, newsColor: e.target.value})}
+                                        />
+                                        <span className="color-label">Noticia</span>
                                     </div>
-                                    <div className="flex-1">
-                                        <label className="text-xs text-slate-500 uppercase font-bold mb-2 block">Color Círculo</label>
-                                        <input type="color" className="w-full h-10 rounded cursor-pointer" value={config.circleColor} onChange={e => sync({...config, circleColor: e.target.value})}/>
+                                    <div className="color-picker-wrapper flex-1">
+                                        <input 
+                                            type="color" 
+                                            className="color-picker" 
+                                            value={config.circleColor} 
+                                            onChange={e => sync({...config, circleColor: e.target.value})}
+                                        />
+                                        <span className="color-label">Círculo</span>
                                     </div>
                                 </div>
+                                
                                 <button 
                                     className={`toggle-btn ${config.visible ? 'toggle-visible' : 'toggle-hidden'}`} 
                                     onClick={() => sync({...config, visible: !config.visible})}
                                 >
                                     {config.visible ? '✓ VISIBLE' : '✕ OCULTO'}
                                 </button>
+                                
                                 <button 
                                     className="bg-slate-700 hover:bg-slate-600 h-12 rounded-lg text-sm font-bold" 
                                     onClick={() => {
@@ -940,43 +1114,37 @@
                     
                     {/* Preview */}
                     <div className="mt-6 panel">
-                        <h3 className="panel-title text-slate-300">👁️ Preview</h3>
-                        <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{height: '280px'}}>
+                        <h3 className="panel-title text-slate-300">👁️ Preview - {config.newsSource === 'rss' ? 'RSS' : 'MANUAL'}</h3>
+                        <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{height: '250px'}}>
                             <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900">
-                                {/* Preview Breaking */}
-                                {config.breakingActive && (
-                                    <div className="breaking-banner active" style={{transform: 'scale(0.7)', transformOrigin: 'top left', height: '50px'}}>
-                                        <span className="breaking-label" style={{fontSize: '1.5rem'}}>⚡ BREAKING</span>
-                                    </div>
-                                )}
-                                {/* Preview Bug */}
-                                {config.showBug && (
-                                    <div className="tv-bug visible" style={{transform: 'scale(0.6)', top: '20px', right: '20px'}}>
-                                        {config.bugText}
-                                    </div>
-                                )}
-                                {/* Preview Ticker */}
-                                {config.showTicker && (
-                                    <div className="ticker-container visible" style={{height: '30px'}}>
-                                        <div className="ticker-content text-xs">
-                                            {config.tickerText.substring(0, 50)}...
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Preview Original */}
-                                <div className="absolute bottom-6 left-6" style={{transform: 'scale(0.65)', transformOrigin: 'bottom left'}}>
-                                    <div className={`zap-news-box ${config.shapeType}`} style={{borderBottomColor: config.newsColor, width: '320px'}}>
-                                        <div className="zap-news-header" style={{backgroundColor: config.newsColor, fontSize: '1.1rem'}}>
-                                            {config.title}
+                                <div className="absolute bottom-8 left-8">
+                                    <div 
+                                        className={`zap-news-box ${config.shapeType}`} 
+                                        style={{
+                                            borderBottomColor: config.newsColor, 
+                                            width: '320px',
+                                            transform: 'scale(0.8)',
+                                            transformOrigin: 'bottom left'
+                                        }}
+                                    >
+                                        <div 
+                                            className="zap-news-header" 
+                                            style={{backgroundColor: config.newsColor, fontSize: '1.1rem'}}
+                                        >
+                                            {config.newsSource === 'manual' ? 'NOTICIA' : config.title}
                                         </div>
                                         <div className="zap-news-img-container" style={{height: '140px'}}>
-                                            {news[config.activeIndex]?.img && (
-                                                <img src={news[config.activeIndex].img} className="zap-news-img" style={{opacity: 0.8}}/>
+                                            {currentItem?.img && (
+                                                <img 
+                                                    src={currentItem.img} 
+                                                    className="zap-news-img" 
+                                                    style={{opacity: 0.8}}
+                                                />
                                             )}
                                         </div>
                                         <div className="zap-news-body" style={{minHeight: '60px'}}>
                                             <div className="zap-news-title" style={{fontSize: '0.9rem'}}>
-                                                {news[config.activeIndex]?.title || 'Sin noticias'}
+                                                {currentItem?.title || 'Sin noticias'}
                                             </div>
                                         </div>
                                     </div>
@@ -987,6 +1155,8 @@
                                             color: config.circleColor,
                                             width: '150px',
                                             height: '150px',
+                                            transform: 'scale(0.8)',
+                                            transformOrigin: 'top center',
                                             marginTop: '-15px'
                                         }}
                                     >
