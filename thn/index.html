@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Unified - Weather & News</title>
+    <title>Stream Unified V5 - Weather & News</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -12,31 +12,30 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
-        /* --- ESTILOS BASE --- */
-        html, body { margin: 0; padding: 0; font-family: 'Inter', 'Arial', sans-serif; width: 100%; height: 100%; }
+        /* --- TUS ESTILOS ORIGINALES INTEGRADOS --- */
+        html, body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; width: 100%; height: 100%; }
         body.dashboard-mode { background-color: #0f172a; color: white; overflow-y: auto !important; }
         body.overlay-mode { background-color: transparent !important; overflow: hidden !important; }
 
-        /* --- ESTILOS CLIMA (HTML 1) --- */
-        .weather-pill { position: absolute; top: 40px; right: 40px; background: rgba(15, 23, 42, 0.9); padding: 10px 25px; border-radius: 50px; display: flex; align-items: center; gap: 15px; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        /* Clima Styles */
+        .weather-pill { position: absolute; top: 40px; right: 40px; background: rgba(15, 23, 42, 0.9); padding: 10px 25px; border-radius: 50px; display: flex; align-items: center; gap: 15px; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: white; }
         .weather-card { position: absolute; top: 150px; left: 50px; min-width: 300px; background: rgba(255,255,255,0.95); color: #0f172a; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
         .forecast-container { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; }
-        .fc-card { background: rgba(15, 23, 42, 0.95); width: 200px; padding: 20px; border-radius: 15px; text-align: center; color: white; }
+        .fc-card { background: rgba(15, 23, 42, 0.95); width: 220px; padding: 20px; border-radius: 15px; text-align: center; color: white; border: 2px solid rgba(255,255,255,0.1); }
 
-        /* --- ESTILOS NOTICIAS (HTML 2) --- */
+        /* News Styles */
         .news-ticker { position: absolute; bottom: 30px; left: 0; width: 100%; height: 70px; background: #0f172a; border-top: 6px solid; display: flex; align-items: center; }
-        .ticker-label { height: 100%; padding: 0 40px; display: flex; align-items: center; font-weight: 900; color: white; }
-        .ticker-move { display: inline-block; white-space: nowrap; font-size: 1.6rem; font-weight: 700; color: white; padding-left: 100%; animation: scroll linear infinite; }
-        
-        .news-card { position: absolute; bottom: 120px; left: 50px; width: 500px; background: rgba(15, 23, 42, 0.98); border-radius: 12px; overflow: hidden; border-left: 10px solid; color: white; }
-        .card-img { width: 100%; height: 250px; object-fit: cover; }
-        
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-200%); } }
+        .ticker-label { height: 100%; padding: 0 40px; display: flex; align-items: center; font-weight: 900; color: white; font-size: 1.8rem; }
+        .ticker-content { flex: 1; overflow: hidden; white-space: nowrap; height: 100%; display: flex; align-items: center; }
+        .ticker-move { display: inline-block; font-size: 1.6rem; font-weight: 700; color: white; padding-left: 100%; }
 
-        /* UI Dashboard */
-        .section-box { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        .btn-custom { background: #334155; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-active { background: #2563eb !important; }
+        @keyframes scroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+        
+        /* Dashboard UI */
+        .panel { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; }
+        .btn { background: #334155; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn.active { background: #2563eb; }
     </style>
 </head>
 <body>
@@ -44,99 +43,127 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-
-        // IDs Unicos para mantener la independencia de tus motores
-        const SESSION_WEATHER = 'weather_' + Math.floor(Math.random() * 9999);
-        const SESSION_NEWS = 'news_' + Math.floor(Math.random() * 9999);
+        const MQTT_CONFIG = { host: 'broker.emqx.io', port: 8084, path: '/mqtt' };
 
         const App = () => {
             const [mode, setMode] = useState('dashboard');
-            
-            // --- ESTADO MOTOR 1 (WEATHER) ---
-            const [weatherData, setWeatherData] = useState({
-                visible: false, style: 'impact', view: 'current', city: 'Buenos Aires', temp: 24, forecast: { morn: 18, aft: 26, night: 20 }
-            });
-            const weatherClient = useRef(null);
+            const [status, setStatus] = useState('offline');
+            const clientRef = useRef(null);
 
-            // --- ESTADO MOTOR 2 (NEWS) ---
-            const [newsConfig, setNewsConfig] = useState({
-                style: 'ticker', activeIndex: 0, visible: false, feedTitle: 'NOTICIAS', color: '#ef4444', speed: 60
+            // --- ESTADO UNIFICADO ---
+            const [data, setData] = useState({
+                sessionId: 'stream_' + Math.floor(Math.random() * 9999),
+                weather: {
+                    visible: false, style: 'impact', view: 'current', city: 'Buenos Aires', temp: 24, desc: 'Soleado',
+                    forecast: { morn: 18, aft: 26, night: 20 }
+                },
+                newsConfig: {
+                    visible: false, style: 'ticker', activeIndex: 0, feedTitle: 'NOTICIAS', color: '#ef4444', speed: 60, rssUrl: 'https://feeds.elpais.com/mr/elpais/EM/cl/portada.xml'
+                },
+                newsItems: []
             });
-            const [newsItems, setNewsItems] = useState([]);
-            const newsClient = useRef(null);
 
+            const [searchInput, setSearchInput] = useState("");
+            const [loading, setLoading] = useState(false);
+
+            // --- CONEXIÓN MQTT ---
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
                 const m = params.get('mode') || 'dashboard';
+                const id = params.get('id') || data.sessionId;
                 setMode(m);
                 document.body.className = m + '-mode';
 
-                // Conectar Clima
-                const c1 = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-                c1.on('connect', () => c1.subscribe(`sc_v48_multi/data`));
-                c1.on('message', (t, msg) => { if(m === 'overlay') setWeatherData(JSON.parse(msg.toString())); });
-                weatherClient.current = c1;
-
-                // Conectar Noticias
-                const c2 = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-                c2.on('connect', () => c2.subscribe(`sc_news/data`));
-                c2.on('message', (t, msg) => {
-                    if(m === 'overlay') {
-                        const payload = JSON.parse(msg.toString());
-                        setNewsConfig(payload.config);
-                        setNewsItems(payload.data);
-                    }
+                const client = mqtt.connect(`wss://${MQTT_CONFIG.host}:${MQTT_CONFIG.port}${MQTT_CONFIG.path}`);
+                client.on('connect', () => {
+                    setStatus('online');
+                    client.subscribe(`stream_unified/${id}`);
                 });
-                newsClient.current = c2;
-
-                return () => { c1.end(); c2.end(); };
+                client.on('message', (t, msg) => {
+                    if (m === 'overlay') setData(JSON.parse(msg.toString()));
+                });
+                clientRef.current = client;
+                return () => client.end();
             }, []);
 
-            // --- FUNCIONES DE ACTUALIZACIÓN ---
-            const updateWeather = (data) => {
-                setWeatherData(data);
-                weatherClient.current.publish(`sc_v48_multi/data`, JSON.stringify(data), { retain: true });
+            const sync = (newData) => {
+                setData(newData);
+                if (clientRef.current?.connected) {
+                    clientRef.current.publish(`stream_unified/${data.sessionId}`, JSON.stringify(newData), { retain: true });
+                }
             };
 
-            const updateNews = (config, data) => {
-                setNewsConfig(config);
-                if(data) setNewsItems(data);
-                newsClient.current.publish(`sc_news/data`, JSON.stringify({ config, data: data || newsItems }), { retain: true });
+            // --- LÓGICA CLIMA (Tus funciones originales) ---
+            const fetchWeather = async () => {
+                if(!searchInput) return;
+                setLoading(true);
+                try {
+                    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchInput)}&count=1&language=es&format=json`);
+                    const geoData = await geoRes.json();
+                    if(geoData.results) {
+                        const { latitude, longitude, name } = geoData.results[0];
+                        const weaRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=temperature_2m&timezone=auto`);
+                        const weaData = await weaRes.json();
+                        
+                        const newData = { ...data };
+                        newData.weather = {
+                            ...data.weather,
+                            city: name,
+                            temp: Math.round(weaData.current_weather.temperature),
+                            forecast: {
+                                morn: Math.round(weaData.hourly.temperature_2m[9]),
+                                aft: Math.round(weaData.hourly.temperature_2m[15]),
+                                night: Math.round(weaData.hourly.temperature_2m[21])
+                            },
+                            visible: true
+                        };
+                        sync(newData);
+                    }
+                } catch (e) { alert("Error clima"); }
+                setLoading(false);
             };
 
-            // --- RENDER OVERLAY (UNIFICADO) ---
+            // --- LÓGICA NOTICIAS (Tus funciones originales) ---
+            const fetchNews = async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(data.newsConfig.rssUrl)}`);
+                    const json = await res.json();
+                    if (json.status === 'ok') {
+                        const newData = { ...data, newsItems: json.items.slice(0, 10) };
+                        sync(newData);
+                    }
+                } catch (e) { alert("Error RSS"); }
+                setLoading(false);
+            };
+
+            // --- RENDER OVERLAY ---
             if (mode === 'overlay') {
                 return (
                     <div>
-                        {/* WIDGETS CLIMA */}
-                        {weatherData.visible && (
+                        {/* WIDGET CLIMA */}
+                        {data.weather.visible && (
                             <div>
-                                {weatherData.style === 'discrete' && <div className="weather-pill"><b>{weatherData.city}</b> 🌤️ {weatherData.temp}°</div>}
-                                {weatherData.style === 'impact' && weatherData.view === 'current' && (
+                                {data.weather.style === 'discrete' && <div className="weather-pill"><b>{data.weather.city}</b> 🌤️ {data.weather.temp}°</div>}
+                                {data.weather.style === 'impact' && data.weather.view === 'current' && (
                                     <div className="weather-card">
-                                        <div style={{background:'#3b82f6', color:'white', padding:10, textAlign:'center'}}><b>{weatherData.city}</b></div>
-                                        <div style={{padding:20, textAlign:'center', fontSize:'3rem'}}><b>{weatherData.temp}°</b></div>
+                                        <div style={{background:'#3b82f6', color:'white', padding:15, textAlign:'center', fontWeight:'bold'}}>{data.weather.city.toUpperCase()}</div>
+                                        <div style={{padding:30, textAlign:'center', fontSize:'5rem', fontWeight:'800'}}>{data.weather.temp}°</div>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* WIDGETS NOTICIAS */}
-                        {newsConfig.visible && (
+                        {/* WIDGET NOTICIAS */}
+                        {data.newsConfig.visible && (
                             <div>
-                                {newsConfig.style === 'ticker' && (
-                                    <div className="news-ticker" style={{borderTopColor: newsConfig.color}}>
-                                        <div className="ticker-label" style={{backgroundColor: newsConfig.color}}>{newsConfig.feedTitle}</div>
-                                        <div className="ticker-move" style={{animationDuration: `${newsConfig.speed}s`}}>
-                                            {newsItems.map(n => ` 🔴 ${n.title} `).join('   ')}
-                                        </div>
-                                    </div>
-                                )}
-                                {newsConfig.style === 'card' && newsItems.length > 0 && (
-                                    <div className="news-card" style={{borderLeftColor: newsConfig.color}}>
-                                        <div className="p-4">
-                                            <div style={{color: newsConfig.color, fontWeight:'bold'}}>{newsConfig.feedTitle}</div>
-                                            <div style={{fontSize:'1.5rem', fontWeight:'900'}}>{newsItems[newsConfig.activeIndex]?.title}</div>
+                                {data.newsConfig.style === 'ticker' && (
+                                    <div className="news-ticker" style={{borderTopColor: data.newsConfig.color}}>
+                                        <div className="ticker-label" style={{backgroundColor: data.newsConfig.color}}>{data.newsConfig.feedTitle}</div>
+                                        <div className="ticker-content">
+                                            <div className="ticker-move" style={{animation: `scroll ${data.newsConfig.speed}s linear infinite`}}>
+                                                {data.newsItems.map(n => ` 🔴 ${n.title} `).join('     ')}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -146,39 +173,50 @@
                 );
             }
 
-            // --- RENDER DASHBOARD (UNIFICADO) ---
+            // --- RENDER DASHBOARD ---
             return (
-                <div className="p-8 max-w-4xl mx-auto">
-                    <h1 className="text-3xl font-black mb-8">STREAM UNIFIED DASHBOARD</h1>
+                <div className="p-8 max-w-5xl mx-auto">
+                    <h1 className="text-2xl font-black mb-6 border-b border-slate-700 pb-4">STREAM UNIFIED CONTROL</h1>
 
-                    {/* BLOQUE CLIMA */}
-                    <div className="section-box">
-                        <h2 className="text-blue-400 font-bold mb-4 uppercase">Motor 1: Clima</h2>
-                        <div className="flex gap-4">
-                            <button className={`btn-custom ${weatherData.visible?'btn-active':''}`} onClick={()=>updateWeather({...weatherData, visible: !weatherData.visible})}>VISIBILIDAD CLIMA</button>
-                            <input className="bg-slate-900 p-2 rounded flex-1" value={weatherData.city} onChange={e=>updateWeather({...weatherData, city: e.target.value})} />
-                            <input type="number" className="bg-slate-900 p-2 rounded w-20" value={weatherData.temp} onChange={e=>updateWeather({...weatherData, temp: e.target.value})} />
-                        </div>
-                    </div>
-
-                    {/* BLOQUE NOTICIAS */}
-                    <div className="section-box">
-                        <h2 className="text-red-400 font-bold mb-4 uppercase">Motor 2: Noticias (RSS)</h2>
-                        <div className="flex flex-col gap-4">
-                            <div className="flex gap-4">
-                                <button className={`btn-custom ${newsConfig.visible?'btn-active':''}`} onClick={()=>updateNews({...newsConfig, visible: !newsConfig.visible})}>VISIBILIDAD NOTICIAS</button>
-                                <input type="color" value={newsConfig.color} onChange={e=>updateNews({...newsConfig, color: e.target.value})} />
-                                <input className="bg-slate-900 p-2 rounded flex-1" value={newsConfig.feedTitle} onChange={e=>updateNews({...newsConfig, feedTitle: e.target.value})} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* PANEL CLIMA */}
+                        <div className="panel">
+                            <h2 className="text-blue-400 font-bold mb-4 uppercase text-sm">Control de Clima</h2>
+                            <div className="flex gap-2 mb-4">
+                                <input className="flex-1" placeholder="Buscar ciudad..." value={searchInput} onChange={e=>setSearchInput(e.target.value)} />
+                                <button className="btn active" onClick={fetchWeather}>BUSCAR</button>
                             </div>
                             <div className="flex gap-2">
-                                <button className={`btn-custom ${newsConfig.style==='ticker'?'btn-active':''}`} onClick={()=>updateNews({...newsConfig, style:'ticker'})}>TICKER</button>
-                                <button className={`btn-custom ${newsConfig.style==='card'?'btn-active':''}`} onClick={()=>updateNews({...newsConfig, style:'card'})}>CARD</button>
+                                <button className={`btn ${data.weather.visible?'active':''}`} onClick={()=>sync({...data, weather: {...data.weather, visible: !data.weather.visible}})}>
+                                    {data.weather.visible ? 'OCULTAR' : 'MOSTRAR'}
+                                </button>
+                                <button className={`btn ${data.weather.style==='impact'?'active':''}`} onClick={()=>sync({...data, weather: {...data.weather, style: 'impact'}})}>IMPACTO</button>
+                                <button className={`btn ${data.weather.style==='discrete'?'active':''}`} onClick={()=>sync({...data, weather: {...data.weather, style: 'discrete'}})}>PILL</button>
                             </div>
                         </div>
+
+                        {/* PANEL NOTICIAS (RSS) */}
+                        <div className="panel">
+                            <h2 className="text-red-400 font-bold mb-4 uppercase text-sm">Carga de Notas (RSS)</h2>
+                            <div className="flex gap-2 mb-4">
+                                <input className="flex-1" value={data.newsConfig.rssUrl} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, rssUrl: e.target.value}})} />
+                                <button className="btn active" onClick={fetchNews}>CARGAR</button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <button className={`btn ${data.newsConfig.visible?'active':''}`} onClick={()=>sync({...data, newsConfig: {...data.newsConfig, visible: !data.newsConfig.visible}})}>
+                                    {data.newsConfig.visible ? 'OCULTAR' : 'MOSTRAR'}
+                                </button>
+                                <input type="color" value={data.newsConfig.color} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, color: e.target.value}})} />
+                                <input placeholder="Título" value={data.newsConfig.feedTitle} onChange={e=>sync({...data, newsConfig: {...data.newsConfig, feedTitle: e.target.value}})} />
+                            </div>
+                        </div>
+
                     </div>
 
-                    <div className="mt-8 p-4 bg-black rounded text-xs font-mono text-green-500">
-                        URL PARA OBS: {window.location.href.split('?')[0]}?mode=overlay
+                    <div className="mt-10 p-4 bg-slate-900 rounded border border-slate-700">
+                        <p className="text-xs text-slate-500 mb-2">URL PARA OBS/VMIX:</p>
+                        <code className="text-blue-400 break-all">{window.location.href.split('?')[0]}?mode=overlay&id={data.sessionId}</code>
                     </div>
                 </div>
             );
