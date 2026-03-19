@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Zapping Pro V11 - Ultimate Sync</title>
+    <title>Zapping Master V12 - Ultimate Fix</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -25,39 +25,39 @@
         /* --- FORMATOS DE NOTICIA --- */
         .zap-news-box {
             width: 380px; background: #0a0e1a; 
-            overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.7);
-            border-bottom: 6px solid; margin-bottom: -15px; transition: all 0.5s ease;
-            position: relative;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+            border-bottom: 6px solid; margin-bottom: -20px; transition: all 0.4s ease;
+            position: relative; overflow: hidden;
         }
+        
+        /* BORDES DINÁMICOS */
         .shape-rect { border-radius: 15px; }
         .shape-capsule { border-radius: 50px; }
-        .shape-modern { border-radius: 80px 0 20px 0; }
+        .shape-modern { border-radius: 60px 0 60px 0; }
         .shape-glass { background: rgba(255,255,255,0.1) !important; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); }
 
         .zap-news-header {
-            width: 100%; padding: 8px 0; text-align: center;
-            font-weight: 900; font-size: 1.3rem; text-transform: uppercase;
+            width: 100%; padding: 10px 0; text-align: center;
+            font-weight: 900; font-size: 1.4rem; text-transform: uppercase;
             color: white; position: relative; z-index: 10;
         }
 
-        .zap-news-content { position: relative; width: 100%; height: 180px; }
+        .zap-news-img-container { width: 100%; height: 180px; background: #111; overflow: hidden; }
         .zap-news-img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Overlay para que el texto no tape y sea legible */
-        .zap-news-overlay {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
-            display: flex; align-items: flex-end; justify-content: center; padding: 15px;
+        .zap-news-body {
+            padding: 15px; background: rgba(0,0,0,0.8);
+            min-height: 80px; display: flex; align-items: center; justify-content: center;
         }
 
         .zap-news-title {
             color: white; text-align: center; font-weight: 800; font-size: 1.1rem;
-            line-height: 1.2; text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            line-height: 1.2; text-transform: uppercase;
         }
 
         /* --- CÍRCULO Y ANIMACIONES --- */
         .zap-circle {
-            width: 180px; height: 180px;
+            width: 185px; height: 185px;
             background: radial-gradient(circle, #1a2a4a 0%, #050a14 100%);
             border: 8px solid; border-radius: 50%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -66,25 +66,25 @@
         }
 
         .anim-radar::after { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 4px solid currentColor; animation: radar 2s infinite; }
-        .anim-giro::before { content: ''; position: absolute; width: 115%; height: 115%; border-radius: 50%; border: 3px dashed currentColor; animation: spin 10s linear infinite; opacity: 0.4; }
+        .anim-giro::before { content: ''; position: absolute; width: 112%; height: 112%; border-radius: 50%; border: 4px dashed currentColor; animation: spin 10s linear infinite; opacity: 0.5; }
         .anim-eco::after { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%; box-shadow: 0 0 0 0 currentColor; animation: eco 1.5s infinite; }
 
-        @keyframes radar { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+        @keyframes radar { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes eco { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.5); } 100% { box-shadow: 0 0 0 30px rgba(255,255,255,0); } }
+        @keyframes eco { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); } 100% { box-shadow: 0 0 0 35px rgba(255,255,255,0); } }
 
-        .zap-time { font-family: 'Oswald', sans-serif; font-size: 3.8rem; color: white; line-height: 1; }
+        .zap-time { font-family: 'Oswald', sans-serif; font-size: 4rem; color: white; line-height: 1; z-index: 30; }
         
-        .zap-widget-bot { border-top: 1px solid rgba(255,255,255,0.3); width: 110px; height: 40px; display: flex; justify-content: center; align-items: center; margin-top: 5px; }
-        .zap-temp { font-size: 1.7rem; font-weight: bold; color: white; }
-        .zap-alert { background: #ef4444; border-radius: 20px; width: 120px; height: 32px; display: flex; justify-content: center; align-items: center; animation: pulse 1s infinite; font-weight: 900; font-size: 1rem; color: white; }
+        .zap-widget-bot { border-top: 1px solid rgba(255,255,255,0.3); width: 120px; height: 45px; display: flex; justify-content: center; align-items: center; margin-top: 5px; z-index: 30; }
+        .zap-temp { font-size: 1.8rem; font-weight: bold; color: white; }
+        .zap-alert { background: #ef4444; border-radius: 30px; width: 130px; height: 35px; display: flex; justify-content: center; align-items: center; animation: pulse 0.8s infinite; font-weight: 900; font-size: 1.1rem; color: white; }
 
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
 
         /* Dashboard UI */
-        .panel { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-        .btn-opt { background: #334155; padding: 8px; border-radius: 6px; font-size: 10px; flex: 1; text-align: center; cursor: pointer; border: 2px solid transparent; font-weight: bold; }
-        .btn-opt.active { border-color: #2563eb; background: #1e293b; }
+        .panel { background: #1e293b; border: 1px solid #334155; padding: 15px; border-radius: 12px; margin-bottom: 10px; }
+        .btn-opt { background: #334155; padding: 10px; border-radius: 8px; font-size: 11px; flex: 1; text-align: center; cursor: pointer; border: 2px solid transparent; font-weight: 800; }
+        .btn-opt.active { border-color: #2563eb; background: #2563eb; color: white; }
     </style>
 </head>
 <body>
@@ -100,7 +100,7 @@
             const clientRef = useRef(null);
 
             const [config, setConfig] = useState({
-                id: 'zapping_v11_master',
+                id: 'sm_v12_final',
                 visible: true,
                 title: 'ULTIMO MOMENTO',
                 newsColor: '#0047ff',
@@ -110,8 +110,8 @@
                 activeIndex: 0,
                 alertVisible: false,
                 alertText: 'AHORA',
-                animType: 'anim-giro', // radar | giro | eco
-                shapeType: 'shape-rect' // rect | capsule | modern | glass
+                animType: 'anim-giro',
+                shapeType: 'shape-rect'
             });
 
             const [news, setNews] = useState([]);
@@ -121,7 +121,7 @@
                 const t = setInterval(() => setTime(new Date()), 1000);
                 const r = setInterval(() => {
                     if (news.length > 0) setConfig(p => ({ ...p, activeIndex: (p.activeIndex + 1) % news.length }));
-                }, 20000);
+                }, 15000);
                 return () => { clearInterval(t); clearInterval(r); };
             }, [news]);
 
@@ -134,7 +134,7 @@
                 const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
                 client.on('connect', () => {
                     setStatus('online');
-                    client.subscribe('streammaster/v11');
+                    client.subscribe('streammaster/v12');
                 });
                 client.on('message', (t, msg) => {
                     if (m === 'overlay') {
@@ -151,7 +151,7 @@
                 const payload = { ...c };
                 if (n) payload.newsPayload = n;
                 setConfig(c);
-                if (clientRef.current?.connected) clientRef.current.publish('streammaster/v11', JSON.stringify(payload), { retain: true });
+                if (clientRef.current?.connected) clientRef.current.publish('streammaster/v12', JSON.stringify(payload), { retain: true });
             };
 
             const fetchWeather = async () => {
@@ -168,33 +168,39 @@
 
             const fetchNews = async () => {
                 try {
-                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(config.rssUrl)}`);
+                    // Bypass CORS con AllOrigins + rss2json
+                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(config.rssUrl)}&t=${Date.now()}`);
                     const json = await res.json();
                     if (json.status === 'ok') {
-                        const items = json.items.map(i => ({ title: i.title, img: i.enclosure?.link || i.thumbnail || (i.description.match(/src="([^"]+)"/)?.[1]) || '' }));
+                        const items = json.items.map(i => ({ 
+                            title: i.title, 
+                            img: i.enclosure?.link || i.thumbnail || (i.description.match(/src="([^"]+)"/)?.[1]) || '' 
+                        }));
                         setNews(items);
                         sync({ ...config, activeIndex: 0 }, items);
+                    } else {
+                        alert("El RSS no respondió. Verifica la URL.");
                     }
-                } catch (e) { alert("Error RSS"); }
+                } catch (e) { alert("Error de conexión al RSS."); }
             };
 
             if (mode === 'overlay') {
                 if (!config.visible) return null;
-                const item = news[config.activeIndex] || { title: 'Cargando...', img: '' };
+                const item = news[config.activeIndex] || { title: 'CARGANDO NOTICIAS...', img: '' };
                 return (
                     <div className="zapping-wrapper">
                         <div className={`zap-news-box ${config.shapeType}`} style={{borderBottomColor: config.newsColor}}>
                             <div className="zap-news-header" style={{backgroundColor: config.newsColor}}>{config.title}</div>
-                            <div className="zap-news-content">
+                            <div className="zap-news-img-container">
                                 {item.img && <img src={item.img} className="zap-news-img" />}
-                                <div className="zap-news-overlay">
-                                    <div className="zap-news-title">{item.title}</div>
-                                </div>
+                            </div>
+                            <div className="zap-news-body">
+                                <div className="zap-news-title">{item.title}</div>
                             </div>
                         </div>
                         <div className={`zap-circle ${config.animType}`} style={{borderColor: config.circleColor, color: config.circleColor}}>
-                            <div className="zap-time text-white z-10">{time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}</div>
-                            <div className="zap-widget-bot z-10">
+                            <div className="zap-time">{time.getHours()}:{time.getMinutes().toString().padStart(2, '0')}</div>
+                            <div className="zap-widget-bot">
                                 {config.alertVisible ? <div className="zap-alert">{config.alertText}</div> : <div className="zap-temp">{config.temp}°</div>}
                             </div>
                         </div>
@@ -203,44 +209,44 @@
             }
 
             return (
-                <div className="p-6 max-w-4xl mx-auto text-white">
-                    <header className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                        <h1 className="text-2xl font-black italic uppercase">Zapping Master <span className="text-blue-500">V11</span></h1>
-                        <span className={status==='online'?'text-green-400':'text-red-400'}>● {status.toUpperCase()}</span>
+                <div className="p-4 max-w-5xl mx-auto text-white">
+                    <header className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                        <h1 className="text-2xl font-black italic">ZAPPING MASTER <span className="text-blue-500 text-sm">V12</span></h1>
+                        <span className={status==='online'?'text-green-400 font-bold':'text-red-400'}>● {status.toUpperCase()}</span>
                     </header>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="panel space-y-3">
-                            <h3 className="text-blue-400 font-bold text-[10px]">CLIMA & RSS</h3>
-                            <div className="flex gap-2"><input value={citySearch} onChange={e=>setCitySearch(e.target.value)} /><button onClick={fetchWeather} className="bg-blue-600 px-3 rounded font-bold">CLIMA</button></div>
-                            <div className="flex gap-2"><input value={config.rssUrl} onChange={e=>sync({...config, rssUrl: e.target.value})} /><button onClick={fetchNews} className="bg-red-600 px-3 rounded font-bold">RSS</button></div>
+                            <h3 className="text-blue-400 font-bold text-[10px] uppercase">Clima & RSS</h3>
+                            <div className="flex gap-2"><input value={citySearch} onChange={e=>setCitySearch(e.target.value)} /><button onClick={fetchWeather} className="bg-blue-600 px-4 rounded font-bold">CLIMA</button></div>
+                            <div className="flex gap-2"><input value={config.rssUrl} onChange={e=>sync({...config, rssUrl: e.target.value})} /><button onClick={fetchNews} className="bg-red-600 px-4 rounded font-bold uppercase">Cargar</button></div>
                         </div>
 
                         <div className="panel space-y-3">
-                            <h3 className="text-red-500 font-bold text-[10px]">ALERTA URGENTE</h3>
+                            <h3 className="text-red-500 font-bold text-[10px] uppercase">Alerta Urgente</h3>
                             <div className="flex gap-2"><input value={config.alertText} onChange={e=>sync({...config, alertText: e.target.value.toUpperCase()})} />
                             <button onClick={()=>sync({...config, alertVisible: !config.alertVisible})} className={`px-4 rounded font-bold ${config.alertVisible?'bg-red-600':'bg-slate-700'}`}>ALERTA</button></div>
                         </div>
 
                         <div className="panel space-y-3">
-                            <h3 className="text-yellow-400 font-bold text-[10px]">ANIMACIÓN CÍRCULO</h3>
+                            <h3 className="text-yellow-400 font-bold text-[10px] uppercase">Animación Círculo</h3>
                             <div className="flex gap-2">
                                 {['anim-radar', 'anim-giro', 'anim-eco'].map(a => <div key={a} className={`btn-opt ${config.animType===a?'active':''}`} onClick={()=>sync({...config, animType:a})}>{a.split('-')[1].toUpperCase()}</div>)}
                             </div>
                         </div>
 
                         <div className="panel space-y-3">
-                            <h3 className="text-green-400 font-bold text-[10px]">FORMA NOTICIA</h3>
+                            <h3 className="text-green-400 font-bold text-[10px] uppercase">Forma Noticia</h3>
                             <div className="flex gap-2">
                                 {['shape-rect', 'shape-capsule', 'shape-modern', 'shape-glass'].map(s => <div key={s} className={`btn-opt ${config.shapeType===s?'active':''}`} onClick={()=>sync({...config, shapeType:s})}>{s.split('-')[1].toUpperCase()}</div>)}
                             </div>
                         </div>
 
-                        <div className="panel md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                            <input value={config.title} onChange={e=>sync({...config, title: e.target.value.toUpperCase()})} />
-                            <div className="flex gap-2"><input type="color" className="h-10 cursor-pointer" value={config.newsColor} onChange={e=>sync({...config, newsColor:e.target.value})}/><input type="color" className="h-10 cursor-pointer" value={config.circleColor} onChange={e=>sync({...config, circleColor:e.target.value})}/></div>
-                            <button className={`h-10 rounded font-bold ${config.visible?'bg-green-600':'bg-red-600'}`} onClick={()=>sync({...config, visible: !config.visible})}>{config.visible?'VISIBLE':'OCULTO'}</button>
-                            <button className="bg-slate-700 h-10 rounded text-[10px] font-bold" onClick={()=>{navigator.clipboard.writeText(window.location.href.split('?')[0]+'?mode=overlay'); alert('Link Copiado');}}>COPIAR LINK OBS</button>
+                        <div className="panel md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                            <div><label className="text-[9px] text-gray-400 uppercase">Título Globo</label><input value={config.title} onChange={e=>sync({...config, title: e.target.value.toUpperCase()})} /></div>
+                            <div className="flex gap-2 pt-4"><input type="color" className="h-10 cursor-pointer" value={config.newsColor} onChange={e=>sync({...config, newsColor:e.target.value})}/><input type="color" className="h-10 cursor-pointer" value={config.circleColor} onChange={e=>sync({...config, circleColor:e.target.value})}/></div>
+                            <button className={`h-12 rounded mt-4 font-black ${config.visible?'bg-green-600':'bg-red-600'}`} onClick={()=>sync({...config, visible: !config.visible})}>{config.visible?'VISIBLE':'OCULTO'}</button>
+                            <button className="bg-slate-700 h-12 rounded mt-4 text-[11px] font-bold" onClick={()=>{navigator.clipboard.writeText(window.location.href.split('?')[0]+'?mode=overlay'); alert('Link Copiado');}}>COPIAR LINK OBS</button>
                         </div>
                     </div>
                 </div>
