@@ -30,7 +30,7 @@
         
         /* MODO OBS LIMPIO */
         .main-container.obs-mode { grid-template-columns: 1fr; grid-template-rows: 1fr; }
-        .main-container.obs-mode .video-grid { display: flex; justify-content: center; align-items: center; padding: 0; }
+        .main-container.obs-mode .video-grid { display: flex; justify-content: center; align-items: center; padding: 0; background: #000; }
         .main-container.obs-mode header { display: none; }
         .main-container.obs-mode .controls { display: none; }
         .main-container.obs-mode .stats { display: none; }
@@ -50,12 +50,27 @@
         
         .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
-        .tally-label-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; text-shadow: 0 0 20px currentColor; pointer-events: none; z-index: 30; }
-        .tally-label-main.off { display: none; }
-        .tally-label-main.standby { color: #ffff00; }
-        .tally-label-main.live { color: #ff0000; animation: pulse 1s infinite; }
         
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* TALLY DEL INVITADO - CORREGIDO: más pequeño y arriba */
+        .tally-label-main { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            text-shadow: 0 0 10px currentColor; 
+            pointer-events: none; 
+            z-index: 30; 
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid currentColor;
+        }
+        .tally-label-main.off { display: none; }
+        .tally-label-main.standby { color: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px rgba(255,255,0,0.5); }
+        .tally-label-main.live { color: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.8); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
         .tally-light { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #333; border: 2px solid #555; z-index: 10; }
         .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
@@ -144,6 +159,9 @@
         .waiting-msg .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
         
         .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 10px; border-radius: 4px; text-align: center; margin-top: 10px; font-size: 12px; display: none; }
+        
+        /* Indicador de estado en modo OBS */
+        .obs-status-indicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -305,7 +323,7 @@ let availableSlots = [0, 1, 2];
 let isMusicMode = false;
 
 // Si es modo OBS, configurar vista especial
-if (obsMode === 'true' && obsRoom) {
+if (obsMode === 'true' && obsRoom && obsSlot !== null) {
     document.getElementById('mainContainer').className = 'main-container obs-mode';
     document.getElementById('mainHeader').style.display = 'none';
     document.getElementById('controls').style.display = 'none';
@@ -527,6 +545,12 @@ function handleIncomingCall(call) {
     const callerId = call.peer;
     console.log('Llamada entrante de:', callerId, 'Rol:', myRole);
     
+    // Si es un viewer de OBS (ID empieza con OBS_)
+    if (callerId.startsWith('OBS_') && myRole === 'operator') {
+        handleObsViewer(call, callerId);
+        return;
+    }
+    
     if (myRole === 'operator') {
         // OPERADOR: Recibir de invitado
         if (availableSlots.length === 0) {
@@ -613,6 +637,42 @@ function handleDataConnection(conn) {
     const peerId = conn.peer;
     console.log('DataConnection recibida de:', peerId);
     
+    // Si es un viewer de OBS, manejarlo especialmente
+    if (peerId.startsWith('OBS_') && myRole === 'operator') {
+        // Esperar a recibir qué slot quiere
+        conn.on('data', (data) => {
+            if (data.type === 'request_slot') {
+                const requestedSlot = data.slot;
+                console.log('OBS Viewer pide slot:', requestedSlot);
+                
+                // Buscar el stream del invitado en ese slot
+                let targetStream = null;
+                let targetPeerId = null;
+                for (let [pid, connData] of connections) {
+                    if (connData.slot === requestedSlot && connData.stream) {
+                        targetStream = connData.stream;
+                        targetPeerId = pid;
+                        break;
+                    }
+                }
+                
+                // Enviar el stream al viewer OBS
+                if (targetStream) {
+                    console.log('Enviando stream del slot', requestedSlot, 'a OBS viewer');
+                    const obsCall = peer.call(peerId, targetStream);
+                    
+                    // También enviar tally inicial
+                    const currentTally = getCurrentTallyState(targetPeerId);
+                    conn.send({ type: 'tally', state: currentTally });
+                } else {
+                    console.log('No hay invitado en slot', requestedSlot);
+                    conn.send({ type: 'error', message: 'No hay invitado en este canal' });
+                }
+            }
+        });
+        return;
+    }
+    
     // Guardar referencia del datachannel en la conexión existente
     if (connections.has(peerId)) {
         const connData = connections.get(peerId);
@@ -634,6 +694,14 @@ function handleDataConnection(conn) {
             updateGuestTally(data.state);
         }
     });
+}
+
+function getCurrentTallyState(peerId) {
+    const container = document.getElementById('guest-video-' + connections.get(peerId)?.slot);
+    if (!container) return 'off';
+    if (container.classList.contains('live')) return 'live';
+    if (container.classList.contains('standby')) return 'standby';
+    return 'off';
 }
 
 function addGuestVideo(slot, stream, name, peerId) {
@@ -679,8 +747,8 @@ function updateDashboardSlot(slot, peerId, name, connected) {
     
     if (connected && peerId) {
         // Generar URL para OBS (vista limpia de este slot)
-        const obsUrl = window.location.origin + window.location.pathname + 
-                      '?obs=true&room=' + myPeerId + '&slot=' + slot + '&peer=' + peerId;
+        const currentUrl = window.location.href.split('?')[0];
+        const obsUrl = currentUrl + '?obs=true&room=' + myPeerId + '&slot=' + slot;
         
         slotEl.className = 'participant-card';
         slotEl.innerHTML = `
@@ -743,12 +811,24 @@ function sendTally(peerId, state) {
         });
     }
     
+    // También enviar a viewers OBS que estén viendo este slot
     const slot = connections.get(peerId)?.slot;
     if (slot !== undefined) {
+        // Actualizar UI del operador
         const slotEl = document.getElementById('slot-' + slot);
-        slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
-        const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
-        slotEl.querySelector('.' + btnClass).classList.add('active');
+        if (slotEl) {
+            slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
+            const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
+            const btn = slotEl.querySelector('.' + btnClass);
+            if (btn) btn.classList.add('active');
+        }
+        
+        // Notificar a viewers OBS
+        for (let [obsPeerId, obsConn] of connections) {
+            if (obsPeerId.startsWith('OBS_') && obsConn.slot === slot && obsConn.dataConn) {
+                obsConn.dataConn.send({ type: 'tally', state: state });
+            }
+        }
     }
 }
 
@@ -884,6 +964,7 @@ function startObsMode(roomId, slotIndex) {
     const videoContainer = document.createElement('div');
     videoContainer.className = 'video-container obs-fullscreen';
     videoContainer.id = 'obs-video-container';
+    videoContainer.style.border = '2px solid #333';
     
     const video = document.createElement('video');
     video.id = 'obs-video';
@@ -896,33 +977,30 @@ function startObsMode(roomId, slotIndex) {
     const label = document.createElement('div');
     label.className = 'participant-name';
     label.id = 'obs-label';
-    label.textContent = 'Esperando señal...';
+    label.textContent = 'Conectando a sala ' + roomId + '...';
     label.style.fontSize = '14px';
     label.style.background = 'rgba(255,107,0,0.9)';
     
     const tallyOverlay = document.createElement('div');
     tallyOverlay.id = 'obs-tally';
-    tallyOverlay.style.position = 'absolute';
-    tallyOverlay.style.top = '20px';
-    tallyOverlay.style.left = '50%';
-    tallyOverlay.style.transform = 'translateX(-50%)';
-    tallyOverlay.style.padding = '10px 30px';
-    tallyOverlay.style.borderRadius = '8px';
-    tallyOverlay.style.fontSize = '24px';
-    tallyOverlay.style.fontWeight = 'bold';
+    tallyOverlay.className = 'tally-label-main off';
     tallyOverlay.style.display = 'none';
-    tallyOverlay.style.zIndex = '100';
+    
+    const statusIndicator = document.createElement('div');
+    statusIndicator.className = 'obs-status-indicator';
+    statusIndicator.id = 'obs-status';
+    statusIndicator.textContent = 'Iniciando conexión...';
     
     videoContainer.appendChild(video);
     videoContainer.appendChild(label);
     videoContainer.appendChild(tallyOverlay);
+    videoContainer.appendChild(statusIndicator);
     container.appendChild(videoContainer);
     
-    // Conectar como "invitado especial" solo para recibir video de ese slot
-    myRole = 'obs-viewer';
-    const targetId = 'SC' + roomId.replace('SC', ''); // Normalizar ID
+    // Conectar como "viewer OBS"
+    const obsPeerId = 'OBS_' + roomId + '_S' + slotIndex + '_' + Date.now().toString(36);
     
-    peer = new Peer('OBS_' + roomId + '_' + slotIndex + '_' + Date.now(), {
+    peer = new Peer(obsPeerId, {
         host: '0.peerjs.com',
         port: 443,
         secure: true,
@@ -936,52 +1014,86 @@ function startObsMode(roomId, slotIndex) {
         }
     });
     
-    peer.on('open', () => {
-        document.getElementById('obs-label').textContent = 'Conectando a sala...';
-        // Llamar al operador para unirse "silenciosamente" (solo recibir)
-        const call = peer.call(roomId, new MediaStream()); // Stream vacío, solo queremos recibir
-        call.on('stream', (remoteStream) => {
-            document.getElementById('obs-video').srcObject = remoteStream;
-            document.getElementById('obs-label').textContent = 'Señal activa - Slot ' + (parseInt(slotIndex)+1);
+    peer.on('open', (id) => {
+        console.log('OBS Viewer conectado como:', id);
+        document.getElementById('obs-status').textContent = 'Solicitando video del canal ' + (parseInt(slotIndex)+1) + '...';
+        
+        // 1. Conectar DataChannel al operador solicitando el slot específico
+        const conn = peer.connect(roomId, {
+            reliable: true,
+            metadata: { type: 'obs_viewer', slot: parseInt(slotIndex) }
         });
-        call.on('close', () => {
-            document.getElementById('obs-label').textContent = 'Señal perdida';
+        
+        conn.on('open', () => {
+            console.log('DataChannel con operador abierto');
+            conn.send({ type: 'request_slot', slot: parseInt(slotIndex) });
         });
+        
+        conn.on('data', (data) => {
+            if (data.type === 'tally') {
+                updateObsTally(data.state);
+            } else if (data.type === 'error') {
+                document.getElementById('obs-status').textContent = data.message;
+                document.getElementById('obs-status').style.color = '#ff0000';
+            }
+        });
+        
+        // Guardar referencia para enviar tally después
+        window.obsDataConn = conn;
     });
     
     peer.on('call', (call) => {
-        // Aceptar llamadas entrantes (retorno)
-        call.answer(new MediaStream());
+        console.log('Recibiendo llamada del operador con el stream');
+        // Aceptar la llamada (el operador nos envía el stream del invitado)
+        call.answer(); // No enviamos nuestro video, solo recibimos
+        
         call.on('stream', (remoteStream) => {
+            console.log('Stream recibido en modo OBS');
             document.getElementById('obs-video').srcObject = remoteStream;
-            document.getElementById('obs-label').textContent = 'Feed activo';
+            document.getElementById('obs-label').textContent = 'Canal ' + (parseInt(slotIndex)+1) + ' - En vivo';
+            document.getElementById('obs-label').style.background = 'rgba(0,255,0,0.7)';
+            document.getElementById('obs-status').style.display = 'none';
+            document.getElementById('obs-video-container').style.border = 'none';
+        });
+        
+        call.on('close', () => {
+            document.getElementById('obs-status').style.display = 'block';
+            document.getElementById('obs-status').textContent = 'Señal perdida';
+            document.getElementById('obs-status').style.color = '#ff0000';
+            document.getElementById('obs-label').textContent = 'Desconectado';
+            document.getElementById('obs-label').style.background = 'rgba(255,0,0,0.7)';
+        });
+        
+        call.on('error', (err) => {
+            console.error('Error en llamada OBS:', err);
+            document.getElementById('obs-status').textContent = 'Error de conexión';
         });
     });
     
-    // También conectar datachannel para recibir tally
-    peer.on('connection', (conn) => {
-        conn.on('data', (data) => {
-            if (data.type === 'tally') {
-                const tallyEl = document.getElementById('obs-tally');
-                if (data.state === 'live') {
-                    tallyEl.textContent = '🔴 AL AIRE';
-                    tallyEl.style.background = 'rgba(255,0,0,0.8)';
-                    tallyEl.style.color = '#fff';
-                    tallyEl.style.display = 'block';
-                    videoContainer.style.border = '4px solid #ff0000';
-                } else if (data.state === 'standby') {
-                    tallyEl.textContent = '⏺ ATENTO';
-                    tallyEl.style.background = 'rgba(255,255,0,0.8)';
-                    tallyEl.style.color = '#000';
-                    tallyEl.style.display = 'block';
-                    videoContainer.style.border = '4px solid #ffff00';
-                } else {
-                    tallyEl.style.display = 'none';
-                    videoContainer.style.border = 'none';
-                }
-            }
-        });
+    peer.on('error', (err) => {
+        console.error('Peer error en modo OBS:', err);
+        document.getElementById('obs-status').textContent = 'Error: ' + err.type;
     });
+}
+
+function updateObsTally(state) {
+    const tallyEl = document.getElementById('obs-tally');
+    const container = document.getElementById('obs-video-container');
+    
+    tallyEl.className = 'tally-label-main ' + state;
+    
+    if (state === 'live') {
+        tallyEl.textContent = '🔴 AL AIRE';
+        tallyEl.style.display = 'block';
+        container.style.border = '4px solid #ff0000';
+    } else if (state === 'standby') {
+        tallyEl.textContent = '⏺ ATENTO';
+        tallyEl.style.display = 'block';
+        container.style.border = '4px solid #ffff00';
+    } else {
+        tallyEl.style.display = 'none';
+        container.style.border = '2px solid #333';
+    }
 }
 </script>
 
