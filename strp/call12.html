@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall Power PRO v11 - StreamingHoy</title>
+    <title>StreamCall Power v12 - StreamingHoy</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -60,11 +60,11 @@
         <div class="preview-bar" id="previewBar" style="display:none;"><div class="video-container" style="width:200px;"><video id="localVideo" autoplay muted playsinline></video></div></div>
         <div class="video-grid" id="videoGrid" style="display:none;"></div>
         <div class="operator-view" id="guestOperatorView" style="display:none;"><div class="video-container" style="max-width: 800px; width:100%;"><div id="mainTally" class="tally-label-main">AL AIRE</div><video id="remoteOperatorVideo" autoplay playsinline></video></div></div>
-        <div class="guest-preview-bar" id="guestPreviewBar" style="display:none;"><div class="video-container guest-self"><video id="guestLocalVideo" autoplay muted playsinline></video></div><div style="font-size: 12px; color: #999;"><strong id="guestStatusLabel" style="color:#ff6b00;">CONECTADO</strong><br>Audio Musical HD Activo.</div></div>
+        <div class="guest-preview-bar" id="guestPreviewBar" style="display:none;"><div class="video-container guest-self"><video id="guestLocalVideo" autoplay muted playsinline></video></div><div style="font-size: 12px; color: #999;"><strong id="guestStatusLabel" style="color:#ff6b00;">CONECTADO</strong><br>Audio HD habilitado.</div></div>
         <div class="dashboard" id="dashboard" style="display:none;"><h2>DASHBOARD</h2><div class="id-display" id="displayId">----</div><div id="slotsContainer"><div class="slot-card empty" id="slot-0">CH 1: LIBRE</div><div class="slot-card empty" id="slot-1">CH 2: LIBRE</div><div class="slot-card empty" id="slot-2">CH 3: LIBRE</div></div></div>
     </div>
     <div id="appControls" style="position:fixed; bottom:20px; left:20px; display:none; gap:10px; z-index:1000;"><button onclick="toggleMic()" id="micBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">🎤</button><button onclick="toggleCam()" id="camBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">📹</button><button onclick="location.reload()" style="width:50px; height:50px; border-radius:50%; border:none; background:#cc0000; color:white; cursor:pointer; font-size:20px;">📴</button></div>
-    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v11</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR</option><option value="guest">INVITADO</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">CÁMARA:</label><select id="vSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
+    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v12</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR (CONTROL)</option><option value="guest">INVITADO (MÓVIL)</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">SELECCIONE CÁMARA:</label><select id="vSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
 </div>
 
 <script>
@@ -83,22 +83,18 @@ const PEER_CONFIG = {
 
 const setBitrate = (sdp) => sdp.replace(/a=fmtp:(\d+) .*max-br=(\d+).*/g, 'a=fmtp:$1 x-google-max-bitrate=1500;x-google-min-bitrate=500;x-google-start-bitrate=1000');
 
-// --- LÓGICA MODO OBS ---
+// --- LÓGICA MODO OBS (Detección por URL) ---
 const params = new URLSearchParams(window.location.search);
 if (params.get('mode') === 'obs') {
     const room = params.get('room'), slotId = params.get('slot');
     document.getElementById('appRoot').remove();
     document.getElementById('obsRoot').style.display = "block";
-    
-    // El OBS usa un ID especial que el operador reconoce
-    const obsPeer = new Peer(`OBS_${room}_${slotId}`, { config: PEER_CONFIG });
-    obsPeer.on('open', () => {
-        // El OBS no llama, el operador le llama a él cuando el invitado llega
-        console.log("OBS LISTO EN CANAL " + slotId);
-    });
+    const obsId = `OBS_${room}_${slotId}`;
+    const obsPeer = new Peer(obsId, { config: PEER_CONFIG });
+    obsPeer.on('open', () => console.log("OBS Conectado a canal " + slotId));
     obsPeer.on('call', call => {
         call.answer();
-        call.on('stream', s => { document.getElementById('obsVid').srcObject = s; });
+        call.on('stream', s => document.getElementById('obsVid').srcObject = s);
     });
 }
 
@@ -147,13 +143,10 @@ function initPeer(id) {
         }
     });
 
-    myPeer.on('connection', conn => { 
-        if (myRole === 'operator') {
-            handleData(conn);
-        }
-    });
+    myPeer.on('connection', conn => { if (myRole === 'operator') handleData(conn); });
 
     myPeer.on('call', call => {
+        // RESPUESTA CON STREAM (RETORNO)
         call.answer(localStream, { sdpTransform: setBitrate });
         if (myRole === 'operator') {
             handleCall(call);
@@ -161,7 +154,7 @@ function initPeer(id) {
             call.on('stream', s => { 
                 const rv = document.getElementById('remoteOperatorVideo');
                 rv.srcObject = s;
-                rv.play().catch(e => console.log("Retorno blocked"));
+                rv.play().catch(e => console.log("Play block"));
             });
         }
     });
@@ -177,21 +170,22 @@ function connectToOp(targetId) {
 
 function handleData(conn) {
     conn.on('open', () => {
-        if (!connections.has(conn.peer)) {
-            connections.set(conn.peer, { name: conn.metadata.name || "Invitado", data: conn });
-        }
+        if (!connections.has(conn.peer)) connections.set(conn.peer, { name: conn.metadata.name || "Invitado", data: conn });
     });
 }
 
 function handleCall(call) {
     const peerId = call.peer;
-    // EVITAR DUPLICADOS POR ID
+    // VALIDACIÓN ABSOLUTA: Si el contenedor existe, NO HACER NADA (Mata la duplicidad)
     if (document.getElementById('vcont-' + peerId)) return;
     if (availableSlots.length === 0) return;
 
     const slot = availableSlots.shift();
 
     call.on('stream', (s) => {
+        // Segunda validación dentro del stream por seguridad
+        if (document.getElementById('vcont-' + peerId)) return;
+
         if (!connections.has(peerId)) connections.set(peerId, { name: "Invitado" });
         const c = connections.get(peerId);
         c.slot = slot; c.remoteStream = s;
@@ -201,12 +195,12 @@ function handleCall(call) {
         cont.innerHTML = `<video id="vid-${peerId}" autoplay playsinline></video><div style="position:absolute; bottom:5px; left:5px; font-size:10px; background:rgba(0,0,0,0.7); padding:2px 5px;">CH ${slot+1}: ${c.name}</div>`;
         document.getElementById('videoGrid').appendChild(cont);
         document.getElementById('vid-' + peerId).srcObject = s;
-        
         updateSlotUI(slot, peerId, c.name, true);
 
-        // --- ENVIAR AL OBS AUTOMÁTICAMENTE ---
-        const obsId = `OBS_${myId}_${slot+1}`;
-        myPeer.call(obsId, s, { sdpTransform: setBitrate });
+        // Llamar al OBS correspondiente automáticamente
+        setTimeout(() => {
+            myPeer.call(`OBS_${myId}_${slot+1}`, s, { sdpTransform: setBitrate });
+        }, 1500);
     });
     call.on('close', () => removePeer(peerId));
 }
@@ -243,7 +237,7 @@ function updateGuestTally(state) {
 
 function copyObs(slot) {
     const url = `${window.location.href.split('?')[0]}?mode=obs&room=${myId}&slot=${slot+1}`;
-    navigator.clipboard.writeText(url); alert("Link Copiado!");
+    navigator.clipboard.writeText(url); alert("Copiado!");
 }
 
 function removePeer(id) {
