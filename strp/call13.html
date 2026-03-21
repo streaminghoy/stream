@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamcall Power - Multi-OBS</title>
+    <title>Streamcall Power - Broadcast</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,23 +25,11 @@
         body.obs-mode .operator-view { padding: 0; }
         body.obs-mode .video-container.operator-large { max-width: 100%; max-height: 100vh; border: none; border-radius: 0; }
         
-        /* OBS Individual Mode - Specific slot */
-        body.obs-slot-mode { background: #000; }
-        body.obs-slot-mode .main-container { display: block; height: 100vh; }
-        body.obs-slot-mode .video-container { 
-            width: 100%; 
-            height: 100vh; 
-            border: none; 
-            border-radius: 0; 
-            aspect-ratio: auto;
-        }
-        body.obs-slot-mode video { object-fit: contain; }
-        
         .main-container { display: grid; height: calc(100vh - 70px); }
-        .main-container.operator { grid-template-columns: 1fr 380px; grid-template-rows: 180px 1fr; }
+        .main-container.operator { grid-template-columns: 1fr 350px; grid-template-rows: 180px 1fr; }
         .main-container.operator .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #1a1a1a; border-bottom: 2px solid #333; overflow-x: auto; align-items: center; }
         .main-container.operator .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 10px; background: #000; }
-        .main-container.operator .dashboard { grid-column: 2; grid-row: 1 / 3; background: #1a1a1a; border-left: 2px solid #333; padding: 15px; overflow-y: auto; }
+        .main-container.operator .dashboard { grid-column: 2; grid-row: 1 / 3; background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
         
         .main-container.guest { grid-template-columns: 1fr; grid-template-rows: 1fr 200px; }
         .main-container.guest .operator-view { grid-row: 1; display: flex; justify-content: center; align-items: center; background: #000; padding: 20px; position: relative; }
@@ -59,7 +47,7 @@
         .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         
-        /* TALLY EN PANTALLA COMPLETA */
+        /* TALLY EN PANTALLA COMPLETA PARA INVITADO */
         .tally-overlay { 
             position: absolute; 
             top: 0; left: 0; right: 0; bottom: 0; 
@@ -108,54 +96,26 @@
         .status-dot.active { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
         .status-dot.muted { background: #ff0000; }
         
-        .dashboard h2 { color: #ff6b00; margin-bottom: 15px; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .dashboard h2 { color: #ff6b00; margin-bottom: 20px; font-size: 16px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
         
-        .id-box { background: #2d2d2d; border: 2px solid #ff6b00; border-radius: 8px; padding: 12px; margin-bottom: 15px; text-align: center; }
-        .id-box h3 { color: #ff6b00; font-size: 10px; margin-bottom: 8px; }
-        .id-display { background: #0f0f0f; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 20px; font-weight: bold; color: #00ff00; letter-spacing: 2px; }
-        .id-hint { font-size: 10px; color: #999; margin-top: 6px; }
+        .id-box { background: #2d2d2d; border: 2px solid #ff6b00; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        .id-box h3 { color: #ff6b00; font-size: 11px; margin-bottom: 10px; }
+        .id-display { background: #0f0f0f; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 24px; font-weight: bold; color: #00ff00; letter-spacing: 2px; }
+        .id-hint { font-size: 11px; color: #999; margin-top: 8px; }
         
-        /* URLs para OBS individuales */
-        .obs-urls-container { background: #1a0a1a; border: 2px solid #ff00ff; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
-        .obs-urls-container h3 { color: #ff00ff; font-size: 10px; margin-bottom: 10px; text-transform: uppercase; }
-        .obs-slot-url { 
-            background: #0f0f0f; 
-            padding: 8px; 
-            border-radius: 4px; 
-            margin-bottom: 8px;
-            border-left: 3px solid;
-        }
-        .obs-slot-url.slot-0 { border-left-color: #ff0000; }
-        .obs-slot-url.slot-1 { border-left-color: #00ff00; }
-        .obs-slot-url.slot-2 { border-left-color: #0088ff; }
-        .obs-slot-label { 
-            font-size: 9px; 
-            color: #999; 
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .obs-slot-label span { color: #fff; font-weight: bold; }
-        .obs-url-text { 
-            font-family: monospace; 
-            font-size: 9px; 
-            color: #ff00ff; 
-            word-break: break-all;
-            cursor: pointer;
-        }
-        .obs-url-text:hover { color: #ff88ff; }
-        .obs-copy-hint { font-size: 8px; color: #666; margin-top: 2px; }
+        .obs-box { background: #2d002d; border: 2px solid #ff00ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .obs-box h3 { color: #ff00ff; font-size: 11px; margin-bottom: 10px; }
+        .obs-url { background: #0f0f0f; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 9px; word-break: break-all; color: #ff00ff; }
+        .obs-hint { font-size: 10px; color: #999; margin-top: 8px; }
         
-        .slot-container { margin-bottom: 12px; }
-        .slot-label { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; display: flex; justify-content: space-between; }
-        .slot-label .obs-indicator { color: #ff00ff; font-size: 9px; }
-        .participant-card { background: #2d2d2d; border-radius: 8px; padding: 10px; border: 2px solid #444; }
-        .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 15px; }
-        .participant-card h3 { font-size: 12px; margin-bottom: 6px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .slot-container { margin-bottom: 15px; }
+        .slot-label { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
+        .participant-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 2px solid #444; }
+        .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 20px; }
+        .participant-card h3 { font-size: 13px; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
         
-        .tally-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 6px; }
-        .tally-btn { padding: 6px 4px; border: none; border-radius: 4px; cursor: pointer; font-size: 9px; font-weight: bold; text-transform: uppercase; transition: all 0.2s; }
+        .tally-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
+        .tally-btn { padding: 8px 4px; border: none; border-radius: 4px; cursor: pointer; font-size: 9px; font-weight: bold; text-transform: uppercase; transition: all 0.2s; }
         .btn-off { background: #444; color: #999; }
         .btn-standby { background: #666600; color: #ffff00; }
         .btn-live { background: #660000; color: #ff0000; }
@@ -197,28 +157,15 @@
         .yellow { color: #ffff00; }
         .red { color: #ff0000; }
         
-        .waiting-msg { color: #666; text-align: center; padding: 20px; font-size: 12px; }
+        .waiting-msg { color: #666; text-align: center; padding: 30px; font-size: 12px; }
         .waiting-msg .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
         
         .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 10px; border-radius: 4px; text-align: center; margin-top: 10px; font-size: 12px; display: none; }
-        
-        .obs-slot-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #ff00ff;
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            z-index: 30;
-        }
     </style>
 </head>
 <body>
 
-<header id="mainHeader">
+<header>
     <div class="brand">
         <h1>STREAMCALL POWER</h1>
         <span class="room-badge" id="headerRoom">SALA -</span>
@@ -291,57 +238,19 @@
         <div class="id-box" id="idBox">
             <h3>📢 TU ID DE OPERADOR</h3>
             <div class="id-display" id="operatorIdDisplay">---</div>
-            <div class="id-hint">Pide a invitados que ingresen este ID</div>
+            <div class="id-hint">Pide a invitados/OBS que ingresen este ID</div>
         </div>
         
-        <!-- URLs para OBS individuales -->
-        <div class="obs-urls-container" id="obsUrlsContainer">
-            <h3>🔗 URLs PARA OBS (Por Invitado)</h3>
-            <div class="obs-slot-url slot-0">
-                <div class="obs-slot-label"><span>🎬 CANAL 1 (Rojo)</span> Slot 0</div>
-                <div class="obs-url-text" id="obsUrl0" onclick="copyToClipboard(this.textContent)">---</div>
-                <div class="obs-copy-hint">Click para copiar</div>
-            </div>
-            <div class="obs-slot-url slot-1">
-                <div class="obs-slot-label"><span>🎬 CANAL 2 (Verde)</span> Slot 1</div>
-                <div class="obs-url-text" id="obsUrl1" onclick="copyToClipboard(this.textContent)">---</div>
-                <div class="obs-copy-hint">Click para copiar</div>
-            </div>
-            <div class="obs-slot-url slot-2">
-                <div class="obs-slot-label"><span>🎬 CANAL 3 (Azul)</span> Slot 2</div>
-                <div class="obs-url-text" id="obsUrl2" onclick="copyToClipboard(this.textContent)">---</div>
-                <div class="obs-copy-hint">Click para copiar</div>
-            </div>
+        <div class="obs-box" id="obsBox">
+            <h3>🔗 ENLACE PARA OBS</h3>
+            <div class="obs-url" id="obsUrl">---</div>
+            <div class="obs-hint">En OBS: Fuente Navegador → pega esta URL</div>
         </div>
         
         <!-- 3 Slots -->
-        <div class="slot-container">
-            <div class="slot-label">
-                <span>Canal 1</span>
-                <span class="obs-indicator" id="obsIndicator0" style="display: none;">● OBS</span>
-            </div>
-            <div class="participant-card empty" id="slot-0">
-                <div class="waiting-msg"><span class="spinner"></span>Esperando...</div>
-            </div>
-        </div>
-        <div class="slot-container">
-            <div class="slot-label">
-                <span>Canal 2</span>
-                <span class="obs-indicator" id="obsIndicator1" style="display: none;">● OBS</span>
-            </div>
-            <div class="participant-card empty" id="slot-1">
-                <div class="waiting-msg"><span class="spinner"></span>Esperando...</div>
-            </div>
-        </div>
-        <div class="slot-container">
-            <div class="slot-label">
-                <span>Canal 3</span>
-                <span class="obs-indicator" id="obsIndicator2" style="display: none;">● OBS</span>
-            </div>
-            <div class="participant-card empty" id="slot-2">
-                <div class="waiting-msg"><span class="spinner"></span>Esperando...</div>
-            </div>
-        </div>
+        <div class="slot-container"><div class="slot-label">Canal 1</div><div class="participant-card empty" id="slot-0"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
+        <div class="slot-container"><div class="slot-label">Canal 2</div><div class="participant-card empty" id="slot-1"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
+        <div class="slot-container"><div class="slot-label">Canal 3</div><div class="participant-card empty" id="slot-2"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
 
         <div class="full-alert" id="fullAlert">⚠️ SALA COMPLETA (3/3)</div>
     </div>
@@ -376,7 +285,7 @@
             </div>
             <div class="role-option" id="roleOBS" onclick="selectRole('obs')">
                 <h3>🎬 OBS VIRTUAL</h3>
-                <p>Para streaming<br>Full screen</p>
+                <p>Para streaming<br>Full screen, no UI</p>
             </div>
         </div>
         
@@ -400,7 +309,7 @@
                 <input type="text" id="obsIdInput" class="id-input" placeholder="ABC123" maxlength="6">
             </div>
             <div class="alert-box" style="background: #2d002d; border-color: #ff00ff;">
-                <strong>Modo OBS:</strong> Se ocultarán todos los controles. Solo verás el retorno del operador.
+                <strong>Modo OBS:</strong> Se ocultarán todos los controles. Solo verás el retorno del operador en pantalla completa.
             </div>
         </div>
         
@@ -415,11 +324,10 @@
 </div>
 
 <script>
-// Detectar modo desde URL
+// Detectar modo OBS desde URL
 const urlParams = new URLSearchParams(window.location.search);
 const IS_OBS_MODE = urlParams.get('obs') === 'true';
 const URL_ID = urlParams.get('id');
-const URL_SLOT = urlParams.get('slot'); // Para OBS de slot específico
 
 let myRole = 'operator';
 let peer;
@@ -428,14 +336,12 @@ let connections = new Map();
 let myPeerId;
 let operatorId = null;
 let availableSlots = [0, 1, 2];
-let dataChannels = new Map();
-let mySlot = null; // Para modo OBS de slot específico
+let dataChannels = new Map(); // Almacenar DataChannels activos
 
-// Si es modo OBS de slot específico
-if (IS_OBS_MODE && URL_ID && URL_SLOT !== null) {
-    myRole = 'obs_slot';
-    mySlot = parseInt(URL_SLOT);
-    document.body.classList.add('obs-slot-mode');
+// Si viene de URL en modo OBS
+if (IS_OBS_MODE && URL_ID) {
+    myRole = 'obs';
+    document.body.classList.add('obs-mode');
 }
 
 navigator.mediaDevices.enumerateDevices().then(devices => {
@@ -467,17 +373,6 @@ function selectRole(role) {
     }
 }
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        // Feedback visual
-        const el = document.createElement('div');
-        el.textContent = '✓ Copiado';
-        el.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #00ff00; color: #000; padding: 10px 20px; border-radius: 4px; font-weight: bold; z-index: 9999;';
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 1000);
-    });
-}
-
 function updateStatusIndicators(cam, mic) {
     const camDot = myRole === 'operator' ? 'localCamDot' : 'guestCamDot';
     const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
@@ -488,13 +383,6 @@ function updateStatusIndicators(cam, mic) {
 }
 
 function startBroadcast() {
-    // Si es modo OBS slot desde URL, usar esos parámetros
-    if (myRole === 'obs_slot') {
-        operatorId = URL_ID;
-        initPeer('OBS Slot ' + mySlot);
-        return;
-    }
-    
     const name = myRole === 'operator' 
         ? document.getElementById('userName').value 
         : (myRole === 'obs' ? 'OBS Virtual' : document.getElementById('guestName').value);
@@ -511,17 +399,13 @@ function startBroadcast() {
     
     // UI Updates
     const roleText = myRole === 'operator' ? 'OPERADOR' : (myRole === 'obs' ? 'OBS' : 'INVITADO');
-    if (document.getElementById('roleBadge')) {
-        document.getElementById('roleBadge').textContent = roleText;
-        document.getElementById('roleBadge').classList.toggle('guest', myRole === 'guest');
-        document.getElementById('roleBadge').classList.toggle('obs', myRole === 'obs' || myRole === 'obs_slot');
-        document.getElementById('roleDisplay').textContent = roleText;
-    }
+    document.getElementById('roleBadge').textContent = roleText;
+    document.getElementById('roleBadge').classList.toggle('guest', myRole === 'guest');
+    document.getElementById('roleBadge').classList.toggle('obs', myRole === 'obs');
+    document.getElementById('roleDisplay').textContent = roleText;
     
     const container = document.getElementById('mainContainer');
-    if (container) {
-        container.className = 'main-container ' + (myRole === 'obs_slot' ? 'guest' : myRole);
-    }
+    container.className = 'main-container ' + (myRole === 'obs' ? 'guest' : myRole);
     
     if (myRole === 'operator') {
         document.getElementById('dashboard').style.display = 'block';
@@ -531,33 +415,30 @@ function startBroadcast() {
         document.getElementById('guestPreviewBar').style.display = 'none';
         document.getElementById('modeText').textContent = 'Modo: Control Total';
     } else {
-        // Guest, OBS o OBS Slot
-        if (document.getElementById('dashboard')) document.getElementById('dashboard').style.display = 'none';
-        if (document.getElementById('previewBar')) document.getElementById('previewBar').style.display = 'none';
-        if (document.getElementById('videoGrid')) document.getElementById('videoGrid').style.display = 'none';
-        if (document.getElementById('operatorView')) document.getElementById('operatorView').style.display = 'flex';
-        if (document.getElementById('guestPreviewBar')) {
-            document.getElementById('guestPreviewBar').style.display = (myRole === 'obs' || myRole === 'obs_slot') ? 'none' : 'flex';
-        }
-        if (document.getElementById('modeText')) {
-            document.getElementById('modeText').textContent = myRole === 'obs_slot' ? 'Modo: OBS Slot ' + mySlot : (myRole === 'obs' ? 'Modo: OBS Full Screen' : 'Modo: Invitado');
-        }
+        // Guest u OBS
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('previewBar').style.display = 'none';
+        document.getElementById('videoGrid').style.display = 'none';
+        document.getElementById('operatorView').style.display = 'flex';
+        document.getElementById('guestPreviewBar').style.display = myRole === 'obs' ? 'none' : 'flex';
+        document.getElementById('modeText').textContent = myRole === 'obs' ? 'Modo: OBS Full Screen' : 'Modo: Invitado';
         if (document.getElementById('guestSelfName')) {
             document.getElementById('guestSelfName').textContent = name;
         }
     }
     
-    // Get media con audio optimizado
+    // Get media con audio optimizado para música
     const videoId = document.getElementById('videoSource').value;
     const audioId = document.getElementById('audioSource').value;
     
+    // Configuración de audio mejorada para música (stereo, high quality)
     const audioConstraints = audioId ? {
         deviceId: { exact: audioId },
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
+        echoCancellation: false, // Desactivado para música
+        noiseSuppression: false,  // Desactivado para música
+        autoGainControl: false,   // Desactivado para música
         sampleRate: 48000,
-        channelCount: 2
+        channelCount: 2 // Stereo
     } : {
         echoCancellation: false,
         noiseSuppression: false,
@@ -594,20 +475,12 @@ function initPeer(name) {
         document.getElementById('operatorIdDisplay').textContent = myPeerId;
         document.getElementById('headerRoom').textContent = 'ID: ' + myPeerId;
         
-        // Generar URLs para OBS individuales
-        const baseUrl = window.location.origin + window.location.pathname;
-        document.getElementById('obsUrl0').textContent = baseUrl + '?obs=true&id=' + myPeerId + '&slot=0';
-        document.getElementById('obsUrl1').textContent = baseUrl + '?obs=true&id=' + myPeerId + '&slot=1';
-        document.getElementById('obsUrl2').textContent = baseUrl + '?obs=true&id=' + myPeerId + '&slot=2';
-        
+        // Generar URL para OBS
+        const obsUrl = window.location.origin + window.location.pathname + '?obs=true&id=' + myPeerId;
+        document.getElementById('obsUrl').textContent = obsUrl;
     } else {
-        myPeerId = (myRole === 'obs' || myRole === 'obs_slot' ? 'OBS_' : 'GUEST_') + operatorId + '_' + Date.now();
-        if (myRole === 'obs_slot') {
-            myPeerId = 'OBS_SLOT' + mySlot + '_' + operatorId + '_' + Date.now();
-        }
-        if (document.getElementById('headerRoom')) {
-            document.getElementById('headerRoom').textContent = 'SALA ' + operatorId;
-        }
+        myPeerId = (myRole === 'obs' ? 'OBS_' : 'GUEST_') + operatorId + '_' + Date.now();
+        document.getElementById('headerRoom').textContent = 'SALA ' + operatorId;
     }
     
     const peerConfig = {
@@ -628,9 +501,7 @@ function initPeer(name) {
     peer = new Peer(myPeerId, peerConfig);
     
     peer.on('open', (id) => {
-        if (document.getElementById('connStatus')) {
-            document.getElementById('connStatus').textContent = myRole === 'operator' ? 'Listo - Esperando' : 'Conectando...';
-        }
+        document.getElementById('connStatus').textContent = myRole === 'operator' ? 'Listo - Esperando' : 'Conectando...';
         
         if (myRole !== 'operator') {
             connectToOperator();
@@ -648,9 +519,7 @@ function initPeer(name) {
     peer.on('error', (err) => {
         console.log('Peer error:', err.type);
         if (err.type === 'peer-unavailable' && myRole !== 'operator') {
-            if (document.getElementById('connectingText')) {
-                document.getElementById('connectingText').textContent = 'Operador no encontrado';
-            }
+            document.getElementById('connectingText').textContent = 'Operador no encontrado';
             if (document.getElementById('guestStatusText')) {
                 document.getElementById('guestStatusText').textContent = 'Error: ID incorrecto';
             }
@@ -662,17 +531,14 @@ function connectToOperator() {
     if (!operatorId) return;
     
     console.log('Conectando a operador:', operatorId);
-    if (document.getElementById('connStatus')) {
-        document.getElementById('connStatus').textContent = 'Conectando...';
-    }
+    document.getElementById('connStatus').textContent = 'Conectando...';
     
     // DataChannel al operador
     const conn = peer.connect(operatorId, { 
         reliable: true, 
         metadata: { 
-            name: myRole === 'obs_slot' ? 'OBS Slot ' + mySlot : (myRole === 'obs' ? 'OBS Virtual' : document.getElementById('guestName').value),
-            role: myRole,
-            requestedSlot: mySlot // Para modo OBS slot específico
+            name: myRole === 'obs' ? 'OBS Virtual' : document.getElementById('guestName').value,
+            role: myRole 
         } 
     });
     
@@ -680,9 +546,7 @@ function connectToOperator() {
     
     conn.on('open', () => {
         console.log('DataChannel abierto con operador');
-        if (document.getElementById('connStatus')) {
-            document.getElementById('connStatus').textContent = 'Canal listo - Enviando video...';
-        }
+        document.getElementById('connStatus').textContent = 'Canal listo - Enviando video...';
         
         // Enviar nuestro stream al operador
         const call = peer.call(operatorId, localStream);
@@ -701,62 +565,34 @@ function handleIncomingCall(call) {
     console.log('Llamada entrante de:', callerId, 'Rol:', myRole);
     
     if (myRole === 'operator') {
-        // Verificar si es un OBS de slot específico
-        const isObsSlot = callerId.includes('OBS_SLOT');
-        let requestedSlot = null;
-        
-        if (isObsSlot) {
-            // Extraer slot del ID: OBS_SLOT0_XXXX
-            const match = callerId.match(/OBS_SLOT(\d)_/);
-            if (match) {
-                requestedSlot = parseInt(match[1]);
-            }
-        }
-        
-        // Si es OBS de slot específico, asignar ese slot
-        // Si no, tomar el primer slot disponible
-        let slot;
-        if (requestedSlot !== null && availableSlots.includes(requestedSlot)) {
-            slot = requestedSlot;
-            availableSlots = availableSlots.filter(s => s !== slot);
-        } else if (availableSlots.length > 0) {
-            slot = availableSlots.shift();
-        } else {
+        if (availableSlots.length === 0) {
             console.log('Sala llena');
             return;
         }
         
-        // Marcar que este slot es OBS
-        if (isObsSlot && document.getElementById('obsIndicator' + slot)) {
-            document.getElementById('obsIndicator' + slot).style.display = 'inline';
-        }
+        const slot = availableSlots.shift();
         
         // Responder con nuestro stream (retorno)
         call.answer(localStream);
-        console.log('Respondiendo llamada, slot:', slot, 'OBS:', isObsSlot);
+        console.log('Respondiendo llamada con retorno, slot:', slot);
         
         call.on('stream', (remoteStream) => {
             console.log('Stream recibido en slot', slot);
             
-            const guestName = isObsSlot ? 'OBS Canal ' + (slot + 1) : ('Invitado ' + (slot + 1));
+            const guestName = 'Invitado ' + (slot + 1);
             
             connections.set(callerId, {
                 call: call,
                 stream: remoteStream,
                 name: guestName,
-                slot: slot,
-                isOBS: isObsSlot
+                slot: slot
             });
             
-            addGuestVideo(slot, remoteStream, guestName, callerId, isObsSlot);
-            updateDashboardSlot(slot, callerId, guestName, true, isObsSlot);
+            addGuestVideo(slot, remoteStream, guestName, callerId);
+            updateDashboardSlot(slot, callerId, guestName, true);
             
-            if (document.getElementById('connStatus')) {
-                document.getElementById('connStatus').textContent = 'Conectado';
-            }
-            if (document.getElementById('peerCount')) {
-                document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
-            }
+            document.getElementById('connStatus').textContent = 'Conectado';
+            document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
             
             // Llamar DE VUELTA para asegurar el retorno
             setTimeout(() => {
@@ -775,19 +611,10 @@ function handleIncomingCall(call) {
         
         call.on('stream', (remoteStream) => {
             console.log('RETORNO RECIBIDO!');
-            const videoEl = document.getElementById('operatorVideo');
-            if (videoEl) {
-                videoEl.srcObject = remoteStream;
-            }
+            document.getElementById('operatorVideo').srcObject = remoteStream;
+            document.getElementById('connectingOverlay').classList.add('hidden');
+            document.getElementById('connStatus').textContent = 'En línea';
             
-            const overlay = document.getElementById('connectingOverlay');
-            if (overlay) {
-                overlay.classList.add('hidden');
-            }
-            
-            if (document.getElementById('connStatus')) {
-                document.getElementById('connStatus').textContent = 'En línea';
-            }
             if (document.getElementById('guestStatusText')) {
                 document.getElementById('guestStatusText').textContent = 'Conectado al estudio';
                 document.getElementById('guestSubText').textContent = 'El operador puede verte';
@@ -799,17 +626,22 @@ function handleIncomingCall(call) {
 function handleDataConnection(conn) {
     const peerId = conn.peer;
     
+    // Guardar DataChannel
     if (!dataChannels.has(peerId)) {
         dataChannels.set(peerId, conn);
     }
     
     conn.on('data', (data) => {
         console.log('Data de', peerId, ':', data);
-        if (data.type === 'tally' && myRole !== 'operator') {
-            updateGuestTally(data.state);
+        if (data.type === 'tally') {
+            // Si soy invitado/OBS, mostrar tally
+            if (myRole !== 'operator') {
+                updateGuestTally(data.state);
+            }
         }
     });
     
+    // Si soy operador y es nuevo invitado, guardar referencia
     if (myRole === 'operator') {
         const existing = connections.get(peerId);
         if (existing) {
@@ -819,22 +651,14 @@ function handleDataConnection(conn) {
     }
 }
 
-function addGuestVideo(slot, stream, name, peerId, isOBS = false) {
+function addGuestVideo(slot, stream, name, peerId) {
     const grid = document.getElementById('videoGrid');
-    if (!grid) return;
     
     let container = document.getElementById('guest-video-' + slot);
     if (!container) {
         container = document.createElement('div');
         container.className = 'video-container offline';
         container.id = 'guest-video-' + slot;
-        
-        if (isOBS) {
-            const badge = document.createElement('div');
-            badge.className = 'obs-slot-badge';
-            badge.textContent = 'OBS CH' + (slot + 1);
-            container.appendChild(badge);
-        }
         
         const tally = document.createElement('div');
         tally.className = 'tally-light';
@@ -861,23 +685,18 @@ function addGuestVideo(slot, stream, name, peerId, isOBS = false) {
         grid.appendChild(container);
     }
     
-    const videoEl = document.getElementById('video-slot-' + slot);
-    if (videoEl) {
-        videoEl.srcObject = stream;
-    }
+    document.getElementById('video-slot-' + slot).srcObject = stream;
     setTimeout(() => updateTally(peerId, 'standby'), 500);
 }
 
-function updateDashboardSlot(slot, peerId, name, connected, isOBS = false) {
+function updateDashboardSlot(slot, peerId, name, connected) {
     const slotEl = document.getElementById('slot-' + slot);
-    if (!slotEl) return;
     
     if (connected) {
         slotEl.className = 'participant-card';
-        const obsBadge = isOBS ? '<span style="color: #ff00ff; font-size: 9px;">● OBS</span>' : '<span style="color: #00ff00; font-size: 10px;">● En línea</span>';
         slotEl.innerHTML = `
-            <h3>${name} ${obsBadge}</h3>
-            <div style="font-size: 9px; color: #666; margin-bottom: 6px;">${peerId}</div>
+            <h3>${name} <span style="color: #00ff00; font-size: 10px;">● En línea</span></h3>
+            <div style="font-size: 10px; color: #666; margin-bottom: 8px;">${peerId}</div>
             <div class="tally-controls">
                 <button class="tally-btn btn-off active" onclick="sendTally('${peerId}', 'off')">OFF</button>
                 <button class="tally-btn btn-standby" onclick="sendTally('${peerId}', 'standby')">ATENTO</button>
@@ -887,45 +706,40 @@ function updateDashboardSlot(slot, peerId, name, connected, isOBS = false) {
     } else {
         slotEl.className = 'participant-card empty';
         slotEl.innerHTML = '<div class="waiting-msg"><span class="spinner"></span>Esperando...</div>';
-        if (document.getElementById('obsIndicator' + slot)) {
-            document.getElementById('obsIndicator' + slot).style.display = 'none';
-        }
     }
 }
 
 function sendTally(peerId, state) {
     updateTally(peerId, state);
     
+    // Enviar por DataChannel
     const conn = dataChannels.get(peerId);
     if (conn && conn.open) {
         console.log('Enviando tally a', peerId, ':', state);
         conn.send({ type: 'tally', state: state });
     } else {
+        // Intentar crear nueva conexión si no existe
         const newConn = peer.connect(peerId, { reliable: true });
         newConn.on('open', () => {
             newConn.send({ type: 'tally', state: state });
         });
     }
     
+    // Actualizar UI del operador
     const slot = connections.get(peerId)?.slot;
     if (slot !== undefined) {
         const slotEl = document.getElementById('slot-' + slot);
-        if (slotEl) {
-            slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
-            const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
-            const btn = slotEl.querySelector('.' + btnClass);
-            if (btn) btn.classList.add('active');
-        }
+        slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
+        const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
+        slotEl.querySelector('.' + btnClass).classList.add('active');
     }
 }
 
 function updateTally(peerId, state) {
     const light = document.getElementById('tally-' + peerId);
     const label = document.getElementById('tally-label-' + peerId);
-    const conn = connections.get(peerId);
-    if (!conn) return;
+    const container = document.getElementById('guest-video-' + connections.get(peerId)?.slot);
     
-    const container = document.getElementById('guest-video-' + conn.slot);
     if (!light || !label || !container) return;
     
     container.classList.remove('live', 'standby', 'offline');
@@ -953,60 +767,40 @@ function updateGuestTally(state) {
     const text = document.getElementById('tallyText');
     const container = document.getElementById('operatorVideoContainer');
     
-    if (!overlay) return;
-    
-    console.log('Actualizando Tally:', state);
+    console.log('Actualizando Tally en invitado:', state);
     
     overlay.classList.remove('off', 'standby', 'live');
     
     if (state === 'live') {
         overlay.classList.add('live');
         text.textContent = '🔴 AL AIRE';
-        if (container) {
-            container.classList.add('live');
-            container.classList.remove('standby');
-        }
-        const modeText = document.getElementById('modeText');
-        if (modeText) {
-            modeText.textContent = '🔴 TRANSMITIENDO';
-            modeText.style.color = '#ff0000';
-        }
-        const guestStatus = document.getElementById('guestStatusText');
-        if (guestStatus) {
-            guestStatus.textContent = '🔴 ESTÁS AL AIRE';
-            guestStatus.style.color = '#ff0000';
+        container.classList.add('live');
+        container.classList.remove('standby');
+        document.getElementById('modeText').textContent = '🔴 TRANSMITIENDO';
+        document.getElementById('modeText').style.color = '#ff0000';
+        if (document.getElementById('guestStatusText')) {
+            document.getElementById('guestStatusText').textContent = '🔴 ESTÁS AL AIRE';
+            document.getElementById('guestStatusText').style.color = '#ff0000';
         }
     } else if (state === 'standby') {
         overlay.classList.add('standby');
         text.textContent = '⏺ ATENTO';
-        if (container) {
-            container.classList.add('standby');
-            container.classList.remove('live');
-        }
-        const modeText = document.getElementById('modeText');
-        if (modeText) {
-            modeText.textContent = '⏺ PREPARADO';
-            modeText.style.color = '#ffff00';
-        }
-        const guestStatus = document.getElementById('guestStatusText');
-        if (guestStatus) {
-            guestStatus.textContent = '⏺ ATENTO';
-            guestStatus.style.color = '#ffff00';
+        container.classList.add('standby');
+        container.classList.remove('live');
+        document.getElementById('modeText').textContent = '⏺ PREPARADO';
+        document.getElementById('modeText').style.color = '#ffff00';
+        if (document.getElementById('guestStatusText')) {
+            document.getElementById('guestStatusText').textContent = '⏺ ATENTO';
+            document.getElementById('guestStatusText').style.color = '#ffff00';
         }
     } else {
         overlay.classList.add('off');
-        if (container) {
-            container.classList.remove('live', 'standby');
-        }
-        const modeText = document.getElementById('modeText');
-        if (modeText) {
-            modeText.textContent = myRole === 'obs_slot' ? 'Modo: OBS Slot' : 'Modo: Conectado';
-            modeText.style.color = '#999';
-        }
-        const guestStatus = document.getElementById('guestStatusText');
-        if (guestStatus) {
-            guestStatus.textContent = 'Conectado';
-            guestStatus.style.color = '#666';
+        container.classList.remove('live', 'standby');
+        document.getElementById('modeText').textContent = myRole === 'obs' ? 'Modo: OBS' : 'Modo: Conectado';
+        document.getElementById('modeText').style.color = '#999';
+        if (document.getElementById('guestStatusText')) {
+            document.getElementById('guestStatusText').textContent = 'Conectado';
+            document.getElementById('guestStatusText').style.color = '#666';
         }
     }
 }
@@ -1026,14 +820,8 @@ function freeSlot(peerId) {
     
     connections.delete(peerId);
     dataChannels.delete(peerId);
-    
-    if (document.getElementById('peerCount')) {
-        document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
-    }
-    const fullAlert = document.getElementById('fullAlert');
-    if (fullAlert) {
-        fullAlert.style.display = availableSlots.length === 0 ? 'block' : 'none';
-    }
+    document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
+    document.getElementById('fullAlert').style.display = availableSlots.length === 0 ? 'block' : 'none';
 }
 
 function toggleMic() {
@@ -1042,9 +830,7 @@ function toggleMic() {
     if (track) {
         track.enabled = !track.enabled;
         const btn = document.getElementById('btnMic');
-        if (btn) {
-            btn.classList.toggle('muted', !track.enabled);
-        }
+        btn.classList.toggle('muted', !track.enabled);
         updateStatusIndicators(true, track.enabled);
     }
 }
@@ -1054,10 +840,7 @@ function toggleCam() {
     const track = localStream.getVideoTracks()[0];
     if (track) {
         track.enabled = !track.enabled;
-        const btn = document.getElementById('btnCam');
-        if (btn) {
-            btn.classList.toggle('active');
-        }
+        document.getElementById('btnCam').classList.toggle('active');
         updateStatusIndicators(track.enabled, true);
     }
 }
@@ -1066,13 +849,6 @@ function disconnect() {
     if (peer) peer.destroy();
     if (localStream) localStream.getTracks().forEach(t => t.stop());
     location.reload();
-}
-
-// Auto-iniciar si es modo OBS slot desde URL
-if (myRole === 'obs_slot') {
-    window.addEventListener('load', () => {
-        setTimeout(startBroadcast, 500);
-    });
 }
 </script>
 
