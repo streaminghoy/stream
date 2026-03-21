@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall Power PRO v5 - StreamingHoy</title>
+    <title>StreamCall Power PRO v6 - StreamingHoy</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,11 +31,11 @@
 
         /* GRID OPERADOR */
         .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #0a0a0a; border-bottom: 1px solid #333; overflow-x: auto; }
-        .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; padding: 10px; background: #000; }
-        .video-container { position: relative; background: #111; border: 2px solid #333; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; }
+        .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 10px; background: #000; align-content: start; }
+        .video-container { position: relative; background: #111; border: 2px solid #333; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; height: fit-content; }
         .video-container.live { border-color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.5); }
         .video-container.standby { border-color: #ffff00; }
-        .video-container.preview { height: 100%; width: 200px; }
+        .video-container.preview { height: 120px; width: 213px; }
         video { width: 100%; height: 100%; object-fit: cover; }
 
         /* VISTA INVITADO */
@@ -54,72 +54,24 @@
         .modal-content { background: #1a1a1a; padding: 25px; border-radius: 8px; width: 350px; border: 1px solid #ff6b00; }
         .device-select { width: 100%; padding: 8px; margin: 10px 0; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 13px; }
         .join-btn { width: 100%; padding: 12px; background: #ff6b00; color: #fff; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
-
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     </style>
 </head>
 <body>
 
-<div id="obsRoot" style="display:none; width:100vw; height:100vh; background:transparent;">
-    <video id="obsVid" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-</div>
+<div id="obsRoot" style="display:none; width:100vw; height:100vh; background:transparent;"><video id="obsVid" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video></div>
 
 <div id="appRoot">
-    <header>
-        <div class="brand"><h1>STREAMCALL POWER <span class="room-badge" id="headerRoom">SALA -</span></h1></div>
-        <div id="headerStatus" style="font-size: 11px; color: #ff6b00; font-weight: bold;">ESPERANDO CONEXIÓN</div>
-    </header>
-
+    <header><div class="brand"><h1>STREAMCALL POWER <span class="room-badge" id="headerRoom">SALA -</span></h1></div><div id="headerStatus" style="font-size: 11px; color: #ff6b00; font-weight: bold;">ESPERANDO...</div></header>
     <div class="main-container" id="mainContainer">
-        <div class="preview-bar" id="previewBar" style="display:none;">
-            <div class="video-container preview"><video id="localVideo" autoplay muted playsinline></video></div>
-        </div>
+        <div class="preview-bar" id="previewBar" style="display:none;"><div class="video-container preview"><video id="localVideo" autoplay muted playsinline></video></div></div>
         <div class="video-grid" id="videoGrid" style="display:none;"></div>
-
-        <div class="operator-view" id="guestOperatorView" style="display:none;">
-            <div class="video-container" style="max-width: 800px; width:100%;">
-                <div id="mainTally" class="tally-label-main">AL AIRE</div>
-                <video id="remoteOperatorVideo" autoplay playsinline></video>
-                <div style="position:absolute; top:10px; right:10px; background:#ff6b00; color:#000; font-size:10px; padding:2px 8px; font-weight:bold; border-radius:3px;">RETORNO PROGRAMA</div>
-            </div>
-        </div>
-
-        <div class="guest-preview-bar" id="guestPreviewBar" style="display:none;">
-            <div class="video-container guest-self"><video id="guestLocalVideo" autoplay muted playsinline></video></div>
-            <div style="font-size: 12px; color: #999;"><strong id="guestStatusLabel" style="color:#ff6b00;">CONECTADO</strong><br>Audio HD para música.</div>
-        </div>
-
-        <div class="dashboard" id="dashboard" style="display:none;">
-            <h2>DASHBOARD</h2>
-            <div class="id-display" id="displayId">----</div>
-            <div id="slotsContainer">
-                <div class="slot-card empty" id="slot-0">CANAL 1: LIBRE</div>
-                <div class="slot-card empty" id="slot-1">CANAL 2: LIBRE</div>
-                <div class="slot-card empty" id="slot-2">CANAL 3: LIBRE</div>
-            </div>
-        </div>
+        <div class="operator-view" id="guestOperatorView" style="display:none;"><div class="video-container" style="max-width: 800px; width:100%;"><div id="mainTally" class="tally-label-main">AL AIRE</div><video id="remoteOperatorVideo" autoplay playsinline></video></div></div>
+        <div class="guest-preview-bar" id="guestPreviewBar" style="display:none;"><div class="video-container guest-self"><video id="guestLocalVideo" autoplay muted playsinline></video></div><div style="font-size: 12px; color: #999;"><strong id="guestStatusLabel" style="color:#ff6b00;">CONECTADO</strong><br>Audio HD activo.</div></div>
+        <div class="dashboard" id="dashboard" style="display:none;"><h2>DASHBOARD</h2><div class="id-display" id="displayId">----</div><div id="slotsContainer"><div class="slot-card empty" id="slot-0">CANAL 1: LIBRE</div><div class="slot-card empty" id="slot-1">CANAL 2: LIBRE</div><div class="slot-card empty" id="slot-2">CANAL 3: LIBRE</div></div></div>
     </div>
-
-    <div id="appControls" style="position:fixed; bottom:20px; left:20px; display:none; gap:10px; z-index:1000;">
-        <button onclick="toggleMic()" id="micBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">🎤</button>
-        <button onclick="toggleCam()" id="camBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">📹</button>
-        <button onclick="location.reload()" style="width:50px; height:50px; border-radius:50%; border:none; background:#cc0000; color:white; cursor:pointer; font-size:20px;">📴</button>
-    </div>
-
-    <div class="modal active" id="initModal">
-        <div class="modal-content">
-            <h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v5</h2>
-            <select id="roleSelect" class="device-select" onchange="updateModalFields()">
-                <option value="operator">OPERADOR (CONTROL)</option>
-                <option value="guest">INVITADO (MÓVIL)</option>
-            </select>
-            <div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center; font-size:18px;"></div>
-            <input type="text" id="userName" class="device-select" placeholder="TU NOMBRE">
-            <label style="font-size:10px;">CÁMARA:</label><select id="vSource" class="device-select"></select>
-            <label style="font-size:10px;">MICRÓFONO:</label><select id="aSource" class="device-select"></select>
-            <button class="join-btn" onclick="startApp()">CONECTAR</button>
-        </div>
-    </div>
+    <div id="appControls" style="position:fixed; bottom:20px; left:20px; display:none; gap:10px; z-index:1000;"><button onclick="toggleMic()" id="micBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">🎤</button><button onclick="toggleCam()" id="camBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">📹</button><button onclick="location.reload()" style="width:50px; height:50px; border-radius:50%; border:none; background:#cc0000; color:white; cursor:pointer; font-size:20px;">📴</button></div>
+    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v6</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR</option><option value="guest">INVITADO</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">CÁMARA/MIC:</label><select id="vSource" class="device-select"></select><select id="aSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
 </div>
 
 <script>
@@ -136,24 +88,17 @@ const PEER_CONFIG = {
     ]
 };
 
-const AUDIO_OPTS = { echoCancellation: true, noiseSuppression: false, autoGainControl: false };
+const setBitrate = (sdp) => sdp.replace(/a=fmtp:(\d+) .*max-br=(\d+).*/g, 'a=fmtp:$1 x-google-max-bitrate=1500;x-google-min-bitrate=500;x-google-start-bitrate=1000');
 
-const setBitrate = (sdp) => {
-    return sdp.replace(/a=fmtp:(\d+) .*max-br=(\d+).*/g, 'a=fmtp:$1 x-google-max-bitrate=1500;x-google-min-bitrate=500;x-google-start-bitrate=1000');
-};
-
-// --- LOGICA MODO OBS (Detección inmediata) ---
+// --- MODO OBS ---
 const params = new URLSearchParams(window.location.search);
 if (params.get('mode') === 'obs') {
     const room = params.get('room'), slotId = params.get('slot');
-    document.getElementById('appRoot').style.display = "none";
+    document.getElementById('appRoot').remove();
     document.getElementById('obsRoot').style.display = "block";
-    document.body.style.background = "transparent";
-    
     const obsPeer = new Peer('OBS_' + room + '_' + Math.floor(Math.random()*999), { config: PEER_CONFIG });
     obsPeer.on('open', () => {
-        // Enviar conexión de datos para que el operador sepa que el OBS está escuchando
-        const data = obsPeer.connect(room, { metadata: { name: 'OBS_CH' + slotId, isObs: true, slot: slotId } });
+        const data = obsPeer.connect(room, { metadata: { isObs: true, slot: slotId } });
         obsPeer.on('call', call => {
             call.answer();
             call.on('stream', s => document.getElementById('obsVid').srcObject = s);
@@ -173,17 +118,13 @@ function updateModalFields() { document.getElementById('guestField').style.displ
 
 function startApp() {
     myRole = document.getElementById('roleSelect').value;
-    const vId = document.getElementById('vSource').value, aId = document.getElementById('aSource').value;
-    const name = document.getElementById('userName').value || "User";
-
     navigator.mediaDevices.getUserMedia({
-        video: { deviceId: vId ? { exact: vId } : undefined, width: 640, height: 360 },
-        audio: { deviceId: aId ? { exact: aId } : undefined, ...AUDIO_OPTS }
+        video: { deviceId: document.getElementById('vSource').value ? { exact: document.getElementById('vSource').value } : undefined, width: 640, height: 360 },
+        audio: { deviceId: document.getElementById('aSource').value ? { exact: document.getElementById('aSource').value } : undefined, echoCancellation: true, noiseSuppression: false }
     }).then(stream => {
         localStream = stream;
         document.getElementById('initModal').classList.remove('active');
         document.getElementById('appControls').style.display = 'flex';
-        
         if (myRole === 'operator') {
             document.getElementById('mainContainer').classList.add('operator');
             document.getElementById('previewBar').style.display = 'flex';
@@ -213,39 +154,26 @@ function initPeer(id) {
             connectToOp(document.getElementById('joinId').value.toUpperCase());
         }
     });
-
     myPeer.on('connection', conn => { if (myRole === 'operator') handleData(conn); });
-
     myPeer.on('call', call => {
         call.answer(localStream, { sdpTransform: setBitrate });
         if (myRole === 'operator') handleCall(call);
-        else {
-            call.on('stream', s => {
-                const vid = document.getElementById('remoteOperatorVideo');
-                vid.srcObject = s;
-                vid.play();
-            });
-        }
+        else call.on('stream', s => { const v = document.getElementById('remoteOperatorVideo'); v.srcObject = s; v.play(); });
     });
 }
 
 function connectToOp(targetId) {
     const data = myPeer.connect(targetId, { metadata: { name: document.getElementById('userName').value } });
-    data.on('open', () => {
-        myPeer.call(targetId, localStream, { sdpTransform: setBitrate });
-    });
+    data.on('open', () => myPeer.call(targetId, localStream, { sdpTransform: setBitrate }));
     data.on('data', d => { if (d.type === 'tally') updateGuestTally(d.state); });
 }
 
 function handleData(conn) {
     conn.on('open', () => {
         if (conn.metadata.isObs) {
-            // Si es un OBS, le llamamos automáticamente con el stream del slot correspondiente
             const slotIdx = parseInt(conn.metadata.slot) - 1;
-            const targetPeer = Array.from(connections.values()).find(c => c.slot === slotIdx);
-            if (targetPeer) {
-                myPeer.call(conn.peer, targetPeer.remoteStream, { sdpTransform: setBitrate });
-            }
+            const target = Array.from(connections.values()).find(c => c.slot === slotIdx);
+            if (target) myPeer.call(conn.peer, target.remoteStream, { sdpTransform: setBitrate });
             return;
         }
         if (!connections.has(conn.peer)) connections.set(conn.peer, { name: conn.metadata.name });
@@ -254,19 +182,21 @@ function handleData(conn) {
 }
 
 function handleCall(call) {
-    if (availableSlots.length === 0) return;
-    const slot = availableSlots.shift();
     const peerId = call.peer;
-    
+    // Si ya existe este peer, no duplicar
+    if (document.getElementById('vcont-' + peerId)) return;
+    if (availableSlots.length === 0) return;
+
+    const slot = availableSlots.shift();
     call.on('stream', (s) => {
         if (!connections.has(peerId)) connections.set(peerId, { name: "Invitado" });
         const c = connections.get(peerId);
-        c.call = call; c.slot = slot; c.remoteStream = s;
+        c.slot = slot; c.remoteStream = s;
         
         let cont = document.createElement('div');
         cont.className = 'video-container'; cont.id = 'vcont-' + peerId;
         cont.innerHTML = `<video id="vid-${peerId}" autoplay playsinline></video>
-                         <div style="position:absolute; bottom:5px; left:5px; font-size:10px; background:rgba(0,0,0,0.7); padding:2px 5px;">CH ${slot+1}: ${c.name}</div>`;
+                         <div style="position:absolute; bottom:5px; left:5px; font-size:10px; background:rgba(0,0,0,0.7); padding:2px 5px;">${c.name} (CH ${slot+1})</div>`;
         document.getElementById('videoGrid').appendChild(cont);
         document.getElementById('vid-' + peerId).srcObject = s;
         updateSlotUI(slot, peerId, c.name, true);
@@ -302,12 +232,12 @@ function updateGuestTally(state) {
     t.className = 'tally-label-main active ' + state;
     t.textContent = state === 'live' ? '🔴 AL AIRE' : '⏺ ATENTO';
     if (state === 'off') t.classList.remove('active');
-    document.getElementById('guestStatusLabel').textContent = state === 'live' ? '🔴 ESTÁS AL AIRE' : 'CONECTADO';
+    document.getElementById('guestStatusLabel').textContent = state === 'live' ? '🔴 AL AIRE' : 'CONECTADO';
 }
 
 function copyObsLink(slot) {
     const url = `${window.location.href.split('?')[0]}?mode=obs&room=${myId}&slot=${slot+1}`;
-    navigator.clipboard.writeText(url); alert("Link OBS CH" + (slot+1) + " copiado!");
+    navigator.clipboard.writeText(url); alert("Copiado!");
 }
 
 function removePeer(id) {
@@ -319,7 +249,6 @@ function removePeer(id) {
         connections.delete(id);
     }
 }
-
 function toggleMic() { const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled; document.getElementById('micBtn').style.background = t.enabled ? '#222' : '#c00'; }
 function toggleCam() { const t = localStream.getVideoTracks()[0]; t.enabled = !t.enabled; document.getElementById('camBtn').style.background = t.enabled ? '#222' : '#c00'; }
 </script>
