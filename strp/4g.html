@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamcall Power - Optimizado 4G</title>
+    <title>Streamcall Power</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -112,6 +112,7 @@
         .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 20px; }
         .participant-card h3 { font-size: 13px; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
         
+        /* URL Input para OBS */
         .obs-url-box { margin-top: 10px; background: #1a1a1a; border: 1px solid #555; border-radius: 4px; padding: 8px; }
         .obs-url-label { font-size: 9px; color: #ff6b00; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; }
         .obs-url-input { width: 100%; background: #0f0f0f; border: 1px solid #333; color: #00ff00; font-family: monospace; font-size: 10px; padding: 6px; border-radius: 3px; cursor: text; }
@@ -169,12 +170,6 @@
         .waiting-msg .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
         
         .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 10px; border-radius: 4px; text-align: center; margin-top: 10px; font-size: 12px; display: none; }
-        
-        /* Selector de calidad */
-        .quality-selector { margin-top: 10px; padding: 8px; background: #2d2d2d; border-radius: 4px; font-size: 11px; color: #999; }
-        .quality-selector label { display: block; margin-bottom: 5px; color: #ccc; }
-        .quality-btn { padding: 5px 10px; margin-right: 5px; background: #444; border: 1px solid #555; color: #fff; border-radius: 3px; cursor: pointer; font-size: 10px; }
-        .quality-btn.active { background: #ff6b00; border-color: #ff6b00; }
     </style>
 </head>
 <body>
@@ -192,6 +187,7 @@
 </header>
 
 <div class="main-container operator" id="mainContainer">
+    <!-- Preview bar (operador) -->
     <div class="preview-bar" id="previewBar">
         <div class="video-container preview" id="localPreview">
             <div class="retorno-label">MI SEÑAL</div>
@@ -204,8 +200,10 @@
         </div>
     </div>
     
+    <!-- Grid de invitados (operador) -->
     <div class="video-grid" id="videoGrid"></div>
     
+    <!-- Vista del invitado -->
     <div class="operator-view" id="operatorView" style="display: none;">
         <div class="video-container operator-large" id="operatorVideoContainer">
             <div class="retorno-label">📡 RETORNO DEL ESTUDIO</div>
@@ -220,6 +218,7 @@
         </div>
     </div>
     
+    <!-- Preview del invitado -->
     <div class="guest-preview-bar" id="guestPreviewBar" style="display: none;">
         <div class="video-container guest-self" id="guestSelfPreview">
             <div class="self-label">TU CÁMARA</div>
@@ -236,6 +235,7 @@
         </div>
     </div>
     
+    <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
         <h2>🎛️ CONTROL TALLY</h2>
         
@@ -245,13 +245,7 @@
             <div class="id-hint">Pide a los invitados que ingresen este ID exacto</div>
         </div>
         
-        <div class="quality-selector">
-            <label>Calidad de transmisión (para invitados con 4G):</label>
-            <button type="button" class="quality-btn active" onclick="setQuality('low')" id="btn-low">4G/Lento (480p)</button>
-            <button type="button" class="quality-btn" onclick="setQuality('med')" id="btn-med">WiFi/Media (720p)</button>
-            <button type="button" class="quality-btn" onclick="setQuality('high')" id="btn-high">Fibra/Alta (1080p)</button>
-        </div>
-        
+        <!-- 3 Slots -->
         <div class="slot-container"><div class="slot-label">Canal 1</div><div class="participant-card empty" id="slot-0"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
         <div class="slot-container"><div class="slot-label">Canal 2</div><div class="participant-card empty" id="slot-1"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
         <div class="slot-container"><div class="slot-label">Canal 3</div><div class="participant-card empty" id="slot-2"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
@@ -270,9 +264,9 @@
     <div class="stat-row"><span>Rol:</span> <span id="roleDisplay">-</span></div>
     <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">-</span></div>
     <div class="stat-row"><span>Conectados:</span> <span id="peerCount">0/3</span></div>
-    <div class="stat-row" id="qualityDisplay" style="display:none;"><span>Calidad:</span> <span class="green" id="currentQuality">480p</span></div>
 </div>
 
+<!-- Modal -->
 <div class="modal active" id="configModal">
     <div class="modal-content">
         <h2 style="color: #ff6b00; margin-bottom: 10px; text-align: center;">Streamcall Power</h2>
@@ -301,15 +295,6 @@
             </div>
             <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
             <input type="text" id="guestName" class="device-select" value="Invitado">
-            
-            <div style="margin-top: 15px; padding: 10px; background: #2d2d2d; border-radius: 4px;">
-                <label style="font-size: 11px; color: #ccc; display: block; margin-bottom: 8px;">Calidad según tu conexión:</label>
-                <select id="guestQuality" class="device-select" style="margin: 0;">
-                    <option value="low">📱 4G/3G - Calidad Baja (más fluido)</option>
-                    <option value="med" selected>📶 WiFi - Calidad Media</option>
-                    <option value="high">🚀 Fibra - Calidad Alta</option>
-                </select>
-            </div>
         </div>
         
         <label style="font-size: 12px; color: #ccc; margin-top: 10px;">Cámara:</label>
@@ -321,7 +306,7 @@
         <div style="margin-top: 10px; padding: 8px; background: #2d2d2d; border-radius: 4px; font-size: 11px; color: #999;">
             <label style="display: flex; align-items: center; cursor: pointer;">
                 <input type="checkbox" id="musicMode" style="margin-right: 8px;">
-                <span>🎵 Modo Música (deshabilitar cancelación de ruido)</span>
+                <span>🎵 Modo Música (deshabilitar cancelación de ruido para audio HQ)</span>
             </label>
         </div>
         
@@ -343,7 +328,6 @@ let myPeerId;
 let operatorId = null;
 let availableSlots = [0, 1, 2];
 let isMusicMode = false;
-let currentQuality = 'low'; // Por defecto baja para 4G
 
 if (obsMode === 'true' && obsRoom && obsSlot !== null) {
     document.getElementById('mainContainer').className = 'main-container obs-mode';
@@ -370,19 +354,6 @@ if (obsMode === 'true' && obsRoom && obsSlot !== null) {
     });
 }
 
-function setQuality(q) {
-    currentQuality = q;
-    document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-'+q).classList.add('active');
-    document.getElementById('currentQuality').textContent = q === 'low' ? '480p' : q === 'med' ? '720p' : '1080p';
-    document.getElementById('qualityDisplay').style.display = 'flex';
-    
-    // Si ya hay stream activo, reiniciar con nueva calidad
-    if (localStream && myRole === 'operator') {
-        alert('Cambio de calidad aplicará en la próxima conexión de invitado');
-    }
-}
-
 function selectRole(role) {
     myRole = role;
     document.getElementById('roleOperator').classList.toggle('selected', role === 'operator');
@@ -396,21 +367,6 @@ function updateStatusIndicators(cam, mic) {
     const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
     document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
     document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
-}
-
-function getVideoConstraints() {
-    // Según calidad seleccionada
-    const q = currentQuality;
-    const videoId = document.getElementById('videoSource').value;
-    const base = videoId ? { deviceId: { exact: videoId } } : {};
-    
-    if (q === 'low') {
-        return { ...base, width: { ideal: 640, max: 854 }, height: { ideal: 480, max: 480 }, frameRate: { ideal: 24, max: 30 } };
-    } else if (q === 'med') {
-        return { ...base, width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 } };
-    } else {
-        return { ...base, width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 30, max: 30 } };
-    }
 }
 
 function getAudioConstraints() {
@@ -430,21 +386,13 @@ function getAudioConstraints() {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
-            sampleRate: 48000,
-            channelCount: 1
+            sampleRate: 48000
         };
     }
 }
 
 function startBroadcast() {
     isMusicMode = document.getElementById('musicMode').checked;
-    
-    // Si es invitado, leer su selección de calidad
-    if (myRole === 'guest') {
-        const guestQ = document.getElementById('guestQuality').value;
-        currentQuality = guestQ;
-    }
-    
     const name = myRole === 'operator' 
         ? document.getElementById('userName').value 
         : document.getElementById('guestName').value;
@@ -481,12 +429,12 @@ function startBroadcast() {
         document.getElementById('guestSelfName').textContent = name;
     }
     
+    const videoId = document.getElementById('videoSource').value;
+    
     const constraints = {
-        video: getVideoConstraints(),
+        video: videoId ? { deviceId: { exact: videoId } } : true,
         audio: getAudioConstraints()
     };
-    
-    console.log('Iniciando con calidad:', currentQuality, constraints);
     
     navigator.mediaDevices.getUserMedia(constraints).then(stream => {
         localStream = stream;
@@ -527,10 +475,7 @@ function initPeer(name) {
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
                 { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' }
-            ],
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require',
-            iceCandidatePoolSize: 10
+            ]
         }
     };
     
@@ -564,12 +509,12 @@ function initPeer(name) {
 function connectToOperator() {
     if (!operatorId) return;
     
-    console.log('Invitado conectando a operador:', operatorId, 'con calidad:', currentQuality);
+    console.log('Invitado conectando a operador:', operatorId);
     document.getElementById('connStatus').textContent = 'Conectando...';
     
     const conn = peer.connect(operatorId, { 
         reliable: true, 
-        metadata: { name: document.getElementById('guestName').value, quality: currentQuality } 
+        metadata: { name: document.getElementById('guestName').value } 
     });
     
     conn.on('open', () => {
@@ -587,22 +532,6 @@ function connectToOperator() {
         
         const call = peer.call(operatorId, localStream);
         console.log('Llamada enviada al operador');
-        
-        // Aplicar limitación de bitrate después de conectar
-        call.on('stream', (remoteStream) => {
-            // No hacer nada, es el retorno
-        });
-        
-        // Limitar bitrate del stream local para no saturar 4G
-        if (call.peerConnection) {
-            const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (sender) {
-                const params = sender.getParameters();
-                if (!params.encodings) params.encodings = [{}];
-                params.encodings[0].maxBitrate = currentQuality === 'low' ? 250000 : currentQuality === 'med' ? 800000 : 1500000;
-                sender.setParameters(params).catch(e => console.log('Error setParameters:', e));
-            }
-        }
     });
     
     conn.on('error', (err) => {
@@ -629,13 +558,6 @@ function handleIncomingCall(call) {
         
         call.answer(localStream);
         console.log('Respondiendo llamada con retorno, slot:', slot);
-        
-        // Limitar bitrate para recibir video de invitado (no saturar red del operador)
-        if (call.peerConnection) {
-            call.peerConnection.ontrack = (event) => {
-                console.log('Track recibido, streams:', event.streams.length);
-            };
-        }
         
         call.on('stream', (remoteStream) => {
             console.log('Stream del invitado recibido en slot', slot);
