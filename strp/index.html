@@ -17,96 +17,77 @@
         .role-badge { background: #00ff00; color: #000; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; }
         .role-badge.guest { background: #0088ff; }
         
-        /* Layout según rol */
+        /* Layout */
         .main-container { display: grid; height: calc(100vh - 70px); }
         
-        /* MODO OPERADOR: Dashboard grande + videos pequeños arriba */
-        .main-container.operator { 
-            grid-template-columns: 1fr 350px; 
-            grid-template-rows: 200px 1fr;
-        }
-        .main-container.operator .preview-bar {
-            grid-column: 1;
-            grid-row: 1;
-            display: flex;
-            gap: 10px;
-            padding: 10px;
-            background: #1a1a1a;
-            border-bottom: 2px solid #333;
-            overflow-x: auto;
-        }
-        .main-container.operator .video-grid {
-            grid-column: 1;
-            grid-row: 2;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 10px;
-            padding: 10px;
-            background: #000;
-        }
-        .main-container.operator .dashboard {
-            grid-column: 2;
-            grid-row: 1 / 3;
-        }
+        /* MODO OPERADOR */
+        .main-container.operator { grid-template-columns: 1fr 350px; grid-template-rows: 200px 1fr; }
+        .main-container.operator .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #1a1a1a; border-bottom: 2px solid #333; overflow-x: auto; }
+        .main-container.operator .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 10px; background: #000; }
+        .main-container.operator .dashboard { grid-column: 2; grid-row: 1 / 3; }
         
-        /* MODO INVITADO: Solo ven al operador grande */
-        .main-container.guest {
-            grid-template-columns: 1fr;
-            grid-template-rows: 1fr;
+        /* MODO INVITADO - Layout especial */
+        .main-container.guest { 
+            grid-template-columns: 1fr; 
+            grid-template-rows: 1fr 180px; 
         }
-        .main-container.guest .operator-view {
-            display: flex;
+        .main-container.guest .operator-view { 
+            grid-row: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            background: #000; 
+            padding: 20px;
+            position: relative;
+        }
+        .main-container.guest .guest-preview-bar { 
+            grid-row: 2; 
+            display: flex; 
+            gap: 15px; 
+            padding: 15px; 
+            background: #1a1a1a; 
+            border-top: 3px solid #ff6b00;
             justify-content: center;
             align-items: center;
-            background: #000;
-            padding: 20px;
-        }
-        .main-container.guest .operator-view .video-container {
-            max-width: 800px;
-            width: 100%;
-        }
-        .main-container.guest .dashboard,
-        .main-container.guest .preview-bar,
-        .main-container.guest .video-grid {
-            display: none !important;
         }
         
         /* Contenedores de video */
-        .video-container { 
-            position: relative; 
-            background: #1a1a1a; 
-            border-radius: 8px; 
-            overflow: hidden; 
-            border: 3px solid #333; 
-            transition: all 0.3s; 
-            aspect-ratio: 16/9;
-            min-width: 280px;
-        }
+        .video-container { position: relative; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 3px solid #333; transition: all 0.3s; aspect-ratio: 16/9; }
         .video-container.live { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.6); }
         .video-container.standby { border-color: #ffff00; box-shadow: 0 0 20px rgba(255,255,0,0.4); }
-        .video-container.preview { 
-            min-width: 180px; 
-            max-width: 240px; 
-            aspect-ratio: 16/9;
-            border: 2px solid #444;
-        }
-        .video-container.preview video {
-            object-fit: cover;
-        }
+        .video-container.preview { min-width: 160px; max-width: 280px; aspect-ratio: 16/9; border: 2px solid #444; }
+        .video-container.operator-large { max-width: 900px; width: 100%; max-height: 70vh; }
+        .video-container.guest-self { min-width: 200px; max-width: 320px; border: 2px solid #0088ff; }
         
         video { width: 100%; height: 100%; object-fit: cover; background: #000; }
         
-        /* Tally */
+        /* Labels */
+        .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
+        .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
+        .tally-label-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; text-shadow: 0 0 20px currentColor; pointer-events: none; z-index: 30; }
+        .tally-label-main.off { display: none; }
+        .tally-label-main.standby { color: #ffff00; }
+        .tally-label-main.live { color: #ff0000; animation: pulse 1s infinite; }
+        
+        /* Tally pequeño */
         .tally-light { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #333; border: 2px solid #555; transition: all 0.2s; z-index: 10; }
         .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
         .tally-light.standby { background: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px #ffff00; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         .tally-label { position: absolute; top: 10px; left: 35px; background: rgba(0,0,0,0.9); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .tally-label.live { color: #ff0000; }
         .tally-label.standby { color: #ffff00; }
         
         .participant-name { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        
+        /* Indicadores de estado */
+        .status-indicator { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 10px; z-index: 20; }
+        .status-badge { background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+        .status-dot.active { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .status-dot.muted { background: #ff0000; }
         
         /* Dashboard */
         .dashboard { background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
@@ -117,14 +98,12 @@
         .share-url { background: #0f0f0f; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 10px; word-break: break-all; color: #00ff00; cursor: pointer; }
         .copy-msg { color: #00ff00; font-size: 10px; margin-top: 5px; display: none; }
         
-        /* Slots del dashboard (3 fijos) */
+        /* Slots */
         .slot-container { margin-bottom: 15px; }
         .slot-label { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
-        
         .participant-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 2px solid #444; }
         .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 20px; }
         .participant-card h3 { font-size: 13px; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
-        .participant-card .connection-status { font-size: 10px; }
         
         .tally-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
         .tally-btn { padding: 8px 4px; border: none; border-radius: 4px; cursor: pointer; font-size: 9px; font-weight: bold; text-transform: uppercase; transition: all 0.2s; }
@@ -132,30 +111,19 @@
         .btn-standby { background: #666600; color: #ffff00; }
         .btn-live { background: #660000; color: #ff0000; }
         .tally-btn.active { transform: scale(1.05); box-shadow: 0 0 8px currentColor; border: 1px solid #fff; }
-        .btn-off.active { background: #666; color: #fff; }
-        .btn-standby.active { background: #ffff00; color: #000; }
-        .btn-live.active { background: #ff0000; color: #fff; }
         
         .controls { position: fixed; bottom: 20px; left: 20px; display: flex; gap: 15px; z-index: 100; }
         .control-btn { width: 60px; height: 60px; border-radius: 50%; border: none; background: #2d2d2d; color: #fff; cursor: pointer; font-size: 24px; border: 3px solid #444; transition: all 0.2s; }
         .control-btn:hover { transform: scale(1.1); }
         .control-btn.active { background: #ff6b00; border-color: #ff8533; }
-        .control-btn.danger { background: #cc0000; border-color: #ff0000; }
+        .control-btn.muted { background: #cc0000; border-color: #ff0000; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
         .modal-content { background: #1a1a1a; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; border: 2px solid #ff6b00; box-shadow: 0 0 50px rgba(255,107,0,0.3); }
         
         .role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .role-option { 
-            background: #2d2d2d; 
-            border: 2px solid #444; 
-            border-radius: 8px; 
-            padding: 20px; 
-            text-align: center; 
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .role-option { background: #2d2d2d; border: 2px solid #444; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
         .role-option:hover { border-color: #ff6b00; }
         .role-option.selected { background: #ff6b00; border-color: #ff6b00; color: #000; }
         .role-option h3 { font-size: 16px; margin-bottom: 8px; }
@@ -176,21 +144,22 @@
         
         .waiting-msg { color: #666; text-align: center; padding: 30px; font-size: 12px; }
         .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 10px; border-radius: 4px; text-align: center; margin-top: 10px; font-size: 12px; display: none; }
         
-        .retorno-label {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #ff6b00;
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 20;
+        .connecting-overlay { 
+            position: absolute; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.8); 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            z-index: 50;
         }
+        .connecting-overlay.hidden { display: none; }
+        .connecting-text { color: #ff6b00; font-size: 14px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -198,42 +167,67 @@
 <header>
     <div class="brand">
         <h1>STREAMCALL POWER</h1>
-        <span class="room-badge" id="headerRoom">SALA 1</span>
-        <span class="role-badge" id="roleBadge">OPERADOR</span>
+        <span class="room-badge" id="headerRoom">SALA -</span>
+        <span class="role-badge" id="roleBadge">-</span>
     </div>
     <div style="font-size: 12px; color: #999; text-align: right;">
-        <div id="modeText">Modo: Control Total</div>
+        <div id="modeText">-</div>
         <div style="color: #ff6b00;">Tally System Active</div>
     </div>
 </header>
 
 <div class="main-container operator" id="mainContainer">
-    <!-- Preview bar (solo operador ve su retorno) -->
+    <!-- Preview bar (operador) -->
     <div class="preview-bar" id="previewBar">
         <div class="video-container preview" id="localPreview">
-            <div class="retorno-label">MI RETORNO</div>
+            <div class="retorno-label">MI SEÑAL (Retorno)</div>
             <video id="localVideo" autoplay muted playsinline></video>
-            <div class="participant-name">Yo (Retorno a invitados)</div>
+            <div class="participant-name">Yo - Operador</div>
+            <div class="status-indicator">
+                <div class="status-badge"><span class="status-dot active" id="localCamDot"></span> Cámara</div>
+                <div class="status-badge"><span class="status-dot active" id="localMicDot"></span> Mic</div>
+            </div>
         </div>
     </div>
     
-    <!-- Grid de invitados (3 slots) -->
-    <div class="video-grid" id="videoGrid">
-        <!-- Slots 1, 2, 3 se crean dinámicamente -->
+    <!-- Grid de invitados (operador) -->
+    <div class="video-grid" id="videoGrid"></div>
+    
+    <!-- Vista del invitado -->
+    <div class="operator-view" id="operatorView" style="display: none;">
+        <div class="video-container operator-large" id="operatorVideoContainer">
+            <div class="retorno-label">📡 RETORNO DEL ESTUDIO</div>
+            <div class="tally-label-main off" id="mainTally">AL AIRE</div>
+            <video id="operatorVideo" autoplay playsinline></video>
+            <div class="participant-name">Operador del Programa</div>
+            
+            <div class="connecting-overlay" id="connectingOverlay">
+                <div class="spinner" style="width: 40px; height: 40px; border-width: 4px;"></div>
+                <div class="connecting-text">Conectando al estudio...</div>
+            </div>
+        </div>
     </div>
     
-    <!-- Vista del invitado (solo se muestra en modo guest) -->
-    <div class="operator-view" id="operatorView" style="display: none;">
-        <div class="video-container" id="operatorVideoContainer">
-            <div class="retorno-label">RETORNO DEL ESTUDIO</div>
-            <video id="operatorVideo" autoplay playsinline></video>
-            <div class="participant-name">Operador</div>
+    <!-- Preview del invitado (su propia cámara) -->
+    <div class="guest-preview-bar" id="guestPreviewBar" style="display: none;">
+        <div class="video-container guest-self" id="guestSelfPreview">
+            <div class="self-label">TU CÁMARA</div>
+            <video id="guestLocalVideo" autoplay muted playsinline></video>
+            <div class="participant-name" id="guestSelfName">Tú</div>
+            <div class="status-indicator">
+                <div class="status-badge"><span class="status-dot active" id="guestCamDot"></span> Cámara</div>
+                <div class="status-badge"><span class="status-dot active" id="guestMicDot"></span> Mic</div>
+            </div>
+        </div>
+        <div style="color: #666; font-size: 12px; max-width: 200px; line-height: 1.5;">
+            <strong style="color: #ff6b00;">Esperando al operador...</strong><br>
+            Cuando el operador te ponga "AL AIRE", tu imagen saldrá en vivo.
         </div>
     </div>
     
     <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
-        <h2>🎛️ CONTROL TALLY (3 CANALES)</h2>
+        <h2>🎛️ CONTROL TALLY</h2>
         
         <div class="share-box" id="shareBox">
             <h3>🔗 ENLACE PARA INVITADOS</h3>
@@ -241,33 +235,15 @@
             <div class="copy-msg" id="copyMsg">✓ Enlace copiado</div>
         </div>
         
-        <!-- 3 Slots fijos -->
-        <div class="slot-container">
-            <div class="slot-label">Canal 1</div>
-            <div class="participant-card empty" id="slot-0">
-                <div class="waiting-msg"><span class="spinner"></span>Esperando...</div>
-            </div>
-        </div>
-        
-        <div class="slot-container">
-            <div class="slot-label">Canal 2</div>
-            <div class="participant-card empty" id="slot-1">
-                <div class="waiting-msg"><span class="spinner"></span>Esperando...</div>
-            </div>
-        </div>
-        
-        <div class="slot-container">
-            <div class="slot-label">Canal 3</div>
-            <div class="participant-card empty" id="slot-2">
-                <div class="waiting-msg"><span class="spinner"></span>Esperando...</div>
-            </div>
-        </div>
+        <!-- 3 Slots -->
+        <div class="slot-container"><div class="slot-label">Canal 1</div><div class="participant-card empty" id="slot-0"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
+        <div class="slot-container"><div class="slot-label">Canal 2</div><div class="participant-card empty" id="slot-1"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
+        <div class="slot-container"><div class="slot-label">Canal 3</div><div class="participant-card empty" id="slot-2"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
 
         <div class="full-alert" id="fullAlert">⚠️ SALA COMPLETA (3/3)</div>
         
         <div class="alert-box" style="margin-top: 15px; font-size: 11px;">
-            <strong>🇭🇳 Modo Honduras:</strong><br>
-            TURN/TCP 443 activo para bypass de carriers.
+            <strong>🇭🇳 Modo Honduras:</strong> TURN/TCP 443 activo.
         </div>
     </div>
 </div>
@@ -285,36 +261,34 @@
     <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">-</span></div>
 </div>
 
-<!-- Modal Configuración -->
+<!-- Modal -->
 <div class="modal active" id="configModal">
     <div class="modal-content">
         <h2 style="color: #ff6b00; margin-bottom: 10px; text-align: center;">Streamcall Power</h2>
-        <p style="text-align: center; color: #999; margin-bottom: 20px; font-size: 14px;">
-            Sala: <strong style="color: #ff6b00;" id="modalRoom">1</strong>
-        </p>
+        <p style="text-align: center; color: #999; margin-bottom: 20px; font-size: 14px;">Sala: <strong style="color: #ff6b00;" id="modalRoom">-</strong></p>
         
         <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 10px;">Selecciona tu rol:</label>
         <div class="role-selector">
             <div class="role-option selected" id="roleOperator" onclick="selectRole('operator')">
                 <h3>🎛️ OPERADOR</h3>
-                <p>Controlas la sala<br>Ves 3 invitados<br>Tienes Tally control</p>
+                <p>Controlas la sala<br>3 invitados máximo<br>Tally control</p>
             </div>
             <div class="role-option" id="roleGuest" onclick="selectRole('guest')">
                 <h3>📹 INVITADO</h3>
-                <p>Entras a una sala<br>Ves retorno del operador<br>Esperas tu turno</p>
+                <p>Entras a sala existente<br>Ves retorno + tu cámara<br>Esperas tu turno</p>
             </div>
         </div>
         
         <div id="operatorFields">
-            <label style="font-size: 12px; color: #ccc;">Tu Nombre (Operador):</label>
-            <input type="text" id="userName" class="device-select" value="Operador Estudio">
+            <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
+            <input type="text" id="userName" class="device-select" value="Operador">
         </div>
         
         <div id="guestFields" style="display: none;">
-            <label style="font-size: 12px; color: #ccc;">Tu Nombre (Invitado):</label>
+            <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
             <input type="text" id="guestName" class="device-select" value="Invitado">
-            <label style="font-size: 12px; color: #ccc; margin-top: 10px;">ID de Sala a unirse:</label>
-            <input type="text" id="joinRoomId" class="device-select" placeholder="Ej: 1">
+            <label style="font-size: 12px; color: #ccc; margin-top: 10px;">ID de Sala:</label>
+            <input type="text" id="joinRoomId" class="device-select" placeholder="Ej: 7240">
         </div>
         
         <label style="font-size: 12px; color: #ccc; margin-top: 10px;">Cámara:</label>
@@ -324,14 +298,14 @@
         <select id="audioSource" class="device-select"></select>
         
         <div class="alert-box" id="operatorAlert">
-            <strong>Modo Operador:</strong> Los invitados entrarán con el enlace que aparecerá en el dashboard.
+            <strong>Modo Operador:</strong> Comparte el enlace que aparecerá en el dashboard con tus invitados.
         </div>
         
         <div class="alert-box" id="guestAlert" style="display: none;">
-            <strong>Modo Invitado:</strong> Necesitas el ID de sala que te dio el operador.
+            <strong>Modo Invitado:</strong> Necesitas el ID de sala que te proporcionó el operador.
         </div>
         
-        <button class="join-btn" onclick="startBroadcast()">INICIAR</button>
+        <button class="join-btn" onclick="startBroadcast()">INICIAR CONEXIÓN</button>
     </div>
 </div>
 
@@ -355,17 +329,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let myRole = 'operator'; // 'operator' o 'guest'
+let myRole = 'operator';
 let ROOM_ID;
 let peer;
 let localStream;
-let connections = new Map(); // peerId -> {conn, call, stream, name, slot}
+let connections = new Map();
 let myPeerId;
 let connectedPeers = new Set();
-let availableSlots = [0, 1, 2]; // Slots libres para invitados
+let availableSlots = [0, 1, 2];
+let operatorPeerId = null; // Para invitados, guardar ID del operador
 
 // UI Init
-document.getElementById('modalRoom').textContent = URL_ROOM || 'Nueva';
 if (URL_ROOM) {
     document.getElementById('joinRoomId').value = URL_ROOM;
     selectRole('guest');
@@ -380,7 +354,6 @@ navigator.mediaDevices.enumerateDevices().then(devices => {
         const option = document.createElement('option');
         option.value = device.deviceId;
         option.text = device.label || `${device.kind} ${videoSelect.length + 1}`;
-        
         if (device.kind === 'videoinput') videoSelect.appendChild(option);
         if (device.kind === 'audioinput') audioSelect.appendChild(option);
     });
@@ -390,7 +363,6 @@ function selectRole(role) {
     myRole = role;
     document.getElementById('roleOperator').classList.toggle('selected', role === 'operator');
     document.getElementById('roleGuest').classList.toggle('selected', role === 'guest');
-    
     document.getElementById('operatorFields').style.display = role === 'operator' ? 'block' : 'none';
     document.getElementById('guestFields').style.display = role === 'guest' ? 'block' : 'none';
     document.getElementById('operatorAlert').style.display = role === 'operator' ? 'block' : 'none';
@@ -411,29 +383,39 @@ function startBroadcast() {
         return;
     }
     
-    // Actualizar UI según rol
+    // UI Updates
     document.getElementById('headerRoom').textContent = 'SALA ' + ROOM_ID;
     document.getElementById('roleBadge').textContent = myRole === 'operator' ? 'OPERADOR' : 'INVITADO';
     document.getElementById('roleBadge').classList.toggle('guest', myRole === 'guest');
     document.getElementById('roleDisplay').textContent = myRole === 'operator' ? 'Operador' : 'Invitado';
     document.getElementById('roomDisplay').textContent = ROOM_ID;
+    document.getElementById('modalRoom').textContent = ROOM_ID;
     
-    // Configurar layout
+    // Layout según rol
     const container = document.getElementById('mainContainer');
     container.className = 'main-container ' + myRole;
     
-    if (myRole === 'guest') {
-        // Invitado: ocultar dashboard, mostrar solo retorno
+    if (myRole === 'operator') {
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('previewBar').style.display = 'flex';
+        document.getElementById('videoGrid').style.display = 'grid';
+        document.getElementById('operatorView').style.display = 'none';
+        document.getElementById('guestPreviewBar').style.display = 'none';
+        document.getElementById('shareBox').style.display = 'block';
+        document.getElementById('modeText').textContent = 'Modo: Control Total';
+        
+        const shareUrl = window.location.origin + window.location.pathname + '?room=' + ROOM_ID;
+        document.getElementById('shareUrl').textContent = shareUrl;
+    } else {
+        // Invitado: mostrar preview propio + esperar retorno
         document.getElementById('dashboard').style.display = 'none';
         document.getElementById('previewBar').style.display = 'none';
         document.getElementById('videoGrid').style.display = 'none';
         document.getElementById('operatorView').style.display = 'flex';
+        document.getElementById('guestPreviewBar').style.display = 'flex';
         document.getElementById('shareBox').style.display = 'none';
-        document.getElementById('modeText').textContent = 'Modo: Retorno del Estudio';
-    } else {
-        // Operador: mostrar enlace para compartir
-        const shareUrl = window.location.origin + window.location.pathname + '?room=' + ROOM_ID;
-        document.getElementById('shareUrl').textContent = shareUrl;
+        document.getElementById('modeText').textContent = 'Modo: Invitado - Esperando';
+        document.getElementById('guestSelfName').textContent = name;
     }
     
     // Get media
@@ -447,9 +429,13 @@ function startBroadcast() {
         localStream = stream;
         document.getElementById('configModal').classList.remove('active');
         
-        // Mostrar preview local
+        // MOSTRAR PREVIEW LOCAL INMEDIATAMENTE
         if (myRole === 'operator') {
             document.getElementById('localVideo').srcObject = stream;
+        } else {
+            // Invitado: mostrar su propia cámara en el preview inferior
+            document.getElementById('guestLocalVideo').srcObject = stream;
+            updateStatusIndicators(true, true);
         }
         
         // Iniciar PeerJS
@@ -460,6 +446,14 @@ function startBroadcast() {
     });
 }
 
+function updateStatusIndicators(cam, mic) {
+    const camDot = myRole === 'operator' ? 'localCamDot' : 'guestCamDot';
+    const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
+    
+    document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
+    document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
+}
+
 function initPeer(name) {
     myPeerId = myRole + '_' + ROOM_ID + '_' + Math.random().toString(36).substr(2, 6);
     
@@ -467,7 +461,7 @@ function initPeer(name) {
         host: '0.peerjs.com',
         port: 443,
         secure: true,
-        debug: 1,
+        debug: 2,
         config: {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -480,9 +474,8 @@ function initPeer(name) {
     peer = new Peer(myPeerId, peerConfig);
     
     peer.on('open', (id) => {
-        document.getElementById('connStatus').textContent = 'Listo';
-        document.getElementById('connStatus').className = 'green';
-        
+        document.getElementById('connStatus').textContent = 'Listo - Esperando...';
+        document.getElementById('connStatus').className = 'yellow';
         initSignaling(name);
     });
     
@@ -496,6 +489,10 @@ function initPeer(name) {
     
     peer.on('error', (err) => {
         console.log('Peer error:', err.type);
+        if (err.type !== 'peer-unavailable') {
+            document.getElementById('connStatus').textContent = 'Error: ' + err.type;
+            document.getElementById('connStatus').className = 'red';
+        }
     });
 }
 
@@ -503,7 +500,7 @@ function initSignaling(name) {
     const roomRef = db.ref('rooms/' + ROOM_ID);
     const myRef = roomRef.child('peers').child(myPeerId);
     
-    // Registrar
+    // Registrar en Firebase
     myRef.set({
         role: myRole,
         name: name,
@@ -522,38 +519,50 @@ function initSignaling(name) {
     });
     
     if (myRole === 'operator') {
-        // Operador: escuchar invitados entrando
+        // Escuchar invitados entrando
         roomRef.child('peers').on('child_added', (snapshot) => {
             const peerId = snapshot.key;
             const data = snapshot.val();
             
-            if (peerId === myPeerId) return;
-            if (data.role !== 'guest') return; // Solo conectar a invitados
+            if (peerId === myPeerId || data.role !== 'guest') return;
             if (connectedPeers.has(peerId)) return;
-            
-            // Verificar slots disponibles
             if (availableSlots.length === 0) {
                 document.getElementById('fullAlert').style.display = 'block';
                 return;
             }
             
+            // Conectar al invitado
             connectToGuest(peerId, data.name);
         });
         
         roomRef.child('peers').on('child_removed', (snapshot) => {
             const peerId = snapshot.key;
-            if (connections.has(peerId)) {
-                freeSlot(peerId);
-            }
+            if (connections.has(peerId)) freeSlot(peerId);
         });
         
     } else {
-        // Invitado: escuchar operador
+        // INVITADO: Buscar operador y conectar
+        document.getElementById('connStatus').textContent = 'Buscando operador...';
+        
+        roomRef.child('peers').once('value', (snapshot) => {
+            const peers = snapshot.val() || {};
+            
+            // Buscar operador existente
+            Object.keys(peers).forEach(peerId => {
+                if (peers[peerId].role === 'operator' && peerId !== myPeerId) {
+                    operatorPeerId = peerId;
+                    connectToOperator(peerId, peers[peerId].name);
+                }
+            });
+        });
+        
+        // Si el operador entra después
         roomRef.child('peers').on('child_added', (snapshot) => {
             const peerId = snapshot.key;
             const data = snapshot.val();
             
-            if (data.role === 'operator' && !connectedPeers.has(peerId)) {
+            if (data.role === 'operator' && !connectedPeers.has(peerId) && !operatorPeerId) {
+                operatorPeerId = peerId;
                 connectToOperator(peerId, data.name);
             }
         });
@@ -567,23 +576,26 @@ function initSignaling(name) {
     });
 }
 
+// OPERADOR: Conectar a un invitado
 function connectToGuest(peerId, guestName) {
     if (connectedPeers.has(peerId) || availableSlots.length === 0) return;
     
     connectedPeers.add(peerId);
-    const slot = availableSlots.shift(); // Tomar primer slot libre
+    const slot = availableSlots.shift();
     
-    console.log('Conectando a invitado:', peerId, 'Slot:', slot);
+    console.log('Operador conectando a invitado:', peerId, 'slot:', slot);
     
-    // DataChannel
-    const conn = peer.connect(peerId, { reliable: true });
+    // 1. DataChannel primero
+    const conn = peer.connect(peerId, { reliable: true, metadata: { slot: slot } });
     
     conn.on('open', () => {
-        // Llamar video
+        console.log('DataChannel abierto con invitado');
+        
+        // 2. Llamar al invitado (enviar nuestro video)
         const call = peer.call(peerId, localStream);
         
         call.on('stream', (remoteStream) => {
-            console.log('Stream de invitado recibido en slot', slot);
+            console.log('Stream del invitado recibido en slot', slot);
             
             connections.set(peerId, {
                 conn: conn,
@@ -593,83 +605,103 @@ function connectToGuest(peerId, guestName) {
                 slot: slot
             });
             
-            // Mostrar en grid de operador
             addGuestVideo(slot, remoteStream, guestName, peerId);
             updateDashboardSlot(slot, peerId, guestName, true);
+            
+            document.getElementById('connStatus').textContent = 'Conectado';
+            document.getElementById('connStatus').className = 'green';
         });
         
         call.on('close', () => freeSlot(peerId));
+        call.on('error', () => freeSlot(peerId));
     });
     
     conn.on('data', (data) => {
-        if (data.type === 'tally') {
-            // Relay tally a otros (si es necesario)
-        }
+        // Recibir comandos del invitado si es necesario
     });
 }
 
-function connectToOperator(peerId, opName) {
-    if (connectedPeers.has(peerId)) return;
-    connectedPeers.add(peerId);
+// INVITADO: Conectar al operador
+function connectToOperator(opPeerId, opName) {
+    if (connectedPeers.has(opPeerId)) return;
+    connectedPeers.add(opPeerId);
     
-    console.log('Conectando a operador:', peerId);
+    console.log('Invitado conectando a operador:', opPeerId);
+    document.getElementById('connStatus').textContent = 'Conectando a estudio...';
     
-    // DataChannel primero
-    const conn = peer.connect(peerId, { reliable: true });
+    // 1. DataChannel al operador
+    const conn = peer.connect(opPeerId, { reliable: true });
     
     conn.on('open', () => {
-        // Responder llamada
-        const call = peer.call(peerId, localStream);
+        console.log('DataChannel abierto con operador');
         
-        // Y también recibir del operador (retorno)
-        // El operador nos llamará, pero también respondemos por si acaso
+        // 2. Enviar nuestro stream al operador (llamada saliente)
+        const call = peer.call(opPeerId, localStream);
+        
+        conn.on('data', (data) => {
+            if (data.type === 'tally') {
+                updateGuestTally(data.state);
+            }
+        });
     });
     
-    // Escuchar llamada entrante del operador (retorno)
-    peer.on('call', (call) => {
-        if (call.peer === peerId) {
-            call.answer(localStream);
-            
-            call.on('stream', (remoteStream) => {
-                console.log('Retorno del operador recibido');
-                document.getElementById('operatorVideo').srcObject = remoteStream;
-            });
-        }
-    });
+    // 3. IMPORTANTE: Recibir la llamada del operador (su retorno)
+    // El operador nos llamará para enviarnos su video
 }
 
 function handleIncomingCall(call) {
-    // Solo operador recibe llamadas de invitados
-    if (myRole !== 'operator') return;
-    
     const peerId = call.peer;
-    if (connectedPeers.has(peerId)) {
-        call.answer(localStream);
-        return;
-    }
     
-    // Si no está conectado, verificar si es un invitado válido
-    db.ref('rooms/' + ROOM_ID + '/peers/' + peerId).once('value', (snap) => {
-        const data = snap.val();
-        if (data && data.role === 'guest' && availableSlots.length > 0) {
-            connectedPeers.add(peerId);
-            const slot = availableSlots.shift();
-            
-            call.answer(localStream);
-            
-            call.on('stream', (remoteStream) => {
-                connections.set(peerId, {
-                    call: call,
-                    stream: remoteStream,
-                    name: data.name,
-                    slot: slot
-                });
-                
-                addGuestVideo(slot, remoteStream, data.name, peerId);
-                updateDashboardSlot(slot, peerId, data.name, true);
-            });
+    if (myRole === 'operator') {
+        // Recibir llamada de invitado
+        if (connectedPeers.has(peerId)) {
+            call.answer(localStream); // Ya estamos conectados, solo confirmar
+            return;
         }
-    });
+        
+        // Nuevo invitado llamando directamente
+        db.ref('rooms/' + ROOM_ID + '/peers/' + peerId).once('value', (snap) => {
+            const data = snap.val();
+            if (data && data.role === 'guest' && availableSlots.length > 0) {
+                connectedPeers.add(peerId);
+                const slot = availableSlots.shift();
+                
+                call.answer(localStream);
+                
+                call.on('stream', (remoteStream) => {
+                    connections.set(peerId, {
+                        call: call,
+                        stream: remoteStream,
+                        name: data.name,
+                        slot: slot
+                    });
+                    
+                    addGuestVideo(slot, remoteStream, data.name, peerId);
+                    updateDashboardSlot(slot, peerId, data.name, true);
+                });
+            }
+        });
+        
+    } else {
+        // INVITADO: Recibir llamada del operador (SU retorno)
+        if (!operatorPeerId) operatorPeerId = peerId;
+        
+        console.log('Invitado recibiendo retorno del operador');
+        call.answer(localStream); // Importante: answer para establecer conexión
+        
+        call.on('stream', (remoteStream) => {
+            console.log('Retorno del operador recibido!');
+            document.getElementById('operatorVideo').srcObject = remoteStream;
+            document.getElementById('connectingOverlay').classList.add('hidden');
+            document.getElementById('connStatus').textContent = 'En línea';
+            document.getElementById('connStatus').className = 'green';
+        });
+        
+        call.on('close', () => {
+            document.getElementById('connectingOverlay').classList.remove('hidden');
+            document.getElementById('connStatus').textContent = 'Desconectado';
+        });
+    }
 }
 
 function handleDataConnection(conn) {
@@ -685,7 +717,7 @@ function handleDataConnection(conn) {
     
     conn.on('data', (data) => {
         if (data.type === 'tally' && myRole === 'guest') {
-            updateTallyUI(data.state);
+            updateGuestTally(data.state);
         }
     });
 }
@@ -693,7 +725,6 @@ function handleDataConnection(conn) {
 function addGuestVideo(slot, stream, name, peerId) {
     const grid = document.getElementById('videoGrid');
     
-    // Crear container para este slot si no existe
     let container = document.getElementById('guest-video-' + slot);
     if (!container) {
         container = document.createElement('div');
@@ -726,11 +757,7 @@ function addGuestVideo(slot, stream, name, peerId) {
     }
     
     document.getElementById('video-slot-' + slot).srcObject = stream;
-    
-    // Auto standby
-    setTimeout(() => {
-        updateTally(peerId, 'standby');
-    }, 500);
+    setTimeout(() => updateTally(peerId, 'standby'), 500);
 }
 
 function updateDashboardSlot(slot, peerId, name, connected) {
@@ -739,11 +766,8 @@ function updateDashboardSlot(slot, peerId, name, connected) {
     if (connected) {
         slotEl.className = 'participant-card';
         slotEl.innerHTML = `
-            <h3>
-                ${name}
-                <span class="connection-status">● En línea</span>
-            </h3>
-            <div style="font-size: 10px; color: #666; margin-bottom: 8px;">ID: ${peerId.substr(-6)}</div>
+            <h3>${name} <span class="connection-status">● En línea</span></h3>
+            <div style="font-size: 10px; color: #666; margin-bottom: 8px;">${peerId.substr(-8)}</div>
             <div class="tally-controls">
                 <button class="tally-btn btn-off active" onclick="sendTally('${peerId}', 'off')">OFF</button>
                 <button class="tally-btn btn-standby" onclick="sendTally('${peerId}', 'standby')">ATENTO</button>
@@ -764,7 +788,6 @@ function sendTally(peerId, state) {
         conn.send({ type: 'tally', state: state });
     }
     
-    // Actualizar botones
     const slot = connections.get(peerId)?.slot;
     if (slot !== undefined) {
         const slotEl = document.getElementById('slot-' + slot);
@@ -801,18 +824,28 @@ function updateTally(peerId, state) {
     }
 }
 
-function updateTallyUI(state) {
-    // Para invitados: mostrar su propio tally
+function updateGuestTally(state) {
+    const mainTally = document.getElementById('mainTally');
     const container = document.getElementById('operatorVideoContainer');
+    
+    mainTally.className = 'tally-label-main ' + state;
+    
     if (state === 'live') {
-        container.style.borderColor = '#ff0000';
-        container.style.boxShadow = '0 0 30px rgba(255,0,0,0.6)';
+        container.classList.add('live');
+        container.classList.remove('standby');
+        mainTally.textContent = '🔴 AL AIRE';
+        document.getElementById('modeText').textContent = 'Modo: TRANSMITIENDO';
+        document.getElementById('modeText').style.color = '#ff0000';
     } else if (state === 'standby') {
-        container.style.borderColor = '#ffff00';
-        container.style.boxShadow = '0 0 20px rgba(255,255,0,0.4)';
+        container.classList.add('standby');
+        container.classList.remove('live');
+        mainTally.textContent = '⏺ ATENTO';
+        document.getElementById('modeText').textContent = 'Modo: PREPARADO';
+        document.getElementById('modeText').style.color = '#ffff00';
     } else {
-        container.style.borderColor = '#333';
-        container.style.boxShadow = 'none';
+        container.classList.remove('live', 'standby');
+        mainTally.textContent = 'AL AIRE';
+        mainTally.classList.add('off');
     }
 }
 
@@ -822,9 +855,8 @@ function freeSlot(peerId) {
     
     const slot = conn.slot;
     availableSlots.push(slot);
-    availableSlots.sort(); // Mantener orden
+    availableSlots.sort();
     
-    // Limpiar UI
     const videoEl = document.getElementById('guest-video-' + slot);
     if (videoEl) videoEl.remove();
     
@@ -832,7 +864,6 @@ function freeSlot(peerId) {
     
     connections.delete(peerId);
     connectedPeers.delete(peerId);
-    
     document.getElementById('fullAlert').style.display = 'none';
 }
 
@@ -841,7 +872,9 @@ function toggleMic() {
     const track = localStream.getAudioTracks()[0];
     if (track) {
         track.enabled = !track.enabled;
-        document.getElementById('btnMic').style.background = track.enabled ? '#ff6b00' : '#cc0000';
+        const btn = document.getElementById('btnMic');
+        btn.classList.toggle('muted', !track.enabled);
+        updateStatusIndicators(true, track.enabled);
     }
 }
 
@@ -851,6 +884,7 @@ function toggleCam() {
     if (track) {
         track.enabled = !track.enabled;
         document.getElementById('btnCam').classList.toggle('active');
+        updateStatusIndicators(track.enabled, true);
     }
 }
 
