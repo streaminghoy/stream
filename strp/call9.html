@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall Power PRO v8 - StreamingHoy</title>
+    <title>StreamCall Power PRO v9 - StreamingHoy</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -66,7 +66,7 @@
         <div class="dashboard" id="dashboard" style="display:none;"><h2>DASHBOARD</h2><div class="id-display" id="displayId">----</div><div id="slotsContainer"><div class="slot-card empty" id="slot-0">CANAL 1: LIBRE</div><div class="slot-card empty" id="slot-1">CANAL 2: LIBRE</div><div class="slot-card empty" id="slot-2">CANAL 3: LIBRE</div></div></div>
     </div>
     <div id="appControls" style="position:fixed; bottom:20px; left:20px; display:none; gap:10px; z-index:1000;"><button onclick="toggleMic()" id="micBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">🎤</button><button onclick="toggleCam()" id="camBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">📹</button><button onclick="location.reload()" style="width:50px; height:50px; border-radius:50%; border:none; background:#cc0000; color:white; cursor:pointer; font-size:20px;">📴</button></div>
-    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v8</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR</option><option value="guest">INVITADO</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">CÁMARA:</label><select id="vSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
+    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v9</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR</option><option value="guest">INVITADO</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">CÁMARA:</label><select id="vSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
 </div>
 
 <script>
@@ -83,7 +83,6 @@ const PEER_CONFIG = {
     ]
 };
 
-// MODO OBS
 const params = new URLSearchParams(window.location.search);
 if (params.get('mode') === 'obs') {
     const room = params.get('room'), slotId = params.get('slot');
@@ -141,15 +140,40 @@ function initPeer(id) {
             connectToOp(document.getElementById('joinId').value.toUpperCase());
         }
     });
-    myPeer.on('connection', conn => { if (myRole === 'operator') handleData(conn); });
+
+    // UNIFICACIÓN DE ENTRADA: El operador maneja la data y la llamada por separado pero bajo el mismo ID
+    myPeer.on('connection', conn => { 
+        if (myRole === 'operator') {
+            if (conn.metadata.isObs) {
+                // Lógica OBS: buscar el stream del slot y enviarlo
+                setTimeout(() => {
+                    const slotIdx = parseInt(conn.metadata.slot) - 1;
+                    const target = Array.from(connections.values()).find(c => c.slot === slotIdx);
+                    if (target) myPeer.call(conn.peer, target.remoteStream);
+                }, 1000);
+            } else {
+                // Lógica Invitado: Guardar data connection
+                if (!connections.has(conn.peer)) {
+                    connections.set(conn.peer, { name: conn.metadata.name || "Invitado", data: conn });
+                } else {
+                    connections.get(conn.peer).data = conn;
+                }
+            }
+        }
+    });
+
     myPeer.on('call', call => {
         call.answer(localStream);
-        if (myRole === 'operator') handleCall(call);
-        else call.on('stream', s => { 
-            const rv = document.getElementById('remoteOperatorVideo');
-            rv.srcObject = s;
-            rv.play().catch(e => console.log("Autoplay block"));
-        });
+        if (myRole === 'operator') {
+            handleCall(call);
+        } else {
+            // RETORNO: Asegurar que el video se reproduce
+            call.on('stream', s => { 
+                const rv = document.getElementById('remoteOperatorVideo');
+                rv.srcObject = s;
+                rv.onloadedmetadata = () => rv.play();
+            });
+        }
     });
 }
 
@@ -159,22 +183,12 @@ function connectToOp(targetId) {
     data.on('data', d => { if (d.type === 'tally') updateGuestTally(d.state); });
 }
 
-function handleData(conn) {
-    conn.on('open', () => {
-        if (conn.metadata.isObs) {
-            const slotIdx = parseInt(conn.metadata.slot) - 1;
-            const target = Array.from(connections.values()).find(c => c.slot === slotIdx);
-            if (target) myPeer.call(conn.peer, target.remoteStream);
-            return;
-        }
-        if (!connections.has(conn.peer)) connections.set(conn.peer, { name: conn.metadata.name || "Invitado", data: conn });
-    });
-}
-
 function handleCall(call) {
     const peerId = call.peer;
-    // SI YA EXISTE, ACTUALIZAMOS VIDEO Y SALIMOS (EVITA DUPLICADOS)
-    if (document.getElementById('vcont-' + peerId)) {
+
+    // CANDADO DE DUPLICIDAD: Si ya existe el contenedor, solo refrescar el stream
+    const existingContainer = document.getElementById('vcont-' + peerId);
+    if (existingContainer) {
         call.on('stream', s => { document.getElementById('vid-' + peerId).srcObject = s; });
         return;
     }
@@ -183,17 +197,27 @@ function handleCall(call) {
     const slot = availableSlots.shift();
 
     call.on('stream', (s) => {
-        if (!connections.has(peerId)) connections.set(peerId, { name: "Invitado" });
+        // Asegurar que existe el objeto en el mapa
+        if (!connections.has(peerId)) {
+            connections.set(peerId, { name: "Invitado", slot: slot });
+        }
         const c = connections.get(peerId);
-        c.slot = slot; c.remoteStream = s;
+        c.slot = slot; 
+        c.remoteStream = s;
         
+        // Crear UI una sola vez
         let cont = document.createElement('div');
         cont.className = 'video-container'; cont.id = 'vcont-' + peerId;
         cont.innerHTML = `<video id="vid-${peerId}" autoplay playsinline></video><div style="position:absolute; bottom:5px; left:5px; font-size:10px; background:rgba(0,0,0,0.7); padding:2px 5px;">CH ${slot+1}: ${c.name}</div>`;
         document.getElementById('videoGrid').appendChild(cont);
-        document.getElementById('vid-' + peerId).srcObject = s;
+        
+        const vEl = document.getElementById('vid-' + peerId);
+        vEl.srcObject = s;
+        vEl.onloadedmetadata = () => vEl.play();
+        
         updateSlotUI(slot, peerId, c.name, true);
     });
+
     call.on('close', () => removePeer(peerId));
 }
 
@@ -206,7 +230,7 @@ function updateSlotUI(slot, peerId, name, online) {
                             <button class="t-btn active" id="off-${peerId}" onclick="sendTally('${peerId}', 'off')">OFF</button>
                             <button class="t-btn pvw" id="pvw-${peerId}" onclick="sendTally('${peerId}', 'standby')">PVW</button>
                             <button class="t-btn live" id="live-${peerId}" onclick="sendTally('${peerId}', 'live')">LIVE</button>
-                        </div><button class="join-btn" style="padding:4px; font-size:10px; margin-top:5px;" onclick="copyObs(${slot})">OBS LINK</button>`;
+                        </div><button class="join-btn" style="padding:4px; font-size:10px; margin-top:5px;" onclick="copyObs('${slot}')">OBS LINK</button>`;
     } else { el.className = 'slot-card empty'; el.textContent = `CANAL ${slot+1}: LIBRE`; }
 }
 
@@ -218,13 +242,14 @@ async function switchCamera() {
         const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode }, audio: true });
         localStream = newStream;
         document.getElementById('guestLocalVideo').srcObject = newStream;
-        // Reemplazar track en llamadas activas
-        for (let conns of myPeer.connections) {
-            conns.forEach(c => { if (c.peerConnection) { 
-                const sender = c.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                if (sender) sender.replaceTrack(newStream.getVideoTracks()[0]);
-            }});
-        }
+        myPeer.connections && Object.values(myPeer.connections).forEach(conns => {
+            conns.forEach(c => {
+                if (c.peerConnection) {
+                    const sender = c.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) sender.replaceTrack(newStream.getVideoTracks()[0]);
+                }
+            });
+        });
     } catch (e) { alert("Error cambio cámara"); }
 }
 
@@ -233,8 +258,11 @@ function sendTally(peerId, state) {
     if (c && c.data) c.data.send({ type: 'tally', state });
     const cont = document.getElementById('vcont-' + peerId);
     if (cont) cont.className = 'video-container ' + (state === 'live' ? 'live' : state === 'standby' ? 'standby' : '');
-    document.querySelectorAll(`#slot-${c.slot} .t-btn`).forEach(b => b.classList.remove('active'));
-    document.getElementById((state === 'live' ? 'live-' : state === 'standby' ? 'pvw-' : 'off-') + peerId).classList.add('active');
+    const slotCard = document.getElementById(`slot-${c.slot}`);
+    if(slotCard) {
+        slotCard.querySelectorAll(`.t-btn`).forEach(b => b.classList.remove('active'));
+        document.getElementById((state === 'live' ? 'live-' : state === 'standby' ? 'pvw-' : 'off-') + peerId).classList.add('active');
+    }
 }
 
 function updateGuestTally(state) {
