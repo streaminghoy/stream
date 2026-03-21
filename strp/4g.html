@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamcall Power</title>
+    <title>Streamcall Power - Optimizado 4G</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -112,7 +112,6 @@
         .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 20px; }
         .participant-card h3 { font-size: 13px; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
         
-        /* URL Input para OBS */
         .obs-url-box { margin-top: 10px; background: #1a1a1a; border: 1px solid #555; border-radius: 4px; padding: 8px; }
         .obs-url-label { font-size: 9px; color: #ff6b00; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; }
         .obs-url-input { width: 100%; background: #0f0f0f; border: 1px solid #333; color: #00ff00; font-family: monospace; font-size: 10px; padding: 6px; border-radius: 3px; cursor: text; }
@@ -176,7 +175,7 @@
 
 <header id="mainHeader">
     <div class="brand">
-        <h1>STREAMCALL POWER</h1>
+        <h1>STREAMCALL POWER V4G</h1>
         <span class="room-badge" id="headerRoom">SALA -</span>
         <span class="role-badge" id="roleBadge">-</span>
     </div>
@@ -369,24 +368,42 @@ function updateStatusIndicators(cam, mic) {
     document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
 }
 
-function getAudioConstraints() {
-    if (isMusicMode) {
+function getOptimizedConstraints() {
+    const videoId = document.getElementById('videoSource').value;
+    const audioId = document.getElementById('audioSource').value;
+    
+    // SI ES INVITADO: Limitar a 720p max, 24fps, audio mono
+    if (myRole === 'guest') {
         return {
-            deviceId: document.getElementById('audioSource').value ? { exact: document.getElementById('audioSource').value } : undefined,
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            sampleRate: 48000,
-            channelCount: 2,
-            sampleSize: 16
+            video: {
+                deviceId: videoId ? { exact: videoId } : undefined,
+                width: { ideal: 1280, max: 1280 }, // Max 720p width
+                height: { ideal: 720, max: 720 },   // Max 720p height
+                frameRate: { ideal: 24, max: 24 },  // 24fps para 4G
+                aspectRatio: { ideal: 1.7777777778 } // 16:9
+            },
+            audio: {
+                deviceId: audioId ? { exact: audioId } : undefined,
+                echoCancellation: !isMusicMode,
+                noiseSuppression: !isMusicMode,
+                autoGainControl: !isMusicMode,
+                sampleRate: 48000,
+                channelCount: 1, // Mono ahorra ancho de banda
+                sampleSize: 16
+            }
         };
     } else {
+        // OPERADOR: Calidad normal (puede ser alta si tiene buena conexión)
         return {
-            deviceId: document.getElementById('audioSource').value ? { exact: document.getElementById('audioSource').value } : undefined,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 48000
+            video: videoId ? { deviceId: { exact: videoId } } : true,
+            audio: {
+                deviceId: audioId ? { exact: audioId } : undefined,
+                echoCancellation: !isMusicMode,
+                noiseSuppression: !isMusicMode,
+                autoGainControl: !isMusicMode,
+                sampleRate: 48000,
+                channelCount: 2 // Estéreo para operador
+            }
         };
     }
 }
@@ -425,16 +442,11 @@ function startBroadcast() {
         document.getElementById('videoGrid').style.display = 'none';
         document.getElementById('operatorView').style.display = 'flex';
         document.getElementById('guestPreviewBar').style.display = 'flex';
-        document.getElementById('modeText').textContent = 'Modo: Invitado';
+        document.getElementById('modeText').textContent = 'Modo: Invitado (Optimizado 4G)';
         document.getElementById('guestSelfName').textContent = name;
     }
     
-    const videoId = document.getElementById('videoSource').value;
-    
-    const constraints = {
-        video: videoId ? { deviceId: { exact: videoId } } : true,
-        audio: getAudioConstraints()
-    };
+    const constraints = getOptimizedConstraints();
     
     navigator.mediaDevices.getUserMedia(constraints).then(stream => {
         localStream = stream;
@@ -449,9 +461,37 @@ function startBroadcast() {
         
         initPeer(name);
         
+        // Si es invitado, aplicar limitación de bitrate después de conectar
+        if (myRole === 'guest') {
+            setTimeout(() => limitBitrateFor4G(), 2000);
+        }
+        
     }).catch(err => {
         alert('Error cámara/micrófono: ' + err.message);
     });
+}
+
+function limitBitrateFor4G() {
+    // Encontrar la conexión PeerConnection y limitar bitrate a 600kbps para video
+    if (peer && peer.connections) {
+        for (let [peerId, conns] of peer.connections) {
+            conns.forEach(conn => {
+                if (conn.peerConnection) {
+                    const senders = conn.peerConnection.getSenders();
+                    senders.forEach(sender => {
+                        if (sender.track && sender.track.kind === 'video') {
+                            const params = sender.getParameters();
+                            if (!params.encodings) params.encodings = [{}];
+                            // Limitar a 600kbps para 4G estable
+                            params.encodings[0].maxBitrate = 600000; // 600 kbps
+                            params.encodings[0].maxFramerate = 24;
+                            sender.setParameters(params).catch(e => console.log('Error setParameters:', e));
+                        }
+                    });
+                }
+            });
+        }
+    }
 }
 
 function initPeer(name) {
