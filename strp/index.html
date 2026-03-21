@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamcall Power - Sala <span id="titleRoom"></span></title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <!-- Firebase para signaling gratuito -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -70,6 +69,7 @@
         .waiting-msg .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 15px; border-radius: 8px; text-align: center; margin-top: 20px; display: none; }
+        .debug-info { position: fixed; top: 80px; right: 330px; background: rgba(0,0,0,0.9); padding: 10px; border-radius: 4px; font-size: 10px; font-family: monospace; color: #666; max-width: 200px; }
     </style>
 </head>
 <body>
@@ -86,9 +86,7 @@
 </header>
 
 <div class="main-container">
-    <div class="video-area" id="videoGrid">
-        <!-- Videos dinámicos -->
-    </div>
+    <div class="video-area" id="videoGrid"></div>
     
     <div class="dashboard">
         <h2>🎛️ Dashboard Tally</h2>
@@ -130,9 +128,12 @@
 <div class="stats" id="stats">
     <div class="stat-row"><span>Sala:</span> <span class="yellow" id="roomDisplay">-</span></div>
     <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">Iniciando...</span></div>
+    <div class="stat-row"><span>Mi ID:</span> <span id="myIdDisplay" style="font-size: 9px;">-</span></div>
     <div class="stat-row"><span>En sala:</span> <span id="peerCount">1/3</span></div>
     <div class="stat-row"><span>TURN Relay:</span> <span class="green">Activo</span></div>
 </div>
+
+<div class="debug-info" id="debugInfo">Iniciando...</div>
 
 <!-- Modal Configuración -->
 <div class="modal active" id="configModal">
@@ -162,12 +163,11 @@
 
 <script>
 // ==================== CONFIGURACIÓN ====================
-// Obtener Room ID de la URL
 const urlParams = new URLSearchParams(window.location.search);
 const ROOM_ID = urlParams.get('room') || 'default';
 const MAX_PARTICIPANTS = 3;
 
-// Firebase Config (gratuito, límite 100 conexiones simultáneas)
+// Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyDummyKeyForSignaling12345",
     authDomain: "streamcall-signaling.firebaseapp.com",
@@ -178,16 +178,14 @@ const firebaseConfig = {
     appId: "1:123456789:web:abcdef123456"
 };
 
-// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Mostrar sala en UI
+// UI Updates
 document.getElementById('headerRoom').textContent = 'SALA ' + ROOM_ID;
 document.getElementById('modalRoom').textContent = ROOM_ID;
 document.getElementById('roomDisplay').textContent = ROOM_ID;
 
-// Generar enlace compartible
 const shareUrl = window.location.origin + window.location.pathname + '?room=' + ROOM_ID;
 document.getElementById('shareUrl').textContent = shareUrl;
 
@@ -199,20 +197,24 @@ function copyUrl() {
     });
 }
 
-// Configuración ICE optimizada para Honduras
+function log(msg) {
+    console.log(msg);
+    document.getElementById('debugInfo').textContent = msg;
+}
+
+// ICE Config para Honduras
 const peerConfig = {
     host: '0.peerjs.com',
     port: 443,
     path: '/',
     secure: true,
-    debug: 1,
+    debug: 2,
     config: {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-            { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' },
-            { urls: 'turn:turn.bistri.com:80', username: 'homeo', credential: 'homeo' }
+            { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' }
         ],
         iceTransportPolicy: 'all',
         iceCandidatePoolSize: 10
@@ -221,11 +223,11 @@ const peerConfig = {
 
 let peer;
 let localStream;
-let connections = new Map();
-let myId;
+let connections = new Map(); // peerId -> {conn, call, stream, name, connecting}
 let myPeerId;
+let userName;
 let roomRef;
-let isConnecting = false;
+let connectedPeers = new Set(); // Evitar conexiones duplicadas
 
 // Cargar dispositivos
 navigator.mediaDevices.enumerateDevices().then(devices => {
@@ -243,7 +245,7 @@ navigator.mediaDevices.enumerateDevices().then(devices => {
 });
 
 function startBroadcast() {
-    const name = document.getElementById('userName').value || 'Usuario';
+    userName = document.getElementById('userName').value || 'Usuario';
     const videoId = document.getElementById('videoSource').value;
     const audioId = document.getElementById('audioSource').value;
     
@@ -256,171 +258,262 @@ function startBroadcast() {
         localStream = stream;
         document.getElementById('configModal').classList.remove('active');
         
-        // Crear Peer ID único pero determinístico para la sala
-        myPeerId = ROOM_ID + '_' + Math.random().toString(36).substr(2, 8);
+        // Peer ID único por sesión
+        myPeerId = 'sc_' + ROOM_ID + '_' + Math.random().toString(36).substr(2, 6);
+        document.getElementById('myIdDisplay').textContent = myPeerId.substr(-8);
+        
+        log('Iniciando PeerJS...');
         
         peer = new Peer(myPeerId, peerConfig);
         
         peer.on('open', (id) => {
-            myId = id;
-            document.getElementById('connStatus').textContent = 'Conectado';
+            log('PeerJS listo: ' + id.substr(-8));
+            document.getElementById('connStatus').textContent = 'Listo';
             document.getElementById('connStatus').className = 'green';
             
-            // Registrar en Firebase y escuchar otros participantes
-            joinRoomSignaling(name);
+            // Mostrar video local
+            addVideoStream('local', stream, userName + ' (Tú)', true);
+            
+            // Iniciar signaling
+            setTimeout(() => initSignaling(), 500);
         });
         
         peer.on('call', (call) => {
-            console.log('Llamada entrante de:', call.peer);
+            log('Llamada entrante: ' + call.peer.substr(-8));
+            
             if (connections.size >= MAX_PARTICIPANTS - 1) {
-                console.log('Sala llena, rechazando');
+                log('Sala llena, rechazando');
                 return;
             }
+            
+            // Responder inmediatamente
             call.answer(localStream);
             handleCall(call);
         });
         
         peer.on('connection', (conn) => {
+            log('DataConn entrante: ' + conn.peer.substr(-8));
             handleDataConnection(conn);
         });
         
         peer.on('error', (err) => {
-            console.error('PeerJS Error:', err);
-            if (err.type === 'peer-unavailable') {
-                // Peer no existe, es normal al inicio
-                console.log('Peer no disponible (esperando...)');
-            } else {
-                document.getElementById('connStatus').textContent = 'Error: ' + err.type;
+            log('Error: ' + err.type);
+            if (err.type !== 'peer-unavailable') {
+                document.getElementById('connStatus').textContent = 'Error';
                 document.getElementById('connStatus').className = 'red';
             }
         });
         
-        // Mostrar video local
-        addVideoStream('local', stream, name + ' (Tú)', true);
-        
     }).catch(err => {
-        alert('Error accediendo a cámara/micrófono: ' + err.message);
+        alert('Error cámara/micrófono: ' + err.message);
     });
 }
 
-// Sistema de Signaling con Firebase
-function joinRoomSignaling(userName) {
-    roomRef = db.ref('rooms/' + ROOM_ID + '/peers');
+// Sistema de Signaling Robusto
+function initSignaling() {
+    log('Conectando a sala...');
     
-    // Registrar mi presencia
-    const myRef = roomRef.child(myPeerId);
-    myRef.set({
-        name: userName,
-        joined: firebase.database.ServerValue.TIMESTAMP,
-        active: true
-    });
+    roomRef = db.ref('rooms/' + ROOM_ID);
+    const myRef = roomRef.child('peers').child(myPeerId);
     
-    // Eliminar al salir
+    // 1. Registrar presencia con heartbeat
+    const register = () => {
+        myRef.set({
+            name: userName,
+            joined: Date.now(),
+            lastSeen: Date.now(),
+            status: 'online'
+        });
+    };
+    
+    register();
+    const heartbeat = setInterval(register, 5000);
+    
+    // Limpiar al salir
     window.addEventListener('beforeunload', () => {
+        clearInterval(heartbeat);
         myRef.remove();
     });
     
-    // Escuchar nuevos participantes
-    roomRef.on('child_added', (snapshot) => {
-        const peerData = snapshot.val();
-        const peerId = snapshot.key;
+    // 2. Escuchar peers existentes (una sola vez al inicio)
+    roomRef.child('peers').once('value', (snapshot) => {
+        const peers = snapshot.val() || {};
+        log('Peers existentes: ' + (Object.keys(peers).length - 1));
         
-        if (peerId !== myPeerId && !connections.has(peerId)) {
-            console.log('Nuevo peer detectado:', peerId);
-            connectToPeer(peerId, peerData.name);
-        }
+        Object.keys(peers).forEach(peerId => {
+            if (peerId !== myPeerId && !connectedPeers.has(peerId)) {
+                // Conectar a peers existentes (soy el nuevo)
+                setTimeout(() => connectToPeer(peerId, peers[peerId].name), 1000);
+            }
+        });
     });
     
-    // Escuchar eliminaciones
-    roomRef.on('child_removed', (snapshot) => {
+    // 3. Escuchar nuevos peers que entran después
+    roomRef.child('peers').on('child_added', (snapshot) => {
+        const peerId = snapshot.key;
+        const peerData = snapshot.val();
+        
+        if (peerId === myPeerId) return;
+        if (connectedPeers.has(peerId)) return;
+        
+        log('Nuevo peer: ' + peerId.substr(-8));
+        
+        // Si soy el host (el que lleva más tiempo), me conecto yo
+        // Si soy nuevo, espero que el otro se conecte (evitar doble conexión)
+        myRef.once('value', (mySnap) => {
+            const myData = mySnap.val();
+            if (myData && myData.joined < peerData.joined) {
+                // Yo soy más viejo = yo llamo
+                setTimeout(() => connectToPeer(peerId, peerData.name), 500);
+            }
+        });
+    });
+    
+    // 4. Escuchar eliminaciones
+    roomRef.child('peers').on('child_removed', (snapshot) => {
         const peerId = snapshot.key;
         if (connections.has(peerId)) {
             removeParticipant(peerId);
         }
     });
     
-    // Contar participantes
-    roomRef.on('value', (snapshot) => {
+    // 5. Actualizar contador
+    roomRef.child('peers').on('value', (snapshot) => {
         const count = snapshot.numChildren();
         document.getElementById('peerCount').textContent = count + '/' + MAX_PARTICIPANTS;
         
         if (count >= MAX_PARTICIPANTS) {
             document.getElementById('fullAlert').style.display = 'block';
-        } else {
-            document.getElementById('fullAlert').style.display = 'none';
         }
     });
 }
 
 function connectToPeer(peerId, peerName) {
-    if (connections.has(peerId) || isConnecting) return;
-    if (connections.size >= MAX_PARTICIPANTS - 1) return;
+    if (connectedPeers.has(peerId)) {
+        log('Ya conectado a: ' + peerId.substr(-8));
+        return;
+    }
     
-    isConnecting = true;
-    console.log('Conectando a:', peerId);
+    if (connections.size >= MAX_PARTICIPANTS - 1) {
+        log('Sala llena');
+        return;
+    }
     
-    // Intentar conexión de datos primero
+    log('Conectando a: ' + peerId.substr(-8));
+    connectedPeers.add(peerId);
+    
+    // Marcar como conectando
+    connections.set(peerId, { 
+        name: peerName, 
+        connecting: true,
+        connectTime: Date.now()
+    });
+    
+    // 1. DataChannel primero (más rápido)
     const conn = peer.connect(peerId, { 
         reliable: true,
-        metadata: { name: document.getElementById('userName').value }
+        metadata: { name: userName }
     });
     
     conn.on('open', () => {
-        console.log('DataChannel abierto con:', peerId);
-        isConnecting = false;
+        log('DataChannel OK: ' + peerId.substr(-8));
         
-        if (!connections.has(peerId)) {
-            connections.set(peerId, { name: peerName });
-        }
-        connections.get(peerId).dataConn = conn;
+        const existing = connections.get(peerId) || {};
+        existing.dataConn = conn;
+        existing.connecting = false;
+        connections.set(peerId, existing);
         
         // Enviar intro
-        conn.send({ 
-            type: 'intro', 
-            name: document.getElementById('userName').value 
-        });
+        conn.send({ type: 'intro', name: userName });
         
-        // Llamar video
+        // 2. Llamar video después de datachannel abierto
         setTimeout(() => {
-            if (!connections.get(peerId)?.call) {
+            if (!existing.call) {
+                log('Llamando video a: ' + peerId.substr(-8));
                 const call = peer.call(peerId, localStream);
                 handleCall(call, peerName);
             }
-        }, 500);
+        }, 300);
         
         updateParticipantsList();
     });
     
-    conn.on('error', (err) => {
-        console.error('Error conectando a', peerId, err);
-        isConnecting = false;
+    conn.on('data', (data) => {
+        if (data.type === 'tally') {
+            updateTally(data.targetId, data.state);
+        } else if (data.type === 'intro') {
+            const existing = connections.get(peerId);
+            if (existing) {
+                existing.name = data.name;
+                connections.set(peerId, existing);
+                
+                // Actualizar nombre en UI
+                const nameEl = document.querySelector(`#video-${peerId} .participant-name`);
+                if (nameEl) nameEl.textContent = data.name;
+                updateParticipantsList();
+            }
+        }
     });
+    
+    conn.on('error', (err) => {
+        log('Error DataChannel: ' + err);
+        connectedPeers.delete(peerId);
+        connections.delete(peerId);
+    });
+    
+    conn.on('close', () => {
+        removeParticipant(peerId);
+    });
+    
+    // Timeout de seguridad
+    setTimeout(() => {
+        const conn = connections.get(peerId);
+        if (conn && conn.connecting && !conn.stream) {
+            log('Timeout conexión: ' + peerId.substr(-8));
+            connectedPeers.delete(peerId);
+            connections.delete(peerId);
+            updateParticipantsList();
+        }
+    }, 15000);
 }
 
 function handleCall(call, knownName) {
     const peerId = call.peer;
     
     call.on('stream', (remoteStream) => {
-        console.log('Stream recibido de:', peerId);
+        log('Stream recibido: ' + peerId.substr(-8));
         
-        if (!connections.has(peerId)) {
-            connections.set(peerId, {});
+        let existing = connections.get(peerId);
+        if (!existing) {
+            existing = {};
+            connections.set(peerId, existing);
         }
-        const conn = connections.get(peerId);
-        conn.stream = remoteStream;
-        conn.call = call;
         
-        const name = knownName || conn.name || 'Invitado';
-        addVideoStream(peerId, remoteStream, name);
+        existing.call = call;
+        existing.stream = remoteStream;
+        existing.name = knownName || existing.name || 'Invitado';
+        existing.connecting = false;
+        
+        addVideoStream(peerId, remoteStream, existing.name);
         updateParticipantsList();
     });
     
-    call.on('close', () => removeParticipant(peerId));
-    call.on('error', () => removeParticipant(peerId));
+    call.on('close', () => {
+        log('Llamada cerrada: ' + peerId.substr(-8));
+        removeParticipant(peerId);
+    });
+    
+    call.on('error', (err) => {
+        log('Error llamada: ' + err);
+        removeParticipant(peerId);
+    });
 }
 
 function handleDataConnection(conn) {
     const peerId = conn.peer;
+    
+    if (connectedPeers.has(peerId)) return;
+    connectedPeers.add(peerId);
     
     conn.on('open', () => {
         if (!connections.has(peerId)) {
@@ -428,10 +521,7 @@ function handleDataConnection(conn) {
         }
         connections.get(peerId).dataConn = conn;
         
-        conn.send({ 
-            type: 'intro', 
-            name: document.getElementById('userName').value 
-        });
+        conn.send({ type: 'intro', name: userName });
     });
     
     conn.on('data', (data) => {
@@ -441,7 +531,6 @@ function handleDataConnection(conn) {
             if (connections.has(peerId)) {
                 connections.get(peerId).name = data.name;
             }
-            // Actualizar nombre en UI
             const nameEl = document.querySelector(`#video-${peerId} .participant-name`);
             if (nameEl) nameEl.textContent = data.name;
             updateParticipantsList();
@@ -457,6 +546,8 @@ function addVideoStream(id, stream, name, isLocal = false) {
         existing.querySelector('video').srcObject = stream;
         return;
     }
+    
+    log('Agregando video: ' + name);
     
     const container = document.createElement('div');
     container.className = 'video-container offline';
@@ -475,7 +566,7 @@ function addVideoStream(id, stream, name, isLocal = false) {
     video.srcObject = stream;
     video.autoplay = true;
     video.playsInline = true;
-    if (isLocal) video.muted = true;
+    video.muted = isLocal;
     
     const pname = document.createElement('div');
     pname.className = 'participant-name';
@@ -489,9 +580,8 @@ function addVideoStream(id, stream, name, isLocal = false) {
     
     updateGridLayout();
     
-    // Auto-standby para invitados
     if (!isLocal) {
-        setTimeout(() => updateTally(id, 'standby'), 1000);
+        setTimeout(() => updateTally(id, 'standby'), 500);
     }
 }
 
@@ -500,36 +590,32 @@ function updateGridLayout() {
     const grid = document.getElementById('videoGrid');
     
     if (count === 1) grid.style.gridTemplateColumns = '1fr';
-    else if (count === 2) grid.style.gridTemplateColumns = '1fr 1fr';
     else grid.style.gridTemplateColumns = '1fr 1fr';
 }
 
 function updateParticipantsList() {
     const list = document.getElementById('participantsList');
+    const activeConns = Array.from(connections.entries()).filter(([id, c]) => c.stream);
     
-    if (connections.size === 0) {
+    if (activeConns.length === 0) {
         list.innerHTML = `
             <div class="waiting-msg">
                 <span class="spinner"></span>
-                Esperando participantes en la sala...
+                Esperando participantes...
             </div>
         `;
         return;
     }
     
     list.innerHTML = '';
-    connections.forEach((conn, peerId) => {
-        if (!conn.stream) return; // Solo mostrar si tiene video
-        
+    activeConns.forEach(([peerId, conn]) => {
         const card = document.createElement('div');
         card.className = 'participant-card';
         card.id = `dashboard-${peerId}`;
         
-        const name = conn.name || 'Invitado';
-        
         card.innerHTML = `
             <h3>
-                ${name}
+                ${conn.name || 'Invitado'}
                 <span class="connection-status">● Conectado</span>
             </h3>
             <div class="tally-controls">
@@ -550,13 +636,11 @@ function sendTally(targetId, state) {
             conn.dataConn.send({
                 type: 'tally',
                 targetId: targetId,
-                state: state,
-                from: myPeerId
+                state: state
             });
         }
     });
     
-    // Actualizar botones
     const card = document.getElementById(`dashboard-${targetId}`);
     if (card) {
         card.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
@@ -594,13 +678,17 @@ function updateTally(id, state) {
 }
 
 function removeParticipant(peerId) {
+    log('Removiendo: ' + peerId.substr(-8));
+    
     const container = document.getElementById(`video-${peerId}`);
     if (container) container.remove();
     
     const dashboard = document.getElementById(`dashboard-${peerId}`);
     if (dashboard) dashboard.remove();
     
+    connectedPeers.delete(peerId);
     connections.delete(peerId);
+    
     updateGridLayout();
     updateParticipantsList();
 }
@@ -625,7 +713,7 @@ function toggleCam() {
 }
 
 function disconnect() {
-    if (roomRef) roomRef.child(myPeerId).remove();
+    if (roomRef) roomRef.child('peers').child(myPeerId).remove();
     if (peer) peer.destroy();
     if (localStream) localStream.getTracks().forEach(t => t.stop());
     location.reload();
