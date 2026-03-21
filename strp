@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamcall Power</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; overflow: hidden; }
+        header { background: linear-gradient(90deg, #1a1a1a, #2d2d2d); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff6b00; }
+        .brand { display: flex; align-items: center; gap: 15px; }
+        .brand h1 { color: #ff6b00; font-size: 24px; letter-spacing: 2px; }
+        .main-container { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 70px); }
+        .video-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: #000; }
+        .video-container { position: relative; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 3px solid #333; transition: all 0.3s; aspect-ratio: 16/9; }
+        .video-container.live { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.6); }
+        .video-container.standby { border-color: #ffff00; box-shadow: 0 0 20px rgba(255,255,0,0.4); }
+        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        .tally-light { position: absolute; top: 15px; left: 15px; width: 25px; height: 25px; border-radius: 50%; background: #333; border: 3px solid #555; transition: all 0.2s; z-index: 10; }
+        .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
+        .tally-light.standby { background: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px #ffff00; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .tally-label { position: absolute; top: 15px; left: 50px; background: rgba(0,0,0,0.9); padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        .tally-label.live { color: #ff0000; }
+        .tally-label.standby { color: #ffff00; }
+        .participant-name { position: absolute; bottom: 15px; left: 15px; background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .dashboard { background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
+        .dashboard h2 { color: #ff6b00; margin-bottom: 20px; font-size: 18px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .participant-card { background: #2d2d2d; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 2px solid #444; }
+        .participant-card h3 { font-size: 14px; margin-bottom: 10px; color: #fff; display: flex; justify-content: space-between; }
+        .connection-status { font-size: 11px; color: #00ff00; }
+        .tally-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 10px; }
+        .tally-btn { padding: 10px 5px; border: none; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; text-transform: uppercase; transition: all 0.2s; }
+        .btn-off { background: #444; color: #999; }
+        .btn-standby { background: #666600; color: #ffff00; }
+        .btn-live { background: #660000; color: #ff0000; }
+        .tally-btn.active { transform: scale(1.05); box-shadow: 0 0 10px currentColor; border: 2px solid #fff; }
+        .btn-off.active { background: #666; color: #fff; }
+        .btn-standby.active { background: #ffff00; color: #000; }
+        .btn-live.active { background: #ff0000; color: #fff; }
+        .controls { position: fixed; bottom: 20px; left: 20px; display: flex; gap: 15px; z-index: 100; }
+        .control-btn { width: 60px; height: 60px; border-radius: 50%; border: none; background: #2d2d2d; color: #fff; cursor: pointer; font-size: 24px; border: 3px solid #444; transition: all 0.2s; }
+        .control-btn:hover { transform: scale(1.1); }
+        .control-btn.active { background: #ff6b00; border-color: #ff8533; }
+        .control-btn.danger { background: #cc0000; border-color: #ff0000; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #1a1a1a; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; border: 2px solid #ff6b00; box-shadow: 0 0 50px rgba(255,107,0,0.3); }
+        .device-select { width: 100%; padding: 12px; margin: 10px 0; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 14px; }
+        .join-btn { width: 100%; padding: 15px; background: #ff6b00; color: #fff; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; text-transform: uppercase; }
+        .join-btn:hover { background: #ff8533; box-shadow: 0 0 20px rgba(255,107,0,0.5); }
+        .alert-box { background: #332200; border: 1px solid #ff6b00; padding: 15px; border-radius: 4px; margin: 15px 0; font-size: 12px; line-height: 1.5; }
+        .room-info { background: #0f0f0f; padding: 10px; border-radius: 4px; margin-top: 10px; font-family: monospace; font-size: 12px; }
+        .id-display { color: #ff6b00; font-weight: bold; font-size: 18px; text-align: center; margin: 10px 0; padding: 10px; background: #2d2d2d; border-radius: 4px; border: 1px dashed #ff6b00; }
+        .copy-hint { font-size: 11px; color: #999; text-align: center; margin-top: 5px; }
+        .stats { position: fixed; bottom: 20px; right: 340px; background: rgba(0,0,0,0.9); padding: 15px; border-radius: 8px; font-size: 11px; font-family: monospace; border: 1px solid #333; min-width: 200px; }
+        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .green { color: #00ff00; }
+        .yellow { color: #ffff00; }
+        .red { color: #ff0000; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <h1>STREAMCALL POWER</h1>
+        <span style="background: #ff0000; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: bold;">LIVE</span>
+    </div>
+    <div style="font-size: 12px; color: #999; text-align: right;">
+        <div>Máx 3 Participantes</div>
+        <div style="color: #ff6b00;">Tally System Active</div>
+    </div>
+</header>
+
+<div class="main-container">
+    <div class="video-area" id="videoGrid">
+        <!-- Videos dinámicos -->
+    </div>
+    
+    <div class="dashboard">
+        <h2>🎛️ Dashboard Tally</h2>
+        <div id="participantsList">
+            <div style="color: #666; text-align: center; padding: 20px; font-size: 12px;">
+                Esperando participantes...
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 15px; background: #0f0f0f; border-radius: 8px; border: 1px solid #333;">
+            <h3 style="color: #666; font-size: 12px; margin-bottom: 10px;">TU CONEXIÓN</h3>
+            <div class="id-display" id="myPeerId">---</div>
+            <div class="copy-hint">Comparte este ID para conectar</div>
+        </div>
+
+        <div class="alert-box">
+            <strong>🇭🇳 Modo Honduras:</strong><br>
+            Usando TURN servers en puerto 443/TCP para evitar bloqueos de carriers locales.
+        </div>
+    </div>
+</div>
+
+<div class="controls">
+    <button class="control-btn" id="btnMic" onclick="toggleMic()">🎤</button>
+    <button class="control-btn" id="btnCam" onclick="toggleCam()">📹</button>
+    <button class="control-btn danger" onclick="disconnect()">📴</button>
+</div>
+
+<div class="stats" id="stats">
+    <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">Conectando...</span></div>
+    <div class="stat-row"><span>Peers:</span> <span id="peerCount">0/3</span></div>
+    <div class="stat-row"><span>TURN:</span> <span class="green">Active</span></div>
+</div>
+
+<!-- Modal Configuración -->
+<div class="modal active" id="configModal">
+    <div class="modal-content">
+        <h2 style="color: #ff6b00; margin-bottom: 10px; text-align: center;">Streamcall Power</h2>
+        <p style="text-align: center; color: #999; margin-bottom: 20px; font-size: 14px;">Broadcast Remoto Profesional</p>
+        
+        <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
+        <input type="text" id="userName" class="device-select" placeholder="Ej: Operador Estudio" value="Operador">
+        
+        <label style="font-size: 12px; color: #ccc;">Cámara:</label>
+        <select id="videoSource" class="device-select"></select>
+        
+        <label style="font-size: 12px; color: #ccc;">Micrófono:</label>
+        <select id="audioSource" class="device-select"></select>
+        
+        <div style="margin: 20px 0; padding: 15px; background: #2d2d2d; border-radius: 8px;">
+            <label style="font-size: 12px; color: #ccc;">Sala (Room ID):</label>
+            <input type="text" id="roomInput" class="device-select" placeholder="Nombre de sala único">
+            <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                Máximo 3 participantes por sala
+            </div>
+        </div>
+
+        <div class="alert-box">
+            <strong>⚠️ Importante Honduras:</strong><br>
+            Si usas CLARO/TIGO, el sistema usará automáticamente TURN relay para bypass de restricciones.
+        </div>
+        
+        <button class="join-btn" onclick="startBroadcast()">INICIAR TRANSMISIÓN</button>
+    </div>
+</div>
+
+<script>
+// Configuración ICE optimizada para Honduras (bypass carriers)
+const peerConfig = {
+    host: '0.peerjs.com',
+    port: 443,
+    path: '/',
+    secure: true,
+    debug: 2,
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            // TURN servers gratuitos (relay TCP 443 para Honduras)
+            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' },
+            { urls: 'turn:turn.bistri.com:80', username: 'homeo', credential: 'homeo' }
+        ],
+        iceTransportPolicy: 'all',
+        iceCandidatePoolSize: 10
+    }
+};
+
+let peer;
+let localStream;
+let connections = new Map(); // peerId -> { call, dataConn, name }
+let myId;
+let roomId;
+const MAX_PARTICIPANTS = 3;
+
+// Cargar dispositivos
+navigator.mediaDevices.enumerateDevices().then(devices => {
+    const videoSelect = document.getElementById('videoSource');
+    const audioSelect = document.getElementById('audioSource');
+    
+    devices.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.text = device.label || `${device.kind} ${videoSelect.length + 1}`;
+        
+        if (device.kind === 'videoinput') videoSelect.appendChild(option);
+        if (device.kind === 'audioinput') audioSelect.appendChild(option);
+    });
+});
+
+function startBroadcast() {
+    const name = document.getElementById('userName').value || 'Usuario';
+    roomId = document.getElementById('roomInput').value || 'sala-default';
+    
+    const videoId = document.getElementById('videoSource').value;
+    const audioId = document.getElementById('audioSource').value;
+    
+    const constraints = {
+        video: videoId ? { deviceId: { exact: videoId } } : true,
+        audio: audioId ? { deviceId: { exact: audioId } } : true
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+        localStream = stream;
+        document.getElementById('configModal').classList.remove('active');
+        
+        // Inicializar PeerJS
+        peer = new Peer(peerConfig);
+        
+        peer.on('open', (id) => {
+            myId = id;
+            document.getElementById('myPeerId').textContent = id;
+            document.getElementById('connStatus').textContent = 'Conectado';
+            document.getElementById('connStatus').className = 'green';
+            
+            // Conectar a sala (simulado con lista de peers)
+            joinRoom(roomId, name);
+        });
+        
+        peer.on('call', (call) => {
+            // Recibir llamada entrante
+            if (connections.size >= MAX_PARTICIPANTS - 1) {
+                console.log('Sala llena, rechazando llamada');
+                return;
+            }
+            
+            call.answer(localStream);
+            handleCall(call);
+        });
+        
+        peer.on('connection', (conn) => {
+            handleDataConnection(conn);
+        });
+        
+        peer.on('error', (err) => {
+            console.error('PeerJS Error:', err);
+            document.getElementById('connStatus').textContent = 'Error';
+            document.getElementById('connStatus').className = 'red';
+        });
+        
+        // Mostrar video local
+        addVideoStream('local', stream, name + ' (Tú)', true);
+        
+    }).catch(err => {
+        alert('Error accediendo a cámara/micrófono: ' + err.message);
+    });
+}
+
+function joinRoom(room, name) {
+    // Aquí normalmente consultarías un servidor para obtener lista de peers en la sala
+    // Para este ejemplo, el usuario debe compartir manualmente los IDs
+    
+    // Simulación: preguntar ID a conectar (en producción usarías signaling server)
+    setTimeout(() => {
+        const connectTo = prompt('ID del participante a conectar (deja vacío para esperar):');
+        if (connectTo) {
+            connectToPeer(connectTo, name);
+        }
+    }, 1000);
+}
+
+function connectToPeer(peerId, myName) {
+    if (connections.has(peerId) || connections.size >= MAX_PARTICIPANTS - 1) return;
+    
+    // Llamar video
+    const call = peer.call(peerId, localStream);
+    handleCall(call);
+    
+    // Conectar datos (Tally)
+    const conn = peer.connect(peerId, { reliable: true });
+    handleDataConnection(conn, myName);
+}
+
+function handleCall(call) {
+    call.on('stream', (remoteStream) => {
+        if (!connections.has(call.peer)) {
+            connections.set(call.peer, {});
+        }
+        connections.get(call.peer).stream = remoteStream;
+        addVideoStream(call.peer, remoteStream, 'Participante');
+        updateStats();
+    });
+    
+    call.on('close', () => {
+        removeParticipant(call.peer);
+    });
+}
+
+function handleDataConnection(conn, myName) {
+    conn.on('open', () => {
+        if (!connections.has(conn.peer)) {
+            connections.set(conn.peer, {});
+        }
+        connections.get(conn.peer).dataConn = conn;
+        
+        // Enviar nombre
+        conn.send({ type: 'intro', name: document.getElementById('userName').value });
+        
+        // Actualizar dashboard
+        updateParticipantsList();
+    });
+    
+    conn.on('data', (data) => {
+        if (data.type === 'tally') {
+            updateTally(data.targetId, data.state);
+        } else if (data.type === 'intro') {
+            // Actualizar nombre del participante
+            const container = document.getElementById(`video-${conn.peer}`);
+            if (container) {
+                const nameEl = container.querySelector('.participant-name');
+                if (nameEl) nameEl.textContent = data.name;
+            }
+            updateParticipantsList();
+        }
+    });
+    
+    conn.on('close', () => {
+        removeParticipant(conn.peer);
+    });
+}
+
+function addVideoStream(id, stream, name, isLocal = false) {
+    const existing = document.getElementById(`video-${id}`);
+    if (existing) {
+        const video = existing.querySelector('video');
+        video.srcObject = stream;
+        return;
+    }
+    
+    const container = document.createElement('div');
+    container.className = 'video-container offline';
+    container.id = `video-${id}`;
+    
+    const tally = document.createElement('div');
+    tally.className = 'tally-light';
+    tally.id = `tally-${id}`;
+    
+    const tallyLabel = document.createElement('div');
+    tallyLabel.className = 'tally-label';
+    tallyLabel.id = `tally-label-${id}`;
+    tallyLabel.textContent = 'OFF';
+    
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
+    if (isLocal) video.muted = true;
+    
+    const pname = document.createElement('div');
+    pname.className = 'participant-name';
+    pname.textContent = name;
+    pname.id = `name-${id}`;
+    
+    container.appendChild(tally);
+    container.appendChild(tallyLabel);
+    container.appendChild(video);
+    container.appendChild(pname);
+    document.getElementById('videoGrid').appendChild(container);
+    
+    updateGridLayout();
+}
+
+function updateGridLayout() {
+    const count = document.querySelectorAll('.video-container').length;
+    const grid = document.getElementById('videoGrid');
+    
+    if (count === 1) {
+        grid.style.gridTemplateColumns = '1fr';
+    } else if (count === 2) {
+        grid.style.gridTemplateColumns = '1fr 1fr';
+    } else if (count >= 3) {
+        grid.style.gridTemplateColumns = '1fr 1fr';
+        grid.style.gridTemplateRows = '1fr 1fr';
+    }
+}
+
+function updateParticipantsList() {
+    const list = document.getElementById('participantsList');
+    list.innerHTML = '';
+    
+    connections.forEach((conn, peerId) => {
+        const card = document.createElement('div');
+        card.className = 'participant-card';
+        card.id = `dashboard-${peerId}`;
+        
+        const name = document.getElementById(`name-${peerId}`)?.textContent || 'Participante';
+        
+        card.innerHTML = `
+            <h3>
+                ${name}
+                <span class="connection-status">● Conectado</span>
+            </h3>
+            <div class="tally-controls">
+                <button class="tally-btn btn-off active" onclick="sendTally('${peerId}', 'off')">OFF</button>
+                <button class="tally-btn btn-standby" onclick="sendTally('${peerId}', 'standby')">ATENTO</button>
+                <button class="tally-btn btn-live" onclick="sendTally('${peerId}', 'live')">AL AIRE</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+function sendTally(targetId, state) {
+    // Actualizar UI local inmediatamente
+    updateTally(targetId, state);
+    
+    // Enviar a todos los peers
+    connections.forEach((conn, peerId) => {
+        if (conn.dataConn && conn.dataConn.open) {
+            conn.dataConn.send({
+                type: 'tally',
+                targetId: targetId,
+                state: state,
+                from: myId
+            });
+        }
+    });
+    
+    // Actualizar botones
+    document.querySelectorAll(`#dashboard-${targetId} .tally-btn`).forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
+    const activeBtn = document.querySelector(`#dashboard-${targetId} .${btnClass}`);
+    if (activeBtn) activeBtn.classList.add('active');
+}
+
+function updateTally(id, state) {
+    const container = document.getElementById(`video-${id}`);
+    const light = document.getElementById(`tally-${id}`);
+    const label = document.getElementById(`tally-label-${id}`);
+    
+    if (!container || !light || !label) return;
+    
+    container.classList.remove('live', 'standby', 'offline');
+    light.classList.remove('live', 'standby');
+    
+    if (state === 'live') {
+        container.classList.add('live');
+        light.classList.add('live');
+        label.textContent = 'AL AIRE';
+        label.className = 'tally-label live';
+    } else if (state === 'standby') {
+        container.classList.add('standby');
+        light.classList.add('standby');
+        label.textContent = 'ATENTO';
+        label.className = 'tally-label standby';
+    } else {
+        container.classList.add('offline');
+        label.textContent = 'OFF';
+        label.className = 'tally-label';
+    }
+}
+
+function removeParticipant(peerId) {
+    const container = document.getElementById(`video-${peerId}`);
+    if (container) container.remove();
+    
+    const dashboard = document.getElementById(`dashboard-${peerId}`);
+    if (dashboard) dashboard.remove();
+    
+    connections.delete(peerId);
+    updateGridLayout();
+    updateStats();
+}
+
+function toggleMic() {
+    if (!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    if (track) {
+        track.enabled = !track.enabled;
+        document.getElementById('btnMic').classList.toggle('active');
+        document.getElementById('btnMic').style.background = track.enabled ? '#ff6b00' : '#cc0000';
+    }
+}
+
+function toggleCam() {
+    if (!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if (track) {
+        track.enabled = !track.enabled;
+        document.getElementById('btnCam').classList.toggle('active');
+    }
+}
+
+function disconnect() {
+    if (peer) peer.destroy();
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+    location.reload();
+}
+
+function updateStats() {
+    document.getElementById('peerCount').textContent = `${connections.size}/${MAX_PARTICIPANTS - 1}`;
+}
+
+// Stats periódicos
+setInterval(() => {
+    if (peer && !peer.destroyed) {
+        updateStats();
+    }
+}, 3000);
+</script>
+
+</body>
+</html>
