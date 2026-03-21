@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamcall Power</title>
+    <title>Streamcall Power - Sala <span id="titleRoom"></span></title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,6 +11,7 @@
         header { background: linear-gradient(90deg, #1a1a1a, #2d2d2d); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff6b00; }
         .brand { display: flex; align-items: center; gap: 15px; }
         .brand h1 { color: #ff6b00; font-size: 24px; letter-spacing: 2px; }
+        .room-badge { background: #ff6b00; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; }
         .main-container { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 70px); }
         .video-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: #000; }
         .video-container { position: relative; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 3px solid #333; transition: all 0.3s; aspect-ratio: 16/9; }
@@ -27,6 +28,11 @@
         .participant-name { position: absolute; bottom: 15px; left: 15px; background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; }
         .dashboard { background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
         .dashboard h2 { color: #ff6b00; margin-bottom: 20px; font-size: 18px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .share-box { background: #2d2d2d; border: 2px solid #ff6b00; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .share-box h3 { color: #ff6b00; font-size: 12px; margin-bottom: 10px; }
+        .share-url { background: #0f0f0f; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; word-break: break-all; color: #00ff00; cursor: pointer; }
+        .share-url:hover { background: #1a1a1a; }
+        .copy-msg { color: #00ff00; font-size: 11px; margin-top: 5px; display: none; }
         .participant-card { background: #2d2d2d; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 2px solid #444; }
         .participant-card h3 { font-size: 14px; margin-bottom: 10px; color: #fff; display: flex; justify-content: space-between; }
         .connection-status { font-size: 11px; color: #00ff00; }
@@ -51,14 +57,14 @@
         .join-btn { width: 100%; padding: 15px; background: #ff6b00; color: #fff; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; text-transform: uppercase; }
         .join-btn:hover { background: #ff8533; box-shadow: 0 0 20px rgba(255,107,0,0.5); }
         .alert-box { background: #332200; border: 1px solid #ff6b00; padding: 15px; border-radius: 4px; margin: 15px 0; font-size: 12px; line-height: 1.5; }
-        .room-info { background: #0f0f0f; padding: 10px; border-radius: 4px; margin-top: 10px; font-family: monospace; font-size: 12px; }
-        .id-display { color: #ff6b00; font-weight: bold; font-size: 18px; text-align: center; margin: 10px 0; padding: 10px; background: #2d2d2d; border-radius: 4px; border: 1px dashed #ff6b00; }
-        .copy-hint { font-size: 11px; color: #999; text-align: center; margin-top: 5px; }
         .stats { position: fixed; bottom: 20px; right: 340px; background: rgba(0,0,0,0.9); padding: 15px; border-radius: 8px; font-size: 11px; font-family: monospace; border: 1px solid #333; min-width: 200px; }
         .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
         .green { color: #00ff00; }
         .yellow { color: #ffff00; }
         .red { color: #ff0000; }
+        .waiting-msg { color: #666; text-align: center; padding: 40px; font-size: 14px; }
+        .waiting-msg .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -66,7 +72,7 @@
 <header>
     <div class="brand">
         <h1>STREAMCALL POWER</h1>
-        <span style="background: #ff0000; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: bold;">LIVE</span>
+        <span class="room-badge" id="headerRoom">SALA 1</span>
     </div>
     <div style="font-size: 12px; color: #999; text-align: right;">
         <div>Máx 3 Participantes</div>
@@ -81,21 +87,26 @@
     
     <div class="dashboard">
         <h2>🎛️ Dashboard Tally</h2>
-        <div id="participantsList">
-            <div style="color: #666; text-align: center; padding: 20px; font-size: 12px;">
-                Esperando participantes...
+        
+        <div class="share-box">
+            <h3>🔗 ENLACE PARA INVITAR</h3>
+            <div class="share-url" id="shareUrl" onclick="copyUrl()"></div>
+            <div class="copy-msg" id="copyMsg">✓ Enlace copiado al portapapeles</div>
+            <div style="font-size: 11px; color: #999; margin-top: 8px;">
+                Máximo 2 invitados + tú = 3 total
             </div>
         </div>
         
-        <div style="margin-top: 30px; padding: 15px; background: #0f0f0f; border-radius: 8px; border: 1px solid #333;">
-            <h3 style="color: #666; font-size: 12px; margin-bottom: 10px;">TU CONEXIÓN</h3>
-            <div class="id-display" id="myPeerId">---</div>
-            <div class="copy-hint">Comparte este ID para conectar</div>
+        <div id="participantsList">
+            <div class="waiting-msg">
+                <span class="spinner"></span>
+                Esperando participantes...
+            </div>
         </div>
 
-        <div class="alert-box">
+        <div class="alert-box" style="margin-top: 20px;">
             <strong>🇭🇳 Modo Honduras:</strong><br>
-            Usando TURN servers en puerto 443/TCP para evitar bloqueos de carriers locales.
+            Usando TURN servers en puerto 443/TCP para evitar bloqueos de CLARO/TIGO.
         </div>
     </div>
 </div>
@@ -107,19 +118,22 @@
 </div>
 
 <div class="stats" id="stats">
-    <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">Conectando...</span></div>
-    <div class="stat-row"><span>Peers:</span> <span id="peerCount">0/3</span></div>
-    <div class="stat-row"><span>TURN:</span> <span class="green">Active</span></div>
+    <div class="stat-row"><span>Sala:</span> <span class="yellow" id="roomDisplay">-</span></div>
+    <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">Iniciando...</span></div>
+    <div class="stat-row"><span>Conectados:</span> <span id="peerCount">1/3</span></div>
+    <div class="stat-row"><span>TURN Relay:</span> <span class="green">Activo</span></div>
 </div>
 
 <!-- Modal Configuración -->
 <div class="modal active" id="configModal">
     <div class="modal-content">
         <h2 style="color: #ff6b00; margin-bottom: 10px; text-align: center;">Streamcall Power</h2>
-        <p style="text-align: center; color: #999; margin-bottom: 20px; font-size: 14px;">Broadcast Remoto Profesional</p>
+        <p style="text-align: center; color: #999; margin-bottom: 20px; font-size: 14px;">
+            Sala: <strong style="color: #ff6b00;" id="modalRoom">1</strong>
+        </p>
         
         <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
-        <input type="text" id="userName" class="device-select" placeholder="Ej: Operador Estudio" value="Operador">
+        <input type="text" id="userName" class="device-select" placeholder="Ej: Operador Estudio" value="Participante">
         
         <label style="font-size: 12px; color: #ccc;">Cámara:</label>
         <select id="videoSource" class="device-select"></select>
@@ -127,24 +141,39 @@
         <label style="font-size: 12px; color: #ccc;">Micrófono:</label>
         <select id="audioSource" class="device-select"></select>
         
-        <div style="margin: 20px 0; padding: 15px; background: #2d2d2d; border-radius: 8px;">
-            <label style="font-size: 12px; color: #ccc;">Sala (Room ID):</label>
-            <input type="text" id="roomInput" class="device-select" placeholder="Nombre de sala único">
-            <div style="font-size: 11px; color: #666; margin-top: 5px;">
-                Máximo 3 participantes por sala
-            </div>
-        </div>
-
         <div class="alert-box">
             <strong>⚠️ Importante Honduras:</strong><br>
-            Si usas CLARO/TIGO, el sistema usará automáticamente TURN relay para bypass de restricciones.
+            Si usas CLARO/TIGO, el sistema usará automáticamente TURN relay para bypass de restricciones de video.
         </div>
         
-        <button class="join-btn" onclick="startBroadcast()">INICIAR TRANSMISIÓN</button>
+        <button class="join-btn" onclick="startBroadcast()">ENTRAR A LA SALA</button>
     </div>
 </div>
 
 <script>
+// ==================== CONFIGURACIÓN ====================
+// Obtener Room ID de la URL automáticamente
+const urlParams = new URLSearchParams(window.location.search);
+const ROOM_ID = urlParams.get('room') || 'default';
+const MAX_PARTICIPANTS = 3;
+
+// Mostrar sala en UI
+document.getElementById('headerRoom').textContent = 'SALA ' + ROOM_ID;
+document.getElementById('modalRoom').textContent = ROOM_ID;
+document.getElementById('roomDisplay').textContent = ROOM_ID;
+
+// Generar enlace compartible
+const shareUrl = window.location.origin + window.location.pathname + '?room=' + ROOM_ID;
+document.getElementById('shareUrl').textContent = shareUrl;
+
+function copyUrl() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        const msg = document.getElementById('copyMsg');
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display = 'none', 2000);
+    });
+}
+
 // Configuración ICE optimizada para Honduras (bypass carriers)
 const peerConfig = {
     host: '0.peerjs.com',
@@ -159,19 +188,21 @@ const peerConfig = {
             // TURN servers gratuitos (relay TCP 443 para Honduras)
             { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
             { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' },
-            { urls: 'turn:turn.bistri.com:80', username: 'homeo', credential: 'homeo' }
+            { urls: 'turn:turn.bistri.com:80', username: 'homeo', credential: 'homeo' },
+            { urls: 'turn:turn0.xirsys.com:3478?transport=tcp', username: 'open', credential: 'open' }
         ],
         iceTransportPolicy: 'all',
-        iceCandidatePoolSize: 10
+        iceCandidatePoolSize: 10,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
     }
 };
 
 let peer;
 let localStream;
-let connections = new Map(); // peerId -> { call, dataConn, name }
+let connections = new Map(); // peerId -> { call, dataConn, name, stream }
 let myId;
-let roomId;
-const MAX_PARTICIPANTS = 3;
+let isHost = false;
 
 // Cargar dispositivos
 navigator.mediaDevices.enumerateDevices().then(devices => {
@@ -190,37 +221,34 @@ navigator.mediaDevices.enumerateDevices().then(devices => {
 
 function startBroadcast() {
     const name = document.getElementById('userName').value || 'Usuario';
-    roomId = document.getElementById('roomInput').value || 'sala-default';
-    
     const videoId = document.getElementById('videoSource').value;
     const audioId = document.getElementById('audioSource').value;
     
     const constraints = {
-        video: videoId ? { deviceId: { exact: videoId } } : true,
-        audio: audioId ? { deviceId: { exact: audioId } } : true
+        video: videoId ? { deviceId: { exact: videoId }, width: 1280, height: 720 } : { width: 1280, height: 720 },
+        audio: audioId ? { deviceId: { exact: audioId }, echoCancellation: true, noiseSuppression: true } : { echoCancellation: true, noiseSuppression: true }
     };
     
     navigator.mediaDevices.getUserMedia(constraints).then(stream => {
         localStream = stream;
         document.getElementById('configModal').classList.remove('active');
         
-        // Inicializar PeerJS
-        peer = new Peer(peerConfig);
+        // Inicializar PeerJS con ID basado en sala para reconexión
+        const peerId = ROOM_ID + '_' + Math.random().toString(36).substr(2, 5);
+        peer = new Peer(peerId, peerConfig);
         
         peer.on('open', (id) => {
             myId = id;
-            document.getElementById('myPeerId').textContent = id;
             document.getElementById('connStatus').textContent = 'Conectado';
             document.getElementById('connStatus').className = 'green';
             
-            // Conectar a sala (simulado con lista de peers)
-            joinRoom(roomId, name);
+            // Buscar otros participantes en la misma sala
+            discoverPeers();
         });
         
         peer.on('call', (call) => {
-            // Recibir llamada entrante
             if (connections.size >= MAX_PARTICIPANTS - 1) {
-                console.log('Sala llena, rechazando llamada');
+                console.log('Sala llena, rechazando llamada de:', call.peer);
                 return;
             }
             
@@ -234,7 +262,7 @@ function startBroadcast() {
         
         peer.on('error', (err) => {
             console.error('PeerJS Error:', err);
-            document.getElementById('connStatus').textContent = 'Error';
+            document.getElementById('connStatus').textContent = 'Error: ' + err.type;
             document.getElementById('connStatus').className = 'red';
         });
         
@@ -242,61 +270,108 @@ function startBroadcast() {
         addVideoStream('local', stream, name + ' (Tú)', true);
         
     }).catch(err => {
-        alert('Error accediendo a cámara/micrófono: ' + err.message);
+        alert('Error accediendo a cámara/micrófono: ' + err.message + '\n\nAsegúrate de permitir acceso cuando el navegador lo solicite.');
     });
 }
 
-function joinRoom(room, name) {
-    // Aquí normalmente consultarías un servidor para obtener lista de peers en la sala
-    // Para este ejemplo, el usuario debe compartir manualmente los IDs
+// Descubrir peers en la misma sala (simulando sala compartida)
+function discoverPeers() {
+    // En PeerJS puro, "descubrimos" intentando conectar a IDs probables de la sala
+    // Formato: ROOM_ID_XXXXX
     
-    // Simulación: preguntar ID a conectar (en producción usarías signaling server)
-    setTimeout(() => {
-        const connectTo = prompt('ID del participante a conectar (deja vacío para esperar):');
-        if (connectTo) {
-            connectToPeer(connectTo, name);
-        }
-    }, 1000);
+    const baseId = ROOM_ID + '_';
+    
+    // Intentar conectar a peers existentes (host tiene prioridad)
+    // El primer peer en la sala es el "host" (ROOM_ID_host)
+    
+    // Simulación: intentar conectar a host si existe
+    const possibleHost = ROOM_ID + '_host';
+    if (myId !== possibleHost) {
+        setTimeout(() => {
+            tryConnect(possibleHost);
+        }, 1000);
+    } else {
+        isHost = true;
+    }
+    
+    // También escuchar nuevas conexiones entrantes
+    updateStats();
 }
 
-function connectToPeer(peerId, myName) {
-    if (connections.has(peerId) || connections.size >= MAX_PARTICIPANTS - 1) return;
+function tryConnect(peerId) {
+    if (peerId === myId || connections.has(peerId)) return;
     
-    // Llamar video
-    const call = peer.call(peerId, localStream);
-    handleCall(call);
+    console.log('Intentando conectar a:', peerId);
     
-    // Conectar datos (Tally)
-    const conn = peer.connect(peerId, { reliable: true });
-    handleDataConnection(conn, myName);
+    const conn = peer.connect(peerId, { 
+        reliable: true,
+        metadata: { room: ROOM_ID, name: document.getElementById('userName').value }
+    });
+    
+    conn.on('open', () => {
+        handleDataConnection(conn, true);
+    });
+    
+    conn.on('error', (err) => {
+        console.log('No se pudo conectar a:', peerId);
+    });
 }
 
 function handleCall(call) {
+    const peerId = call.peer;
+    
     call.on('stream', (remoteStream) => {
-        if (!connections.has(call.peer)) {
-            connections.set(call.peer, {});
+        console.log('Stream recibido de:', peerId);
+        
+        if (!connections.has(peerId)) {
+            connections.set(peerId, {});
         }
-        connections.get(call.peer).stream = remoteStream;
-        addVideoStream(call.peer, remoteStream, 'Participante');
+        connections.get(peerId).stream = remoteStream;
+        connections.get(peerId).call = call;
+        
+        // Obtener nombre del data channel si existe
+        const conn = connections.get(peerId);
+        const name = conn?.name || 'Invitado ' + (connections.size);
+        
+        addVideoStream(peerId, remoteStream, name);
+        updateParticipantsList();
         updateStats();
     });
     
     call.on('close', () => {
-        removeParticipant(call.peer);
+        removeParticipant(peerId);
+    });
+    
+    call.on('error', (err) => {
+        console.error('Error en llamada:', err);
+        removeParticipant(peerId);
     });
 }
 
-function handleDataConnection(conn, myName) {
+function handleDataConnection(conn, isInitiator = false) {
+    const peerId = conn.peer;
+    
     conn.on('open', () => {
-        if (!connections.has(conn.peer)) {
-            connections.set(conn.peer, {});
+        console.log('DataChannel abierto con:', peerId);
+        
+        if (!connections.has(peerId)) {
+            connections.set(peerId, {});
         }
-        connections.get(conn.peer).dataConn = conn;
+        connections.get(peerId).dataConn = conn;
         
-        // Enviar nombre
-        conn.send({ type: 'intro', name: document.getElementById('userName').value });
+        // Enviar info propia
+        conn.send({ 
+            type: 'intro', 
+            name: document.getElementById('userName').value,
+            room: ROOM_ID 
+        });
         
-        // Actualizar dashboard
+        // Si somos iniciadores, también iniciar llamada de video
+        if (isInitiator && !connections.get(peerId).call) {
+            const call = peer.call(peerId, localStream);
+            handleCall(call);
+        }
+        
         updateParticipantsList();
     });
     
@@ -304,18 +379,24 @@ function handleDataConnection(conn, myName) {
         if (data.type === 'tally') {
             updateTally(data.targetId, data.state);
         } else if (data.type === 'intro') {
-            // Actualizar nombre del participante
-            const container = document.getElementById(`video-${conn.peer}`);
-            if (container) {
-                const nameEl = container.querySelector('.participant-name');
-                if (nameEl) nameEl.textContent = data.name;
+            // Actualizar nombre
+            if (connections.has(peerId)) {
+                connections.get(peerId).name = data.name;
             }
-            updateParticipantsList();
+            
+            // Actualizar UI
+            const nameEl = document.querySelector(`#video-${peerId} .participant-name`);
+            if (nameEl) nameEl.textContent = data.name;
+            
+            const dashboardName = document.querySelector(`#dashboard-${peerId} h3`);
+            if (dashboardName) {
+                dashboardName.innerHTML = `${data.name} <span class="connection-status">● Conectado</span>`;
+            }
         }
     });
     
     conn.on('close', () => {
-        removeParticipant(conn.peer);
+        removeParticipant(peerId);
     });
 }
 
@@ -358,6 +439,13 @@ function addVideoStream(id, stream, name, isLocal = false) {
     document.getElementById('videoGrid').appendChild(container);
     
     updateGridLayout();
+    
+    // Auto-poner en standby si es nuevo participante
+    if (!isLocal) {
+        setTimeout(() => {
+            updateTally(id, 'standby');
+        }, 1000);
+    }
 }
 
 function updateGridLayout() {
@@ -376,6 +464,18 @@ function updateGridLayout() {
 
 function updateParticipantsList() {
     const list = document.getElementById('participantsList');
+    
+    if (connections.size === 0) {
+        list.innerHTML = `
+            <div class="waiting-msg">
+                <span class="spinner"></span>
+                Esperando participantes...
+            </div>
+        `;
+        return;
+    }
+    
+    // Limpiar y reconstruir
     list.innerHTML = '';
     
     connections.forEach((conn, peerId) => {
@@ -383,13 +483,14 @@ function updateParticipantsList() {
         card.className = 'participant-card';
         card.id = `dashboard-${peerId}`;
         
-        const name = document.getElementById(`name-${peerId}`)?.textContent || 'Participante';
+        const name = conn.name || 'Invitado';
         
         card.innerHTML = `
             <h3>
                 ${name}
                 <span class="connection-status">● Conectado</span>
             </h3>
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px;">ID: ${peerId.substr(-8)}</div>
             <div class="tally-controls">
                 <button class="tally-btn btn-off active" onclick="sendTally('${peerId}', 'off')">OFF</button>
                 <button class="tally-btn btn-standby" onclick="sendTally('${peerId}', 'standby')">ATENTO</button>
@@ -416,13 +517,14 @@ function sendTally(targetId, state) {
         }
     });
     
-    // Actualizar botones
-    document.querySelectorAll(`#dashboard-${targetId} .tally-btn`).forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
-    const activeBtn = document.querySelector(`#dashboard-${targetId} .${btnClass}`);
-    if (activeBtn) activeBtn.classList.add('active');
+    // Actualizar botones del dashboard
+    const card = document.getElementById(`dashboard-${targetId}`);
+    if (card) {
+        card.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
+        const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
+        const activeBtn = card.querySelector(`.${btnClass}`);
+        if (activeBtn) activeBtn.classList.add('active');
+    }
 }
 
 function updateTally(id, state) {
@@ -462,6 +564,7 @@ function removeParticipant(peerId) {
     connections.delete(peerId);
     updateGridLayout();
     updateStats();
+    updateParticipantsList();
 }
 
 function toggleMic() {
@@ -469,8 +572,9 @@ function toggleMic() {
     const track = localStream.getAudioTracks()[0];
     if (track) {
         track.enabled = !track.enabled;
-        document.getElementById('btnMic').classList.toggle('active');
-        document.getElementById('btnMic').style.background = track.enabled ? '#ff6b00' : '#cc0000';
+        const btn = document.getElementById('btnMic');
+        btn.classList.toggle('active');
+        btn.style.background = track.enabled ? '#ff6b00' : '#cc0000';
     }
 }
 
@@ -492,15 +596,26 @@ function disconnect() {
 }
 
 function updateStats() {
-    document.getElementById('peerCount').textContent = `${connections.size}/${MAX_PARTICIPANTS - 1}`;
+    const total = connections.size + 1; // +1 por ti mismo
+    document.getElementById('peerCount').textContent = `${total}/${MAX_PARTICIPANTS}`;
 }
 
 // Stats periódicos
 setInterval(() => {
     if (peer && !peer.destroyed) {
         updateStats();
+        
+        // Reintentar descubrimiento si estamos solos
+        if (connections.size === 0 && !isHost) {
+            discoverPeers();
+        }
     }
-}, 3000);
+}, 5000);
+
+// Manejar cierre de ventana
+window.onbeforeunload = () => {
+    if (peer) peer.destroy();
+};
 </script>
 
 </body>
