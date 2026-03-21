@@ -28,6 +28,21 @@
         .main-container.guest .operator-view { grid-row: 1; display: flex; justify-content: center; align-items: center; background: #000; padding: 20px; position: relative; }
         .main-container.guest .guest-preview-bar { grid-row: 2; display: flex; gap: 15px; padding: 15px; background: #1a1a1a; border-top: 3px solid #ff6b00; justify-content: center; align-items: center; }
         
+        /* MODO OBS LIMPIO - Ultra minimalista */
+        .main-container.obs-mode { grid-template-columns: 1fr; grid-template-rows: 1fr; background: #000; }
+        .main-container.obs-mode .video-grid { display: flex; justify-content: center; align-items: center; padding: 0; background: #000; width: 100vw; height: 100vh; }
+        .main-container.obs-mode header { display: none; }
+        .main-container.obs-mode .controls { display: none; }
+        .main-container.obs-mode .stats { display: none; }
+        .main-container.obs-mode .dashboard { display: none; }
+        .main-container.obs-mode .preview-bar { display: none; }
+        .main-container.obs-mode .guest-preview-bar { display: none; }
+        .main-container.obs-mode .tally-label-main { display: none !important; } /* Ocultar tally en OBS */
+        .main-container.obs-mode .participant-name { display: none !important; } /* Ocultar nombres en OBS */
+        .main-container.obs-mode .retorno-label { display: none !important; }
+        .main-container.obs-mode .self-label { display: none !important; }
+        .main-container.obs-mode .connecting-overlay { display: none !important; } /* Ocultar spinner */
+        
         .video-container { position: relative; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 3px solid #333; transition: all 0.3s; aspect-ratio: 16/9; }
         .video-container.live { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.6); }
         .video-container.standby { border-color: #ffff00; box-shadow: 0 0 20px rgba(255,255,0,0.4); }
@@ -35,16 +50,40 @@
         .video-container.operator-large { max-width: 900px; width: 100%; max-height: 70vh; }
         .video-container.guest-self { min-width: 240px; max-width: 360px; border: 2px solid #0088ff; }
         
+        /* En modo OBS el container es 100% limpio */
+        .video-container.obs-fullscreen { 
+            width: 100vw; 
+            height: 100vh; 
+            border: none; 
+            border-radius: 0; 
+            background: #000;
+        }
+        
         video { width: 100%; height: 100%; object-fit: cover; background: #000; }
         
         .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
-        .tally-label-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; text-shadow: 0 0 20px currentColor; pointer-events: none; z-index: 30; }
-        .tally-label-main.off { display: none; }
-        .tally-label-main.standby { color: #ffff00; }
-        .tally-label-main.live { color: #ff0000; animation: pulse 1s infinite; }
         
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* TALLY DEL INVITADO - Compacto arriba a la derecha */
+        .tally-label-main { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            text-shadow: 0 0 10px currentColor; 
+            pointer-events: none; 
+            z-index: 30; 
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid currentColor;
+        }
+        .tally-label-main.off { display: none; }
+        .tally-label-main.standby { color: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px rgba(255,255,0,0.5); }
+        .tally-label-main.live { color: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.8); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
         .tally-light { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #333; border: 2px solid #555; z-index: 10; }
         .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
@@ -74,6 +113,14 @@
         .participant-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 2px solid #444; }
         .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 20px; }
         .participant-card h3 { font-size: 13px; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* URL Input para OBS */
+        .obs-url-box { margin-top: 10px; background: #1a1a1a; border: 1px solid #555; border-radius: 4px; padding: 8px; }
+        .obs-url-label { font-size: 9px; color: #ff6b00; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; }
+        .obs-url-input { width: 100%; background: #0f0f0f; border: 1px solid #333; color: #00ff00; font-family: monospace; font-size: 10px; padding: 6px; border-radius: 3px; cursor: text; }
+        .obs-copy-btn { width: 100%; margin-top: 5px; padding: 4px; background: #333; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 9px; cursor: pointer; }
+        .obs-copy-btn:hover { background: #ff6b00; border-color: #ff6b00; }
+        .obs-status { font-size: 9px; color: #00ff00; margin-top: 4px; height: 12px; }
         
         .tally-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
         .tally-btn { padding: 8px 4px; border: none; border-radius: 4px; cursor: pointer; font-size: 9px; font-weight: bold; text-transform: uppercase; transition: all 0.2s; }
@@ -129,7 +176,7 @@
 </head>
 <body>
 
-<header>
+<header id="mainHeader">
     <div class="brand">
         <h1>STREAMCALL POWER</h1>
         <span class="room-badge" id="headerRoom">SALA -</span>
@@ -258,11 +305,25 @@
         <label style="font-size: 12px; color: #ccc;">Micrófono:</label>
         <select id="audioSource" class="device-select"></select>
         
+        <div style="margin-top: 10px; padding: 8px; background: #2d2d2d; border-radius: 4px; font-size: 11px; color: #999;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="musicMode" style="margin-right: 8px;">
+                <span>🎵 Modo Música (deshabilitar cancelación de ruido para audio HQ)</span>
+            </label>
+        </div>
+        
         <button class="join-btn" onclick="startBroadcast()">INICIAR CONEXIÓN</button>
     </div>
 </div>
 
 <script>
+// Detectar modo OBS (vista limpia para captura individual)
+const urlParams = new URLSearchParams(window.location.search);
+const obsMode = urlParams.get('obs');
+const obsSlot = urlParams.get('slot');
+const obsRoom = urlParams.get('room');
+const showUi = urlParams.get('ui'); // Parámetro opcional para mostrar UI si se necesita
+
 let myRole = 'operator';
 let peer;
 let localStream;
@@ -270,19 +331,34 @@ let connections = new Map(); // peerId -> {call, returnCall, stream, returnStrea
 let myPeerId;
 let operatorId = null;
 let availableSlots = [0, 1, 2];
+let isMusicMode = false;
 
-navigator.mediaDevices.enumerateDevices().then(devices => {
-    const videoSelect = document.getElementById('videoSource');
-    const audioSelect = document.getElementById('audioSource');
-    
-    devices.forEach(device => {
-        const option = document.createElement('option');
-        option.value = device.deviceId;
-        option.text = device.label || `${device.kind} ${videoSelect.length + 1}`;
-        if (device.kind === 'videoinput') videoSelect.appendChild(option);
-        if (device.kind === 'audioinput') audioSelect.appendChild(option);
+// Si es modo OBS, configurar vista especial
+if (obsMode === 'true' && obsRoom && obsSlot !== null) {
+    document.getElementById('mainContainer').className = 'main-container obs-mode';
+    document.getElementById('mainHeader').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('configModal').style.display = 'none';
+    document.getElementById('previewBar').style.display = 'none';
+    document.getElementById('guestPreviewBar').style.display = 'none';
+    startObsMode(obsRoom, obsSlot);
+} else {
+    // Modo normal: enumerar dispositivos
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        const videoSelect = document.getElementById('videoSource');
+        const audioSelect = document.getElementById('audioSource');
+        
+        devices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `${device.kind} ${videoSelect.length + 1}`;
+            if (device.kind === 'videoinput') videoSelect.appendChild(option);
+            if (device.kind === 'audioinput') audioSelect.appendChild(option);
+        });
     });
-});
+}
 
 function selectRole(role) {
     myRole = role;
@@ -299,7 +375,31 @@ function updateStatusIndicators(cam, mic) {
     document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
 }
 
+function getAudioConstraints() {
+    // Configuración de audio optimizada
+    if (isMusicMode) {
+        return {
+            deviceId: document.getElementById('audioSource').value ? { exact: document.getElementById('audioSource').value } : undefined,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 48000,
+            channelCount: 2,
+            sampleSize: 16
+        };
+    } else {
+        return {
+            deviceId: document.getElementById('audioSource').value ? { exact: document.getElementById('audioSource').value } : undefined,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000
+        };
+    }
+}
+
 function startBroadcast() {
+    isMusicMode = document.getElementById('musicMode').checked;
     const name = myRole === 'operator' 
         ? document.getElementById('userName').value 
         : document.getElementById('guestName').value;
@@ -337,12 +437,13 @@ function startBroadcast() {
     }
     
     const videoId = document.getElementById('videoSource').value;
-    const audioId = document.getElementById('audioSource').value;
     
-    navigator.mediaDevices.getUserMedia({
+    const constraints = {
         video: videoId ? { deviceId: { exact: videoId } } : true,
-        audio: audioId ? { deviceId: { exact: audioId } } : true
-    }).then(stream => {
+        audio: getAudioConstraints()
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints).then(stream => {
         localStream = stream;
         document.getElementById('configModal').classList.remove('active');
         
@@ -419,22 +520,34 @@ function connectToOperator() {
     console.log('Invitado conectando a operador:', operatorId);
     document.getElementById('connStatus').textContent = 'Conectando...';
     
-    // 1. DataChannel al operador
-    const conn = peer.connect(operatorId, { reliable: true, metadata: { name: document.getElementById('guestName').value } });
+    // 1. DataChannel al operador con metadata
+    const conn = peer.connect(operatorId, { 
+        reliable: true, 
+        metadata: { name: document.getElementById('guestName').value } 
+    });
     
     conn.on('open', () => {
         console.log('DataChannel abierto con operador');
         document.getElementById('connStatus').textContent = 'Canal listo - Enviando video...';
+        
+        // Guardar referencia para recibir tally
+        window.operatorDataConn = conn;
+        
+        // Escuchar datos del operador (TALLY)
+        conn.on('data', (data) => {
+            if (data.type === 'tally') {
+                console.log('Tally recibido del operador:', data.state);
+                updateGuestTally(data.state);
+            }
+        });
         
         // 2. Llamar al operador (enviar nuestro stream)
         const call = peer.call(operatorId, localStream);
         console.log('Llamada enviada al operador');
     });
     
-    conn.on('data', (data) => {
-        if (data.type === 'tally') {
-            updateGuestTally(data.state);
-        }
+    conn.on('error', (err) => {
+        console.log('Error en DataChannel:', err);
     });
 }
 
@@ -442,6 +555,12 @@ function connectToOperator() {
 function handleIncomingCall(call) {
     const callerId = call.peer;
     console.log('Llamada entrante de:', callerId, 'Rol:', myRole);
+    
+    // Si es un viewer de OBS (ID empieza con OBS_)
+    if (callerId.startsWith('OBS_') && myRole === 'operator') {
+        handleObsViewer(call, callerId);
+        return;
+    }
     
     if (myRole === 'operator') {
         // OPERADOR: Recibir de invitado
@@ -466,7 +585,8 @@ function handleIncomingCall(call) {
                 call: call,
                 stream: remoteStream,
                 name: guestName,
-                slot: slot
+                slot: slot,
+                dataConn: null // Se asignará en handleDataConnection
             });
             
             addGuestVideo(slot, remoteStream, guestName, callerId);
@@ -475,8 +595,7 @@ function handleIncomingCall(call) {
             document.getElementById('connStatus').textContent = 'Conectado';
             document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
             
-            // IMPORTANTE: Llamar DE VUELTA al invitado con nuestro video (retorno)
-            // Esto asegura que el invitado reciba nuestro stream incluso si la primera llamada falló
+            // Llamar DE VUELTA al invitado con nuestro video (retorno redundante por seguridad)
             setTimeout(() => {
                 console.log('Enviando retorno al invitado:', callerId);
                 const returnCall = peer.call(callerId, localStream);
@@ -526,11 +645,84 @@ function handleIncomingCall(call) {
 }
 
 function handleDataConnection(conn) {
+    const peerId = conn.peer;
+    console.log('DataConnection recibida de:', peerId);
+    
+    // Si es un viewer de OBS, manejarlo especialmente
+    if (peerId.startsWith('OBS_') && myRole === 'operator') {
+        // Esperar a recibir qué slot quiere
+        conn.on('data', (data) => {
+            if (data.type === 'request_slot') {
+                const requestedSlot = data.slot;
+                console.log('OBS Viewer pide slot:', requestedSlot);
+                
+                // Buscar el stream del invitado en ese slot
+                let targetStream = null;
+                let targetPeerId = null;
+                for (let [pid, connData] of connections) {
+                    if (connData.slot === requestedSlot && connData.stream) {
+                        targetStream = connData.stream;
+                        targetPeerId = pid;
+                        break;
+                    }
+                }
+                
+                // Enviar el stream al viewer OBS
+                if (targetStream) {
+                    console.log('Enviando stream del slot', requestedSlot, 'a OBS viewer');
+                    const obsCall = peer.call(peerId, targetStream);
+                    
+                    // Guardar referencia para enviar tally después
+                    connections.set(peerId, {
+                        type: 'obs_viewer',
+                        slot: requestedSlot,
+                        dataConn: conn,
+                        call: obsCall
+                    });
+                    
+                    // También enviar tally inicial
+                    const currentTally = getCurrentTallyState(targetPeerId);
+                    setTimeout(() => {
+                        conn.send({ type: 'tally', state: currentTally });
+                    }, 1000);
+                } else {
+                    console.log('No hay invitado en slot', requestedSlot);
+                    conn.send({ type: 'error', message: 'No hay invitado en este canal' });
+                }
+            }
+        });
+        return;
+    }
+    
+    // Guardar referencia del datachannel en la conexión existente
+    if (connections.has(peerId)) {
+        const connData = connections.get(peerId);
+        connData.dataConn = conn;
+        connections.set(peerId, connData);
+        
+        // Si hay metadata con nombre, actualizar
+        if (conn.metadata && conn.metadata.name) {
+            connData.name = conn.metadata.name;
+            updateDashboardSlot(connData.slot, peerId, conn.metadata.name, true);
+            // Actualizar nombre en el video
+            const nameEl = document.querySelector('#guest-video-' + connData.slot + ' .participant-name');
+            if (nameEl) nameEl.textContent = conn.metadata.name;
+        }
+    }
+    
     conn.on('data', (data) => {
-        if (data.type === 'tally' && myRole === 'guest') {
+        if (data.type === 'tally') {
             updateGuestTally(data.state);
         }
     });
+}
+
+function getCurrentTallyState(peerId) {
+    const container = document.getElementById('guest-video-' + connections.get(peerId)?.slot);
+    if (!container) return 'off';
+    if (container.classList.contains('live')) return 'live';
+    if (container.classList.contains('standby')) return 'standby';
+    return 'off';
 }
 
 function addGuestVideo(slot, stream, name, peerId) {
@@ -574,7 +766,11 @@ function addGuestVideo(slot, stream, name, peerId) {
 function updateDashboardSlot(slot, peerId, name, connected) {
     const slotEl = document.getElementById('slot-' + slot);
     
-    if (connected) {
+    if (connected && peerId) {
+        // Generar URL para OBS (vista limpia de este slot)
+        const currentUrl = window.location.href.split('?')[0];
+        const obsUrl = currentUrl + '?obs=true&room=' + myPeerId + '&slot=' + slot;
+        
         slotEl.className = 'participant-card';
         slotEl.innerHTML = `
             <h3>${name} <span style="color: #00ff00; font-size: 10px;">● En línea</span></h3>
@@ -584,6 +780,12 @@ function updateDashboardSlot(slot, peerId, name, connected) {
                 <button class="tally-btn btn-standby" onclick="sendTally('${peerId}', 'standby')">ATENTO</button>
                 <button class="tally-btn btn-live" onclick="sendTally('${peerId}', 'live')">AL AIRE</button>
             </div>
+            <div class="obs-url-box">
+                <div class="obs-url-label">🔗 URL PARA OBS / VMIX (SOLO VIDEO)</div>
+                <input type="text" class="obs-url-input" id="obs-url-${slot}" value="${obsUrl}" readonly onclick="this.select()">
+                <button class="obs-copy-btn" onclick="copyObsUrl('${slot}')">📋 COPIAR URL</button>
+                <div class="obs-status" id="obs-status-${slot}"></div>
+            </div>
         `;
     } else {
         slotEl.className = 'participant-card empty';
@@ -591,21 +793,63 @@ function updateDashboardSlot(slot, peerId, name, connected) {
     }
 }
 
+function copyObsUrl(slot) {
+    const input = document.getElementById('obs-url-' + slot);
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+        const status = document.getElementById('obs-status-' + slot);
+        status.textContent = '✅ URL copiada al portapapeles';
+        setTimeout(() => status.textContent = '', 3000);
+    }).catch(err => {
+        // Fallback para navegadores que no soportan clipboard API
+        const textArea = document.createElement("textarea");
+        textArea.value = input.value;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        const status = document.getElementById('obs-status-' + slot);
+        status.textContent = '✅ URL copiada';
+        setTimeout(() => status.textContent = '', 3000);
+    });
+}
+
 function sendTally(peerId, state) {
     updateTally(peerId, state);
     
-    // Enviar a través de DataChannel
-    const conn = peer.connections[peerId]?.find(c => c.label === 'data');
-    if (conn) {
-        conn.send({ type: 'tally', state: state });
+    // Enviar a través de DataChannel si existe
+    const connData = connections.get(peerId);
+    if (connData && connData.dataConn && connData.dataConn.open) {
+        connData.dataConn.send({ type: 'tally', state: state });
+        console.log('Tally enviado a', peerId, ':', state);
+    } else {
+        // Intentar crear nueva conexión si no existe
+        const conn = peer.connect(peerId, { reliable: true });
+        conn.on('open', () => {
+            conn.send({ type: 'tally', state: state });
+            console.log('Tally enviado por nueva conexión a', peerId);
+        });
     }
     
+    // También enviar a viewers OBS que estén viendo este slot
     const slot = connections.get(peerId)?.slot;
     if (slot !== undefined) {
+        // Actualizar UI del operador
         const slotEl = document.getElementById('slot-' + slot);
-        slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
-        const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
-        slotEl.querySelector('.' + btnClass).classList.add('active');
+        if (slotEl) {
+            slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
+            const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
+            const btn = slotEl.querySelector('.' + btnClass);
+            if (btn) btn.classList.add('active');
+        }
+        
+        // Notificar a viewers OBS
+        for (let [obsPeerId, obsConn] of connections) {
+            if (obsPeerId.startsWith('OBS_') && obsConn.slot === slot && obsConn.dataConn) {
+                obsConn.dataConn.send({ type: 'tally', state: state });
+            }
+        }
     }
 }
 
@@ -640,6 +884,8 @@ function updateGuestTally(state) {
     const mainTally = document.getElementById('mainTally');
     const container = document.getElementById('operatorVideoContainer');
     
+    if (!mainTally || !container) return;
+    
     mainTally.className = 'tally-label-main ' + state;
     
     if (state === 'live') {
@@ -648,23 +894,34 @@ function updateGuestTally(state) {
         mainTally.textContent = '🔴 AL AIRE';
         document.getElementById('modeText').textContent = 'Modo: TRANSMITIENDO';
         document.getElementById('modeText').style.color = '#ff0000';
-        document.getElementById('guestStatusText').textContent = '🔴 ESTÁS AL AIRE';
-        document.getElementById('guestStatusText').style.color = '#ff0000';
+        const guestStatus = document.getElementById('guestStatusText');
+        if (guestStatus) {
+            guestStatus.textContent = '🔴 ESTÁS AL AIRE';
+            guestStatus.style.color = '#ff0000';
+        }
+        // Vibrar en móviles si es posible
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     } else if (state === 'standby') {
         container.classList.add('standby');
         container.classList.remove('live');
         mainTally.textContent = '⏺ ATENTO';
         document.getElementById('modeText').textContent = 'Modo: PREPARADO';
         document.getElementById('modeText').style.color = '#ffff00';
-        document.getElementById('guestStatusText').textContent = '⏺ ATENTO';
-        document.getElementById('guestStatusText').style.color = '#ffff00';
+        const guestStatus = document.getElementById('guestStatusText');
+        if (guestStatus) {
+            guestStatus.textContent = '⏺ ATENTO';
+            guestStatus.style.color = '#ffff00';
+        }
     } else {
         container.classList.remove('live', 'standby');
         mainTally.classList.add('off');
         document.getElementById('modeText').textContent = 'Modo: Conectado';
         document.getElementById('modeText').style.color = '#999';
-        document.getElementById('guestStatusText').textContent = 'Conectado';
-        document.getElementById('guestStatusText').style.color = '#666';
+        const guestStatus = document.getElementById('guestStatusText');
+        if (guestStatus) {
+            guestStatus.textContent = 'Conectado';
+            guestStatus.style.color = '#666';
+        }
     }
 }
 
@@ -711,6 +968,101 @@ function disconnect() {
     if (peer) peer.destroy();
     if (localStream) localStream.getTracks().forEach(t => t.stop());
     location.reload();
+}
+
+// MODO OBS: Función para vista limpia individual por slot
+function startObsMode(roomId, slotIndex) {
+    console.log('Iniciando modo OBS - Sala:', roomId, 'Slot:', slotIndex);
+    
+    // Crear contenedor simple solo para este feed
+    const container = document.getElementById('videoGrid');
+    container.innerHTML = '';
+    container.style.display = 'flex';
+    container.style.width = '100vw';
+    container.style.height = '100vh';
+    container.style.padding = '0';
+    
+    const videoContainer = document.createElement('div');
+    videoContainer.className = 'video-container obs-fullscreen';
+    videoContainer.id = 'obs-video-container';
+    
+    const video = document.createElement('video');
+    video.id = 'obs-video';
+    video.autoplay = true;
+    video.playsInline = true;
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'contain';
+    
+    videoContainer.appendChild(video);
+    container.appendChild(videoContainer);
+    
+    // Conectar como "viewer OBS"
+    const obsPeerId = 'OBS_' + roomId + '_S' + slotIndex + '_' + Date.now().toString(36);
+    
+    peer = new Peer(obsPeerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        debug: 2,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+            ]
+        }
+    });
+    
+    peer.on('open', (id) => {
+        console.log('OBS Viewer conectado como:', id);
+        
+        // 1. Conectar DataChannel al operador solicitando el slot específico
+        const conn = peer.connect(roomId, {
+            reliable: true,
+            metadata: { type: 'obs_viewer', slot: parseInt(slotIndex) }
+        });
+        
+        conn.on('open', () => {
+            console.log('DataChannel con operador abierto');
+            conn.send({ type: 'request_slot', slot: parseInt(slotIndex) });
+        });
+        
+        conn.on('data', (data) => {
+            if (data.type === 'tally') {
+                // En modo OBS limpio no mostramos tally visualmente
+                // pero podemos loggearlo para debug si es necesario
+                console.log('Tally recibido en OBS:', data.state);
+            } else if (data.type === 'error') {
+                console.error('Error del operador:', data.message);
+            }
+        });
+    });
+    
+    peer.on('call', (call) => {
+        console.log('Recibiendo llamada del operador con el stream');
+        // Aceptar la llamada (el operador nos envía el stream del invitado)
+        call.answer(); // No enviamos nuestro video, solo recibimos
+        
+        call.on('stream', (remoteStream) => {
+            console.log('Stream recibido en modo OBS');
+            document.getElementById('obs-video').srcObject = remoteStream;
+        });
+        
+        call.on('close', () => {
+            console.log('Conexión cerrada en modo OBS');
+            // Intentar reconectar o mostrar pantalla negra
+            document.getElementById('obs-video').srcObject = null;
+        });
+        
+        call.on('error', (err) => {
+            console.error('Error en llamada OBS:', err);
+        });
+    });
+    
+    peer.on('error', (err) => {
+        console.error('Peer error en modo OBS:', err);
+    });
 }
 </script>
 
