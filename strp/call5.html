@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall Power PRO v6 - StreamingHoy</title>
+    <title>StreamCall Power PRO v7 - StreamingHoy</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,10 +15,10 @@
         .main-container { display: grid; height: calc(100vh - 60px); }
         .main-container.operator { grid-template-columns: 1fr 300px; grid-template-rows: 140px 1fr; }
         
-        /* DASHBOARD */
         .dashboard { grid-column: 2; grid-row: 1 / 3; background: #111; border-left: 1px solid #333; padding: 15px; overflow-y: auto; }
         .dashboard h2 { font-size: 14px; color: #ff6b00; margin-bottom: 15px; border-bottom: 1px solid #333; }
         .id-display { background: #000; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 20px; text-align: center; color: #00ff00; border: 1px solid #ff6b00; margin-bottom: 15px; }
+        
         .slot-card { background: #1a1a1a; border-radius: 6px; padding: 8px; border: 1px solid #333; margin-bottom: 10px; }
         .slot-card.empty { border: 1px dashed #444; opacity: 0.5; font-size: 11px; text-align: center; padding: 10px; }
         
@@ -29,7 +29,6 @@
         .t-btn.pvw { color: #ffff00; }
         .obs-link-btn { width: 100%; padding: 4px; font-size: 9px; background: #0055ff; color: white; border: none; border-radius: 3px; cursor: pointer; text-transform: uppercase; font-weight: bold; }
 
-        /* GRID OPERADOR */
         .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #0a0a0a; border-bottom: 1px solid #333; overflow-x: auto; }
         .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 10px; background: #000; align-content: start; }
         .video-container { position: relative; background: #111; border: 2px solid #333; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; height: fit-content; }
@@ -38,7 +37,6 @@
         .video-container.preview { height: 120px; width: 213px; }
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* VISTA INVITADO */
         .main-container.guest { grid-template-rows: 1fr 180px; }
         .operator-view { display: flex; justify-content: center; align-items: center; background: #000; padding: 10px; }
         .tally-label-main { position: absolute; top: 20px; font-size: 24px; font-weight: 900; padding: 5px 20px; border-radius: 5px; z-index: 100; display: none; }
@@ -48,7 +46,6 @@
         .guest-preview-bar { display: flex; gap: 15px; padding: 15px; background: #1a1a1a; border-top: 2px solid #ff6b00; justify-content: center; align-items: center; }
         .guest-self { width: 220px; border: 2px solid #0088ff; }
 
-        /* MODAL */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: #1a1a1a; padding: 25px; border-radius: 8px; width: 350px; border: 1px solid #ff6b00; }
@@ -67,11 +64,11 @@
         <div class="preview-bar" id="previewBar" style="display:none;"><div class="video-container preview"><video id="localVideo" autoplay muted playsinline></video></div></div>
         <div class="video-grid" id="videoGrid" style="display:none;"></div>
         <div class="operator-view" id="guestOperatorView" style="display:none;"><div class="video-container" style="max-width: 800px; width:100%;"><div id="mainTally" class="tally-label-main">AL AIRE</div><video id="remoteOperatorVideo" autoplay playsinline></video></div></div>
-        <div class="guest-preview-bar" id="guestPreviewBar" style="display:none;"><div class="video-container guest-self"><video id="guestLocalVideo" autoplay muted playsinline></video></div><div style="font-size: 12px; color: #999;"><strong id="guestStatusLabel" style="color:#ff6b00;">CONECTADO</strong><br>Audio HD activo.</div></div>
+        <div class="guest-preview-bar" id="guestPreviewBar" style="display:none;"><div class="video-container guest-self"><video id="guestLocalVideo" autoplay muted playsinline></video></div><div style="font-size: 12px; color: #999;"><strong id="guestStatusLabel" style="color:#ff6b00;">CONECTADO</strong><br>Audio HD.</div></div>
         <div class="dashboard" id="dashboard" style="display:none;"><h2>DASHBOARD</h2><div class="id-display" id="displayId">----</div><div id="slotsContainer"><div class="slot-card empty" id="slot-0">CANAL 1: LIBRE</div><div class="slot-card empty" id="slot-1">CANAL 2: LIBRE</div><div class="slot-card empty" id="slot-2">CANAL 3: LIBRE</div></div></div>
     </div>
     <div id="appControls" style="position:fixed; bottom:20px; left:20px; display:none; gap:10px; z-index:1000;"><button onclick="toggleMic()" id="micBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">🎤</button><button onclick="toggleCam()" id="camBtn" style="width:50px; height:50px; border-radius:50%; border:none; background:#222; color:white; cursor:pointer; font-size:20px;">📹</button><button onclick="location.reload()" style="width:50px; height:50px; border-radius:50%; border:none; background:#cc0000; color:white; cursor:pointer; font-size:20px;">📴</button></div>
-    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v6</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR</option><option value="guest">INVITADO</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">CÁMARA/MIC:</label><select id="vSource" class="device-select"></select><select id="aSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
+    <div class="modal active" id="initModal"><div class="modal-content"><h2 style="color:#ff6b00; text-align:center; margin-bottom:15px;">StreamCall v7</h2><select id="roleSelect" class="device-select" onchange="updateModalFields()"><option value="operator">OPERADOR</option><option value="guest">INVITADO</option></select><div id="guestField" style="display:none;"><input type="text" id="joinId" class="device-select" placeholder="ID OPERADOR" maxlength="6" style="text-align:center;"></div><input type="text" id="userName" class="device-select" placeholder="NOMBRE"><label style="font-size:10px;">CÁMARA/MIC:</label><select id="vSource" class="device-select"></select><select id="aSource" class="device-select"></select><button class="join-btn" onclick="startApp()">CONECTAR</button></div></div>
 </div>
 
 <script>
@@ -98,7 +95,7 @@ if (params.get('mode') === 'obs') {
     document.getElementById('obsRoot').style.display = "block";
     const obsPeer = new Peer('OBS_' + room + '_' + Math.floor(Math.random()*999), { config: PEER_CONFIG });
     obsPeer.on('open', () => {
-        const data = obsPeer.connect(room, { metadata: { isObs: true, slot: slotId } });
+        obsPeer.connect(room, { metadata: { isObs: true, slot: slotId } });
         obsPeer.on('call', call => {
             call.answer();
             call.on('stream', s => document.getElementById('obsVid').srcObject = s);
@@ -158,7 +155,7 @@ function initPeer(id) {
     myPeer.on('call', call => {
         call.answer(localStream, { sdpTransform: setBitrate });
         if (myRole === 'operator') handleCall(call);
-        else call.on('stream', s => { const v = document.getElementById('remoteOperatorVideo'); v.srcObject = s; v.play(); });
+        else call.on('stream', s => { document.getElementById('remoteOperatorVideo').srcObject = s; });
     });
 }
 
@@ -176,18 +173,25 @@ function handleData(conn) {
             if (target) myPeer.call(conn.peer, target.remoteStream, { sdpTransform: setBitrate });
             return;
         }
-        if (!connections.has(conn.peer)) connections.set(conn.peer, { name: conn.metadata.name });
-        connections.get(conn.peer).data = conn;
+        // Guardamos data connection ANTES de la llamada para evitar duplicados
+        if (!connections.has(conn.peer)) {
+            connections.set(conn.peer, { name: conn.metadata.name || "Invitado", data: conn });
+        }
     });
 }
 
 function handleCall(call) {
     const peerId = call.peer;
-    // Si ya existe este peer, no duplicar
-    if (document.getElementById('vcont-' + peerId)) return;
-    if (availableSlots.length === 0) return;
+    // CRÍTICO: Si ya existe el contenedor en el Grid, solo actualizamos el stream, NO creamos nada nuevo
+    const existingVid = document.getElementById('vid-' + peerId);
+    if (existingVid) {
+        call.on('stream', s => { existingVid.srcObject = s; });
+        return;
+    }
 
+    if (availableSlots.length === 0) return;
     const slot = availableSlots.shift();
+
     call.on('stream', (s) => {
         if (!connections.has(peerId)) connections.set(peerId, { name: "Invitado" });
         const c = connections.get(peerId);
@@ -196,7 +200,7 @@ function handleCall(call) {
         let cont = document.createElement('div');
         cont.className = 'video-container'; cont.id = 'vcont-' + peerId;
         cont.innerHTML = `<video id="vid-${peerId}" autoplay playsinline></video>
-                         <div style="position:absolute; bottom:5px; left:5px; font-size:10px; background:rgba(0,0,0,0.7); padding:2px 5px;">${c.name} (CH ${slot+1})</div>`;
+                         <div style="position:absolute; bottom:5px; left:5px; font-size:10px; background:rgba(0,0,0,0.7); padding:2px 5px;">CH ${slot+1}: ${c.name}</div>`;
         document.getElementById('videoGrid').appendChild(cont);
         document.getElementById('vid-' + peerId).srcObject = s;
         updateSlotUI(slot, peerId, c.name, true);
@@ -244,7 +248,8 @@ function removePeer(id) {
     const c = connections.get(id);
     if (c) {
         availableSlots.push(c.slot); availableSlots.sort();
-        if (document.getElementById('vcont-' + id)) document.getElementById('vcont-' + id).remove();
+        const vc = document.getElementById('vcont-' + id);
+        if (vc) vc.remove();
         updateSlotUI(c.slot, null, null, false);
         connections.delete(id);
     }
