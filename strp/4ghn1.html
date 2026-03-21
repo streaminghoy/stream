@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamcall Power - Honduras/TURN</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; overflow: hidden; }
+        header { background: linear-gradient(90deg, #1a1a1a, #2d2d2d); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff6b00; }
+        .brand { display: flex; align-items: center; gap: 15px; }
+        .brand h1 { color: #ff6b00; font-size: 24px; letter-spacing: 2px; }
+        .room-badge { background: #ff6b00; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        .role-badge { background: #00ff00; color: #000; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; }
+        .role-badge.guest { background: #0088ff; }
+        
+        .main-container { display: grid; height: calc(100vh - 70px); }
+        
+        /* OPERADOR */
+        .main-container.operator { grid-template-columns: 1fr 350px; grid-template-rows: 180px 1fr; }
+        .main-container.operator .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #1a1a1a; border-bottom: 2px solid #333; overflow-x: auto; align-items: center; }
+        .main-container.operator .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 10px; background: #000; }
+        .main-container.operator .dashboard { grid-column: 2; grid-row: 1 / 3; background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
+        
+        /* INVITADO */
+        .main-container.guest { grid-template-columns: 1fr; grid-template-rows: 1fr 200px; }
+        .main-container.guest .operator-view { grid-row: 1; display: flex; justify-content: center; align-items: center; background: #000; padding: 20px; position: relative; }
+        .main-container.guest .guest-preview-bar { grid-row: 2; display: flex; gap: 15px; padding: 15px; background: #1a1a1a; border-top: 3px solid #ff6b00; justify-content: center; align-items: center; }
+        
+        /* MODO OBS LIMPIO */
+        .main-container.obs-mode { grid-template-columns: 1fr; grid-template-rows: 1fr; background: #000; }
+        .main-container.obs-mode .video-grid { display: flex; justify-content: center; align-items: center; padding: 0; background: #000; width: 100vw; height: 100vh; }
+        .main-container.obs-mode header { display: none; }
+        .main-container.obs-mode .controls { display: none; }
+        .main-container.obs-mode .stats { display: none; }
+        .main-container.obs-mode .dashboard { display: none; }
+        .main-container.obs-mode .preview-bar { display: none; }
+        .main-container.obs-mode .guest-preview-bar { display: none; }
+        .main-container.obs-mode .tally-label-main { display: none !important; }
+        .main-container.obs-mode .participant-name { display: none !important; }
+        .main-container.obs-mode .retorno-label { display: none !important; }
+        .main-container.obs-mode .self-label { display: none !important; }
+        .main-container.obs-mode .connecting-overlay { display: none !important; }
+        
+        .video-container { position: relative; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 3px solid #333; transition: all 0.3s; aspect-ratio: 16/9; }
+        .video-container.live { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.6); }
+        .video-container.standby { border-color: #ffff00; box-shadow: 0 0 20px rgba(255,255,0,0.4); }
+        .video-container.preview { min-width: 160px; max-width: 280px; height: 100%; border: 2px solid #444; }
+        .video-container.operator-large { max-width: 900px; width: 100%; max-height: 70vh; }
+        .video-container.guest-self { min-width: 240px; max-width: 360px; border: 2px solid #0088ff; }
+        
+        .video-container.obs-fullscreen { 
+            width: 100vw; 
+            height: 100vh; 
+            border: none; 
+            border-radius: 0; 
+            background: #000;
+        }
+        
+        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        
+        .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
+        .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
+        
+        .tally-label-main { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            text-shadow: 0 0 10px currentColor; 
+            pointer-events: none; 
+            z-index: 30; 
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid currentColor;
+        }
+        .tally-label-main.off { display: none; }
+        .tally-label-main.standby { color: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px rgba(255,255,0,0.5); }
+        .tally-label-main.live { color: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.8); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        .tally-light { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #333; border: 2px solid #555; z-index: 10; }
+        .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
+        .tally-light.standby { background: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px #ffff00; }
+        
+        .tally-label { position: absolute; top: 10px; left: 35px; background: rgba(0,0,0,0.9); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .tally-label.live { color: #ff0000; }
+        .tally-label.standby { color: #ffff00; }
+        
+        .participant-name { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        
+        .status-indicator { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 10px; z-index: 20; }
+        .status-badge { background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+        .status-dot.active { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .status-dot.muted { background: #ff0000; }
+        
+        .dashboard h2 { color: #ff6b00; margin-bottom: 20px; font-size: 16px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        
+        .id-box { background: #2d2d2d; border: 2px solid #ff6b00; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        .id-box h3 { color: #ff6b00; font-size: 11px; margin-bottom: 10px; }
+        .id-display { background: #0f0f0f; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 24px; font-weight: bold; color: #00ff00; letter-spacing: 2px; }
+        .id-hint { font-size: 11px; color: #999; margin-top: 8px; }
+        
+        .slot-container { margin-bottom: 15px; }
+        .slot-label { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
+        .participant-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 2px solid #444; }
+        .participant-card.empty { background: #1a1a1a; border: 2px dashed #444; color: #666; text-align: center; padding: 20px; }
+        .participant-card h3 { font-size: 13px; margin-bottom: 8px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        
+        .obs-url-box { margin-top: 10px; background: #1a1a1a; border: 1px solid #555; border-radius: 4px; padding: 8px; }
+        .obs-url-label { font-size: 9px; color: #ff6b00; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; }
+        .obs-url-input { width: 100%; background: #0f0f0f; border: 1px solid #333; color: #00ff00; font-family: monospace; font-size: 10px; padding: 6px; border-radius: 3px; cursor: text; }
+        .obs-copy-btn { width: 100%; margin-top: 5px; padding: 4px; background: #333; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 9px; cursor: pointer; }
+        .obs-copy-btn:hover { background: #ff6b00; border-color: #ff6b00; }
+        .obs-status { font-size: 9px; color: #00ff00; margin-top: 4px; height: 12px; }
+        
+        .tally-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
+        .tally-btn { padding: 8px 4px; border: none; border-radius: 4px; cursor: pointer; font-size: 9px; font-weight: bold; text-transform: uppercase; transition: all 0.2s; }
+        .btn-off { background: #444; color: #999; }
+        .btn-standby { background: #666600; color: #ffff00; }
+        .btn-live { background: #660000; color: #ff0000; }
+        .tally-btn.active { transform: scale(1.05); box-shadow: 0 0 8px currentColor; border: 1px solid #fff; }
+        
+        .controls { position: fixed; bottom: 20px; left: 20px; display: flex; gap: 15px; z-index: 100; }
+        .control-btn { width: 60px; height: 60px; border-radius: 50%; border: none; background: #2d2d2d; color: #fff; cursor: pointer; font-size: 24px; border: 3px solid #444; transition: all 0.2s; }
+        .control-btn:hover { transform: scale(1.1); }
+        .control-btn.active { background: #ff6b00; border-color: #ff8533; }
+        .control-btn.muted { background: #cc0000; border-color: #ff0000; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #1a1a1a; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; border: 2px solid #ff6b00; box-shadow: 0 0 50px rgba(255,107,0,0.3); }
+        
+        .role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .role-option { background: #2d2d2d; border: 2px solid #444; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .role-option:hover { border-color: #ff6b00; }
+        .role-option.selected { background: #ff6b00; border-color: #ff6b00; color: #000; }
+        .role-option h3 { font-size: 16px; margin-bottom: 8px; }
+        .role-option p { font-size: 12px; color: #999; }
+        .role-option.selected p { color: #000; }
+        
+        .device-select { width: 100%; padding: 12px; margin: 10px 0; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 14px; }
+        .join-btn { width: 100%; padding: 15px; background: #ff6b00; color: #fff; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; text-transform: uppercase; }
+        .join-btn:hover { background: #ff8533; box-shadow: 0 0 20px rgba(255,107,0,0.5); }
+        
+        .input-group { margin: 15px 0; }
+        .input-group label { display: block; font-size: 12px; color: #ccc; margin-bottom: 5px; }
+        .id-input { width: 100%; padding: 15px; background: #0f0f0f; border: 2px solid #444; border-radius: 4px; color: #00ff00; font-family: monospace; font-size: 20px; text-align: center; letter-spacing: 3px; text-transform: uppercase; }
+        .id-input:focus { border-color: #ff6b00; outline: none; }
+        
+        .connecting-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; }
+        .connecting-overlay.hidden { display: none; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .connecting-text { color: #ff6b00; font-size: 14px; margin-top: 15px; }
+        
+        .stats { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.9); padding: 10px; border-radius: 4px; font-size: 10px; font-family: monospace; border: 1px solid #333; }
+        .stat-row { display: flex; justify-content: space-between; margin: 3px 0; min-width: 150px; }
+        .green { color: #00ff00; }
+        .yellow { color: #ffff00; }
+        .red { color: #ff0000; }
+        
+        .waiting-msg { color: #666; text-align: center; padding: 30px; font-size: 12px; }
+        .waiting-msg .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ff6b00; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
+        
+        .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 10px; border-radius: 4px; text-align: center; margin-top: 10px; font-size: 12px; display: none; }
+        
+        /* Advertencia TURN */
+        .turn-warning { background: #332600; border: 1px solid #ff6b00; color: #ff6b00; padding: 8px; border-radius: 4px; font-size: 11px; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<header id="mainHeader">
+    <div class="brand">
+        <h1>STREAMCALL POWER</h1>
+        <span class="room-badge" id="headerRoom">SALA -</span>
+        <span class="role-badge" id="roleBadge">-</span>
+    </div>
+    <div style="font-size: 12px; color: #999; text-align: right;">
+        <div id="modeText">-</div>
+        <div style="color: #ff6b00;">TURN Mode Active</div>
+    </div>
+</header>
+
+<div class="main-container operator" id="mainContainer">
+    <!-- Preview bar (operador) -->
+    <div class="preview-bar" id="previewBar">
+        <div class="video-container preview" id="localPreview">
+            <div class="retorno-label">MI SEÑAL</div>
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="participant-name">Yo - Operador</div>
+            <div class="status-indicator">
+                <div class="status-badge"><span class="status-dot active" id="localCamDot"></span> Cámara</div>
+                <div class="status-badge"><span class="status-dot active" id="localMicDot"></span> Mic</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grid de invitados (operador) -->
+    <div class="video-grid" id="videoGrid"></div>
+    
+    <!-- Vista del invitado -->
+    <div class="operator-view" id="operatorView" style="display: none;">
+        <div class="video-container operator-large" id="operatorVideoContainer">
+            <div class="retorno-label">📡 RETORNO DEL ESTUDIO</div>
+            <div class="tally-label-main off" id="mainTally">AL AIRE</div>
+            <video id="operatorVideo" autoplay playsinline></video>
+            <div class="participant-name">Operador</div>
+            
+            <div class="connecting-overlay" id="connectingOverlay">
+                <div class="spinner"></div>
+                <div class="connecting-text" id="connectingText">Conectando al estudio...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preview del invitado -->
+    <div class="guest-preview-bar" id="guestPreviewBar" style="display: none;">
+        <div class="video-container guest-self" id="guestSelfPreview">
+            <div class="self-label">TU CÁMARA</div>
+            <video id="guestLocalVideo" autoplay muted playsinline></video>
+            <div class="participant-name" id="guestSelfName">Tú</div>
+            <div class="status-indicator">
+                <div class="status-badge"><span class="status-dot active" id="guestCamDot"></span> Cámara</div>
+                <div class="status-badge"><span class="status-dot active" id="guestMicDot"></span> Mic</div>
+            </div>
+        </div>
+        <div style="color: #666; font-size: 12px; max-width: 200px; line-height: 1.5;">
+            <strong style="color: #ff6b00;" id="guestStatusText">Conectando...</strong><br>
+            <span id="guestSubText">Esperando retorno del operador</span>
+        </div>
+    </div>
+    
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <h2>🎛️ CONTROL TALLY</h2>
+        
+        <div class="id-box" id="idBox">
+            <h3>📢 TU ID DE OPERADOR</h3>
+            <div class="id-display" id="operatorIdDisplay">---</div>
+            <div class="id-hint">Pide al invitado que ingrese este ID exacto</div>
+            <div class="turn-warning">⚠️ MODO TURN: Para redes con firewall estricto (TIGO/CLARO). Puede ser más lento.</div>
+        </div>
+        
+        <!-- 1 Slot -->
+        <div class="slot-container"><div class="slot-label">Canal 1</div><div class="participant-card empty" id="slot-0"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
+
+        <div class="full-alert" id="fullAlert">⚠️ SALA COMPLETA (1/1)</div>
+    </div>
+</div>
+
+<div class="controls" id="controls">
+    <button class="control-btn" id="btnMic" onclick="toggleMic()">🎤</button>
+    <button class="control-btn" id="btnCam" onclick="toggleCam()">📹</button>
+    <button class="control-btn danger" onclick="disconnect()">📴</button>
+</div>
+
+<div class="stats" id="stats">
+    <div class="stat-row"><span>Rol:</span> <span id="roleDisplay">-</span></div>
+    <div class="stat-row"><span>Estado:</span> <span class="yellow" id="connStatus">-</span></div>
+    <div class="stat-row"><span>Conectados:</span> <span id="peerCount">0/1</span></div>
+</div>
+
+<!-- Modal -->
+<div class="modal active" id="configModal">
+    <div class="modal-content">
+        <h2 style="color: #ff6b00; margin-bottom: 10px; text-align: center;">Streamcall Power - MODO TURN</h2>
+        
+        <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 10px;">Selecciona tu rol:</label>
+        <div class="role-selector">
+            <div class="role-option selected" id="roleOperator" onclick="selectRole('operator')">
+                <h3>🎛️ OPERADOR</h3>
+                <p>Creas la sala<br>1 invitado máximo<br>Control Tally</p>
+            </div>
+            <div class="role-option" id="roleGuest" onclick="selectRole('guest')">
+                <h3>📹 INVITADO</h3>
+                <p>Unes a sala existente<br>Ves retorno + tu cámara<br>Esperas tu turno</p>
+            </div>
+        </div>
+        
+        <div id="operatorFields">
+            <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
+            <input type="text" id="userName" class="device-select" value="Operador">
+            <div class="turn-warning">⚠️ Esta versión fuerza conexión por servidores TURN para atravesar firewalls estrictos (TIGO/CLARO Honduras). Usar solo si la versión normal no conecta.</div>
+        </div>
+        
+        <div id="guestFields" style="display: none;">
+            <div class="input-group">
+                <label>ID del Operador (6 caracteres):</label>
+                <input type="text" id="operatorIdInput" class="id-input" placeholder="ABC123" maxlength="6">
+            </div>
+            <label style="font-size: 12px; color: #ccc;">Tu Nombre:</label>
+            <input type="text" id="guestName" class="device-select" value="Invitado">
+            <div class="turn-warning">📱 Optimizado para 4G: 720p@24fps, audio mono, bitrate limitado</div>
+        </div>
+        
+        <label style="font-size: 12px; color: #ccc; margin-top: 10px;">Cámara:</label>
+        <select id="videoSource" class="device-select"></select>
+        
+        <label style="font-size: 12px; color: #ccc;">Micrófono:</label>
+        <select id="audioSource" class="device-select"></select>
+        
+        <div style="margin-top: 10px; padding: 8px; background: #2d2d2d; border-radius: 4px; font-size: 11px; color: #999;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="musicMode" style="margin-right: 8px;">
+                <span>🎵 Modo Música (deshabilitar cancelación de ruido para audio HQ)</span>
+            </label>
+        </div>
+        
+        <button class="join-btn" onclick="startBroadcast()">INICIAR CONEXIÓN (TURN)</button>
+    </div>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const obsMode = urlParams.get('obs');
+const obsSlot = urlParams.get('slot');
+const obsRoom = urlParams.get('room');
+
+// MODO TURN FORZADO PARA HONDURAS/TIGO/CLARO
+const forceTurn = true;
+
+let myRole = 'operator';
+let peer;
+let localStream;
+let connections = new Map();
+let myPeerId;
+let operatorId = null;
+let availableSlots = [0];
+let isMusicMode = false;
+
+if (obsMode === 'true' && obsRoom && obsSlot !== null) {
+    document.getElementById('mainContainer').className = 'main-container obs-mode';
+    document.getElementById('mainHeader').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('configModal').style.display = 'none';
+    document.getElementById('previewBar').style.display = 'none';
+    document.getElementById('guestPreviewBar').style.display = 'none';
+    startObsMode(obsRoom, obsSlot);
+} else {
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        const videoSelect = document.getElementById('videoSource');
+        const audioSelect = document.getElementById('audioSource');
+        
+        devices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `${device.kind} ${videoSelect.length + 1}`;
+            if (device.kind === 'videoinput') videoSelect.appendChild(option);
+            if (device.kind === 'audioinput') audioSelect.appendChild(option);
+        });
+    });
+}
+
+function selectRole(role) {
+    myRole = role;
+    document.getElementById('roleOperator').classList.toggle('selected', role === 'operator');
+    document.getElementById('roleGuest').classList.toggle('selected', role === 'guest');
+    document.getElementById('operatorFields').style.display = role === 'operator' ? 'block' : 'none';
+    document.getElementById('guestFields').style.display = role === 'guest' ? 'block' : 'none';
+}
+
+function updateStatusIndicators(cam, mic) {
+    const camDot = myRole === 'operator' ? 'localCamDot' : 'guestCamDot';
+    const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
+    document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
+    document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
+}
+
+function getOptimizedConstraints() {
+    const videoId = document.getElementById('videoSource').value;
+    const audioId = document.getElementById('audioSource').value;
+    
+    // SI ES INVITADO: Limitar a 720p max, 24fps, audio mono
+    if (myRole === 'guest') {
+        return {
+            video: {
+                deviceId: videoId ? { exact: videoId } : undefined,
+                width: { ideal: 1280, max: 1280 },
+                height: { ideal: 720, max: 720 },
+                frameRate: { ideal: 24, max: 24 },
+                aspectRatio: { ideal: 1.7777777778 }
+            },
+            audio: {
+                deviceId: audioId ? { exact: audioId } : undefined,
+                echoCancellation: !isMusicMode,
+                noiseSuppression: !isMusicMode,
+                autoGainControl: !isMusicMode,
+                sampleRate: 48000,
+                channelCount: 1,
+                sampleSize: 16
+            }
+        };
+    } else {
+        // OPERADOR: Calidad normal
+        return {
+            video: videoId ? { deviceId: { exact: videoId } } : true,
+            audio: {
+                deviceId: audioId ? { exact: audioId } : undefined,
+                echoCancellation: !isMusicMode,
+                noiseSuppression: !isMusicMode,
+                autoGainControl: !isMusicMode,
+                sampleRate: 48000,
+                channelCount: 2
+            }
+        };
+    }
+}
+
+function startBroadcast() {
+    isMusicMode = document.getElementById('musicMode').checked;
+    const name = myRole === 'operator' 
+        ? document.getElementById('userName').value 
+        : document.getElementById('guestName').value;
+    
+    if (myRole === 'guest') {
+        operatorId = document.getElementById('operatorIdInput').value.toUpperCase().trim();
+        if (operatorId.length !== 6) {
+            alert('Ingresa el ID de 6 caracteres del operador');
+            return;
+        }
+    }
+    
+    document.getElementById('roleBadge').textContent = myRole === 'operator' ? 'OPERADOR' : 'INVITADO';
+    document.getElementById('roleBadge').classList.toggle('guest', myRole === 'guest');
+    document.getElementById('roleDisplay').textContent = myRole === 'operator' ? 'Operador' : 'Invitado';
+    
+    const container = document.getElementById('mainContainer');
+    container.className = 'main-container ' + myRole;
+    
+    if (myRole === 'operator') {
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('previewBar').style.display = 'flex';
+        document.getElementById('videoGrid').style.display = 'grid';
+        document.getElementById('operatorView').style.display = 'none';
+        document.getElementById('guestPreviewBar').style.display = 'none';
+        document.getElementById('modeText').textContent = 'Modo: Control Total (TURN)';
+    } else {
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('previewBar').style.display = 'none';
+        document.getElementById('videoGrid').style.display = 'none';
+        document.getElementById('operatorView').style.display = 'flex';
+        document.getElementById('guestPreviewBar').style.display = 'flex';
+        document.getElementById('modeText').textContent = 'Modo: Invitado (TURN/4G)';
+        document.getElementById('guestSelfName').textContent = name;
+    }
+    
+    const constraints = getOptimizedConstraints();
+    
+    navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+        localStream = stream;
+        document.getElementById('configModal').classList.remove('active');
+        
+        if (myRole === 'operator') {
+            document.getElementById('localVideo').srcObject = stream;
+        } else {
+            document.getElementById('guestLocalVideo').srcObject = stream;
+            updateStatusIndicators(true, true);
+        }
+        
+        initPeer(name);
+        
+        if (myRole === 'guest') {
+            setTimeout(() => limitBitrateFor4G(), 2000);
+        }
+        
+    }).catch(err => {
+        alert('Error cámara/micrófono: ' + err.message);
+    });
+}
+
+function limitBitrateFor4G() {
+    if (peer && peer.connections) {
+        for (let [peerId, conns] of peer.connections) {
+            conns.forEach(conn => {
+                if (conn.peerConnection) {
+                    const senders = conn.peerConnection.getSenders();
+                    senders.forEach(sender => {
+                        if (sender.track && sender.track.kind === 'video') {
+                            const params = sender.getParameters();
+                            if (!params.encodings) params.encodings = [{}];
+                            params.encodings[0].maxBitrate = 600000;
+                            params.encodings[0].maxFramerate = 24;
+                            sender.setParameters(params).catch(e => console.log('Error setParameters:', e));
+                        }
+                    });
+                }
+            });
+        }
+    }
+}
+
+function initPeer(name) {
+    if (myRole === 'operator') {
+        myPeerId = 'SC' + Math.random().toString(36).substr(2, 4).toUpperCase();
+        document.getElementById('operatorIdDisplay').textContent = myPeerId;
+        document.getElementById('headerRoom').textContent = 'ID: ' + myPeerId;
+    } else {
+        myPeerId = 'GUEST_' + operatorId + '_' + Date.now();
+        document.getElementById('headerRoom').textContent = 'SALA ' + operatorId;
+    }
+    
+    // CONFIGURACIÓN CON TURN FORZADO (iceTransportPolicy: 'relay')
+    const peerConfig = {
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        debug: 2,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' },
+                { urls: 'turn:turn01.budgetphone.nl:443', username: 'test', credential: 'test' },
+                { urls: 'turn:turn02.budgetphone.nl:443', username: 'test', credential: 'test' }
+            ],
+            iceTransportPolicy: forceTurn ? 'relay' : 'all', // FORZAR TURN
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require'
+        }
+    };
+    
+    peer = new Peer(myPeerId, peerConfig);
+    
+    peer.on('open', (id) => {
+        document.getElementById('connStatus').textContent = myRole === 'operator' ? 'Listo - Esperando (TURN)' : 'Conectando vía TURN...';
+        
+        if (myRole === 'guest') {
+            connectToOperator();
+        }
+    });
+    
+    peer.on('call', (call) => {
+        handleIncomingCall(call);
+    });
+    
+    peer.on('connection', (conn) => {
+        handleDataConnection(conn);
+    });
+    
+    peer.on('error', (err) => {
+        console.log('Peer error:', err.type);
+        if (err.type === 'peer-unavailable' && myRole === 'guest') {
+            document.getElementById('connectingText').textContent = 'Operador no encontrado';
+            document.getElementById('guestStatusText').textContent = 'Error: ID incorrecto o firewall bloqueando';
+        }
+    });
+}
+
+function connectToOperator() {
+    if (!operatorId) return;
+    
+    console.log('Invitado conectando a operador via TURN:', operatorId);
+    document.getElementById('connStatus').textContent = 'Conectando via TURN...';
+    
+    const conn = peer.connect(operatorId, { 
+        reliable: true, 
+        metadata: { name: document.getElementById('guestName').value } 
+    });
+    
+    conn.on('open', () => {
+        console.log('DataChannel abierto con operador (TURN)');
+        document.getElementById('connStatus').textContent = 'Canal TURN listo - Enviando video...';
+        
+        window.operatorDataConn = conn;
+        
+        conn.on('data', (data) => {
+            if (data.type === 'tally') {
+                console.log('Tally recibido del operador:', data.state);
+                updateGuestTally(data.state);
+            }
+        });
+        
+        const call = peer.call(operatorId, localStream);
+        console.log('Llamada TURN enviada al operador');
+    });
+    
+    conn.on('error', (err) => {
+        console.log('Error en DataChannel TURN:', err);
+        document.getElementById('guestStatusText').textContent = 'Error TURN - Intentar versión normal';
+    });
+}
+
+function handleIncomingCall(call) {
+    const callerId = call.peer;
+    console.log('Llamada entrante de:', callerId, 'Rol:', myRole);
+    
+    if (callerId.startsWith('OBS_') && myRole === 'operator') {
+        handleObsViewer(call, callerId);
+        return;
+    }
+    
+    if (myRole === 'operator') {
+        if (availableSlots.length === 0) {
+            console.log('Sala llena');
+            return;
+        }
+        
+        const slot = availableSlots.shift();
+        
+        call.answer(localStream);
+        console.log('Respondiendo llamada con retorno TURN, slot:', slot);
+        
+        call.on('stream', (remoteStream) => {
+            console.log('Stream del invitado recibido via TURN en slot', slot);
+            
+            const guestName = 'Invitado ' + (slot + 1);
+            
+            connections.set(callerId, {
+                call: call,
+                stream: remoteStream,
+                name: guestName,
+                slot: slot,
+                dataConn: null
+            });
+            
+            addGuestVideo(slot, remoteStream, guestName, callerId);
+            updateDashboardSlot(slot, callerId, guestName, true);
+            
+            document.getElementById('connStatus').textContent = 'Conectado (TURN)';
+            document.getElementById('peerCount').textContent = (1 - availableSlots.length) + '/1';
+            
+            setTimeout(() => {
+                console.log('Enviando retorno TURN al invitado:', callerId);
+                const returnCall = peer.call(callerId, localStream);
+                
+                returnCall.on('stream', (returnStream) => {
+                    console.log('Retorno TURN confirmado por invitado');
+                });
+                
+                returnCall.on('error', (err) => {
+                    console.log('Error en retorno TURN:', err);
+                });
+            }, 500);
+        });
+        
+        call.on('close', () => {
+            console.log('Llamada TURN cerrada de:', callerId);
+            freeSlot(callerId);
+        });
+        
+        call.on('error', (err) => {
+            console.log('Error en llamada TURN:', err);
+            freeSlot(callerId);
+        });
+        
+    } else {
+        console.log('Invitado recibiendo retorno TURN del operador');
+        
+        call.answer(localStream);
+        
+        call.on('stream', (remoteStream) => {
+            console.log('RETORNO TURN RECIBIDO!');
+            document.getElementById('operatorVideo').srcObject = remoteStream;
+            document.getElementById('connectingOverlay').classList.add('hidden');
+            document.getElementById('connStatus').textContent = 'En línea (TURN)';
+            document.getElementById('guestStatusText').textContent = 'Conectado via TURN';
+            document.getElementById('guestSubText').textContent = 'El operador puede verte (conexión relay)';
+        });
+        
+        call.on('close', () => {
+            console.log('Retorno TURN cerrado');
+            document.getElementById('connectingOverlay').classList.remove('hidden');
+            document.getElementById('connectingText').textContent = 'Desconectado';
+        });
+    }
+}
+
+function handleDataConnection(conn) {
+    const peerId = conn.peer;
+    console.log('DataConnection TURN recibida de:', peerId);
+    
+    if (peerId.startsWith('OBS_') && myRole === 'operator') {
+        conn.on('data', (data) => {
+            if (data.type === 'request_slot') {
+                const requestedSlot = data.slot;
+                console.log('OBS Viewer pide slot:', requestedSlot);
+                
+                let targetStream = null;
+                let targetPeerId = null;
+                for (let [pid, connData] of connections) {
+                    if (connData.slot === requestedSlot && connData.stream) {
+                        targetStream = connData.stream;
+                        targetPeerId = pid;
+                        break;
+                    }
+                }
+                
+                if (targetStream) {
+                    console.log('Enviando stream TURN del slot', requestedSlot, 'a OBS viewer');
+                    const obsCall = peer.call(peerId, targetStream);
+                    
+                    connections.set(peerId, {
+                        type: 'obs_viewer',
+                        slot: requestedSlot,
+                        dataConn: conn,
+                        call: obsCall
+                    });
+                    
+                    const currentTally = getCurrentTallyState(targetPeerId);
+                    setTimeout(() => {
+                        conn.send({ type: 'tally', state: currentTally });
+                    }, 1000);
+                } else {
+                    console.log('No hay invitado en slot', requestedSlot);
+                    conn.send({ type: 'error', message: 'No hay invitado en este canal' });
+                }
+            }
+        });
+        return;
+    }
+    
+    if (connections.has(peerId)) {
+        const connData = connections.get(peerId);
+        connData.dataConn = conn;
+        connections.set(peerId, connData);
+        
+        if (conn.metadata && conn.metadata.name) {
+            connData.name = conn.metadata.name;
+            updateDashboardSlot(connData.slot, peerId, conn.metadata.name, true);
+            const nameEl = document.querySelector('#guest-video-' + connData.slot + ' .participant-name');
+            if (nameEl) nameEl.textContent = conn.metadata.name;
+        }
+    }
+    
+    conn.on('data', (data) => {
+        if (data.type === 'tally') {
+            updateGuestTally(data.state);
+        }
+    });
+}
+
+function getCurrentTallyState(peerId) {
+    const container = document.getElementById('guest-video-' + connections.get(peerId)?.slot);
+    if (!container) return 'off';
+    if (container.classList.contains('live')) return 'live';
+    if (container.classList.contains('standby')) return 'standby';
+    return 'off';
+}
+
+function addGuestVideo(slot, stream, name, peerId) {
+    const grid = document.getElementById('videoGrid');
+    
+    let container = document.getElementById('guest-video-' + slot);
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'video-container offline';
+        container.id = 'guest-video-' + slot;
+        
+        const tally = document.createElement('div');
+        tally.className = 'tally-light';
+        tally.id = 'tally-' + peerId;
+        
+        const tallyLabel = document.createElement('div');
+        tallyLabel.className = 'tally-label';
+        tallyLabel.id = 'tally-label-' + peerId;
+        tallyLabel.textContent = 'OFF';
+        
+        const video = document.createElement('video');
+        video.id = 'video-slot-' + slot;
+        video.autoplay = true;
+        video.playsInline = true;
+        
+        const pname = document.createElement('div');
+        pname.className = 'participant-name';
+        pname.textContent = name;
+        
+        container.appendChild(tally);
+        container.appendChild(tallyLabel);
+        container.appendChild(video);
+        container.appendChild(pname);
+        grid.appendChild(container);
+    }
+    
+    document.getElementById('video-slot-' + slot).srcObject = stream;
+    setTimeout(() => updateTally(peerId, 'standby'), 500);
+}
+
+function updateDashboardSlot(slot, peerId, name, connected) {
+    const slotEl = document.getElementById('slot-' + slot);
+    
+    if (connected && peerId) {
+        const currentUrl = window.location.href.split('?')[0];
+        // Generar URL para versión normal (no TURN) para OBS, ya que el operador puede usar la normal
+        const obsUrl = currentUrl.replace('-honduras', '').replace('turn', 'streamcall') + '?obs=true&room=' + myPeerId + '&slot=' + slot;
+        
+        slotEl.className = 'participant-card';
+        slotEl.innerHTML = `
+            <h3>${name} <span style="color: #00ff00; font-size: 10px;">● TURN</span></h3>
+            <div style="font-size: 10px; color: #666; margin-bottom: 8px;">${peerId}</div>
+            <div class="tally-controls">
+                <button class="tally-btn btn-off active" onclick="sendTally('${peerId}', 'off')">OFF</button>
+                <button class="tally-btn btn-standby" onclick="sendTally('${peerId}', 'standby')">ATENTO</button>
+                <button class="tally-btn btn-live" onclick="sendTally('${peerId}', 'live')">AL AIRE</button>
+            </div>
+            <div class="obs-url-box">
+                <div class="obs-url-label">🔗 URL PARA OBS / VMIX (SOLO VIDEO)</div>
+                <input type="text" class="obs-url-input" id="obs-url-${slot}" value="${obsUrl}" readonly onclick="this.select()">
+                <button class="obs-copy-btn" onclick="copyObsUrl('${slot}')">📋 COPIAR URL</button>
+                <div class="obs-status" id="obs-status-${slot}"></div>
+            </div>
+        `;
+    } else {
+        slotEl.className = 'participant-card empty';
+        slotEl.innerHTML = '<div class="waiting-msg"><span class="spinner"></span>Esperando...</div>';
+    }
+}
+
+function copyObsUrl(slot) {
+    const input = document.getElementById('obs-url-' + slot);
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+        const status = document.getElementById('obs-status-' + slot);
+        status.textContent = '✅ URL copiada al portapapeles';
+        setTimeout(() => status.textContent = '', 3000);
+    }).catch(err => {
+        const textArea = document.createElement("textarea");
+        textArea.value = input.value;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        const status = document.getElementById('obs-status-' + slot);
+        status.textContent = '✅ URL copiada';
+        setTimeout(() => status.textContent = '', 3000);
+    });
+}
+
+function sendTally(peerId, state) {
+    updateTally(peerId, state);
+    
+    const connData = connections.get(peerId);
+    if (connData && connData.dataConn && connData.dataConn.open) {
+        connData.dataConn.send({ type: 'tally', state: state });
+        console.log('Tally enviado a', peerId, ':', state);
+    } else {
+        const conn = peer.connect(peerId, { reliable: true });
+        conn.on('open', () => {
+            conn.send({ type: 'tally', state: state });
+            console.log('Tally enviado por nueva conexión TURN a', peerId);
+        });
+    }
+    
+    const slot = connections.get(peerId)?.slot;
+    if (slot !== undefined) {
+        const slotEl = document.getElementById('slot-' + slot);
+        if (slotEl) {
+            slotEl.querySelectorAll('.tally-btn').forEach(btn => btn.classList.remove('active'));
+            const btnClass = state === 'off' ? 'btn-off' : state === 'standby' ? 'btn-standby' : 'btn-live';
+            const btn = slotEl.querySelector('.' + btnClass);
+            if (btn) btn.classList.add('active');
+        }
+        
+        for (let [obsPeerId, obsConn] of connections) {
+            if (obsPeerId.startsWith('OBS_') && obsConn.slot === slot && obsConn.dataConn) {
+                obsConn.dataConn.send({ type: 'tally', state: state });
+            }
+        }
+    }
+}
+
+function updateTally(peerId, state) {
+    const light = document.getElementById('tally-' + peerId);
+    const label = document.getElementById('tally-label-' + peerId);
+    const container = document.getElementById('guest-video-' + connections.get(peerId)?.slot);
+    
+    if (!light || !label || !container) return;
+    
+    container.classList.remove('live', 'standby', 'offline');
+    light.classList.remove('live', 'standby');
+    
+    if (state === 'live') {
+        container.classList.add('live');
+        light.classList.add('live');
+        label.textContent = 'AL AIRE';
+        label.className = 'tally-label live';
+    } else if (state === 'standby') {
+        container.classList.add('standby');
+        light.classList.add('standby');
+        label.textContent = 'ATENTO';
+        label.className = 'tally-label standby';
+    } else {
+        container.classList.add('offline');
+        label.textContent = 'OFF';
+        label.className = 'tally-label';
+    }
+}
+
+function updateGuestTally(state) {
+    const mainTally = document.getElementById('mainTally');
+    const container = document.getElementById('operatorVideoContainer');
+    
+    if (!mainTally || !container) return;
+    
+    mainTally.className = 'tally-label-main ' + state;
+    
+    if (state === 'live') {
+        container.classList.add('live');
+        container.classList.remove('standby');
+        mainTally.textContent = '🔴 AL AIRE';
+        document.getElementById('modeText').textContent = 'Modo: TRANSMITIENDO (TURN)';
+        document.getElementById('modeText').style.color = '#ff0000';
+        const guestStatus = document.getElementById('guestStatusText');
+        if (guestStatus) {
+            guestStatus.textContent = '🔴 ESTÁS AL AIRE (TURN)';
+            guestStatus.style.color = '#ff0000';
+        }
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } else if (state === 'standby') {
+        container.classList.add('standby');
+        container.classList.remove('live');
+        mainTally.textContent = '⏺ ATENTO';
+        document.getElementById('modeText').textContent = 'Modo: PREPARADO (TURN)';
+        document.getElementById('modeText').style.color = '#ffff00';
+        const guestStatus = document.getElementById('guestStatusText');
+        if (guestStatus) {
+            guestStatus.textContent = '⏺ ATENTO (TURN)';
+            guestStatus.style.color = '#ffff00';
+        }
+    } else {
+        container.classList.remove('live', 'standby');
+        mainTally.classList.add('off');
+        document.getElementById('modeText').textContent = 'Modo: Conectado (TURN)';
+        document.getElementById('modeText').style.color = '#999';
+        const guestStatus = document.getElementById('guestStatusText');
+        if (guestStatus) {
+            guestStatus.textContent = 'Conectado (TURN)';
+            guestStatus.style.color = '#666';
+        }
+    }
+}
+
+function freeSlot(peerId) {
+    const conn = connections.get(peerId);
+    if (!conn) return;
+    
+    const slot = conn.slot;
+    availableSlots.push(slot);
+    availableSlots.sort();
+    
+    const videoEl = document.getElementById('guest-video-' + slot);
+    if (videoEl) videoEl.remove();
+    
+    updateDashboardSlot(slot, null, null, false);
+    
+    connections.delete(peerId);
+    document.getElementById('peerCount').textContent = (1 - availableSlots.length) + '/1';
+    document.getElementById('fullAlert').style.display = availableSlots.length === 0 ? 'block' : 'none';
+}
+
+function toggleMic() {
+    if (!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    if (track) {
+        track.enabled = !track.enabled;
+        const btn = document.getElementById('btnMic');
+        btn.classList.toggle('muted', !track.enabled);
+        updateStatusIndicators(true, track.enabled);
+    }
+}
+
+function toggleCam() {
+    if (!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if (track) {
+        track.enabled = !track.enabled;
+        document.getElementById('btnCam').classList.toggle('active');
+        updateStatusIndicators(track.enabled, true);
+    }
+}
+
+function disconnect() {
+    if (peer) peer.destroy();
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    location.reload();
+}
+
+function startObsMode(roomId, slotIndex) {
+    console.log('Iniciando modo OBS TURN - Sala:', roomId, 'Slot:', slotIndex);
+    
+    const container = document.getElementById('videoGrid');
+    container.innerHTML = '';
+    container.style.display = 'flex';
+    container.style.width = '100vw';
+    container.style.height = '100vh';
+    container.style.padding = '0';
+    
+    const videoContainer = document.createElement('div');
+    videoContainer.className = 'video-container obs-fullscreen';
+    videoContainer.id = 'obs-video-container';
+    
+    const video = document.createElement('video');
+    video.id = 'obs-video';
+    video.autoplay = true;
+    video.playsInline = true;
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'contain';
+    
+    videoContainer.appendChild(video);
+    container.appendChild(videoContainer);
+    
+    const obsPeerId = 'OBS_' + roomId + '_S' + slotIndex + '_' + Date.now().toString(36);
+    
+    peer = new Peer(obsPeerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        debug: 2,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+            ],
+            iceTransportPolicy: 'relay' // TURN forzado incluso para OBS
+        }
+    });
+    
+    peer.on('open', (id) => {
+        console.log('OBS Viewer TURN conectado como:', id);
+        
+        const conn = peer.connect(roomId, {
+            reliable: true,
+            metadata: { type: 'obs_viewer', slot: parseInt(slotIndex) }
+        });
+        
+        conn.on('open', () => {
+            console.log('DataChannel TURN con operador abierto');
+            conn.send({ type: 'request_slot', slot: parseInt(slotIndex) });
+        });
+        
+        conn.on('data', (data) => {
+            if (data.type === 'tally') {
+                console.log('Tally recibido en OBS TURN:', data.state);
+            } else if (data.type === 'error') {
+                console.error('Error del operador:', data.message);
+            }
+        });
+    });
+    
+    peer.on('call', (call) => {
+        console.log('Recibiendo llamada TURN del operador con el stream');
+        call.answer();
+        
+        call.on('stream', (remoteStream) => {
+            console.log('Stream TURN recibido en modo OBS');
+            document.getElementById('obs-video').srcObject = remoteStream;
+        });
+        
+        call.on('close', () => {
+            console.log('Conexión TURN cerrada en modo OBS');
+            document.getElementById('obs-video').srcObject = null;
+        });
+        
+        call.on('error', (err) => {
+            console.error('Error en llamada TURN OBS:', err);
+        });
+    });
+    
+    peer.on('error', (err) => {
+        console.error('Peer error en modo OBS TURN:', err);
+    });
+}
+</script>
+
+</body>
+</html>
