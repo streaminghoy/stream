@@ -17,41 +17,16 @@
         .role-badge { background: #00ff00; color: #000; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; }
         .role-badge.guest { background: #0088ff; }
         
-        /* Layout */
         .main-container { display: grid; height: calc(100vh - 70px); }
-        
-        /* MODO OPERADOR */
         .main-container.operator { grid-template-columns: 1fr 350px; grid-template-rows: 200px 1fr; }
         .main-container.operator .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #1a1a1a; border-bottom: 2px solid #333; overflow-x: auto; }
         .main-container.operator .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 10px; background: #000; }
         .main-container.operator .dashboard { grid-column: 2; grid-row: 1 / 3; }
         
-        /* MODO INVITADO - Layout especial */
-        .main-container.guest { 
-            grid-template-columns: 1fr; 
-            grid-template-rows: 1fr 180px; 
-        }
-        .main-container.guest .operator-view { 
-            grid-row: 1; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            background: #000; 
-            padding: 20px;
-            position: relative;
-        }
-        .main-container.guest .guest-preview-bar { 
-            grid-row: 2; 
-            display: flex; 
-            gap: 15px; 
-            padding: 15px; 
-            background: #1a1a1a; 
-            border-top: 3px solid #ff6b00;
-            justify-content: center;
-            align-items: center;
-        }
+        .main-container.guest { grid-template-columns: 1fr; grid-template-rows: 1fr 180px; }
+        .main-container.guest .operator-view { grid-row: 1; display: flex; justify-content: center; align-items: center; background: #000; padding: 20px; position: relative; }
+        .main-container.guest .guest-preview-bar { grid-row: 2; display: flex; gap: 15px; padding: 15px; background: #1a1a1a; border-top: 3px solid #ff6b00; justify-content: center; align-items: center; }
         
-        /* Contenedores de video */
         .video-container { position: relative; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 3px solid #333; transition: all 0.3s; aspect-ratio: 16/9; }
         .video-container.live { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.6); }
         .video-container.standby { border-color: #ffff00; box-shadow: 0 0 20px rgba(255,255,0,0.4); }
@@ -61,7 +36,6 @@
         
         video { width: 100%; height: 100%; object-fit: cover; background: #000; }
         
-        /* Labels */
         .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         .tally-label-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; text-shadow: 0 0 20px currentColor; pointer-events: none; z-index: 30; }
@@ -69,7 +43,6 @@
         .tally-label-main.standby { color: #ffff00; }
         .tally-label-main.live { color: #ff0000; animation: pulse 1s infinite; }
         
-        /* Tally pequeño */
         .tally-light { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #333; border: 2px solid #555; transition: all 0.2s; z-index: 10; }
         .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
         .tally-light.standby { background: #ffff00; border-color: #ffff00; box-shadow: 0 0 10px #ffff00; }
@@ -82,14 +55,12 @@
         
         .participant-name { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         
-        /* Indicadores de estado */
         .status-indicator { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 10px; z-index: 20; }
         .status-badge { background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; gap: 5px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
         .status-dot.active { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
         .status-dot.muted { background: #ff0000; }
         
-        /* Dashboard */
         .dashboard { background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
         .dashboard h2 { color: #ff6b00; margin-bottom: 20px; font-size: 16px; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
         
@@ -98,7 +69,6 @@
         .share-url { background: #0f0f0f; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 10px; word-break: break-all; color: #00ff00; cursor: pointer; }
         .copy-msg { color: #00ff00; font-size: 10px; margin-top: 5px; display: none; }
         
-        /* Slots */
         .slot-container { margin-bottom: 15px; }
         .slot-label { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
         .participant-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 2px solid #444; }
@@ -148,18 +118,12 @@
         
         .full-alert { background: #330000; border: 2px solid #ff0000; color: #ff0000; padding: 10px; border-radius: 4px; text-align: center; margin-top: 10px; font-size: 12px; display: none; }
         
-        .connecting-overlay { 
-            position: absolute; 
-            top: 0; left: 0; right: 0; bottom: 0; 
-            background: rgba(0,0,0,0.8); 
-            display: flex; 
-            flex-direction: column;
-            justify-content: center; 
-            align-items: center; 
-            z-index: 50;
-        }
+        .connecting-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; }
         .connecting-overlay.hidden { display: none; }
-        .connecting-text { color: #ff6b00; font-size: 14px; margin-top: 10px; }
+        .connecting-text { color: #ff6b00; font-size: 14px; margin-top: 10px; text-align: center; }
+        .retry-text { color: #666; font-size: 11px; margin-top: 5px; }
+        
+        .operator-info { background: #0f0f0f; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 11px; color: #666; }
     </style>
 </head>
 <body>
@@ -203,12 +167,13 @@
             
             <div class="connecting-overlay" id="connectingOverlay">
                 <div class="spinner" style="width: 40px; height: 40px; border-width: 4px;"></div>
-                <div class="connecting-text">Conectando al estudio...</div>
+                <div class="connecting-text" id="connectingText">Conectando al estudio...</div>
+                <div class="retry-text" id="retryText">Buscando operador en sala</div>
             </div>
         </div>
     </div>
     
-    <!-- Preview del invitado (su propia cámara) -->
+    <!-- Preview del invitado -->
     <div class="guest-preview-bar" id="guestPreviewBar" style="display: none;">
         <div class="video-container guest-self" id="guestSelfPreview">
             <div class="self-label">TU CÁMARA</div>
@@ -220,8 +185,8 @@
             </div>
         </div>
         <div style="color: #666; font-size: 12px; max-width: 200px; line-height: 1.5;">
-            <strong style="color: #ff6b00;">Esperando al operador...</strong><br>
-            Cuando el operador te ponga "AL AIRE", tu imagen saldrá en vivo.
+            <strong style="color: #ff6b00;" id="guestStatusText">Esperando al operador...</strong><br>
+            <span id="guestSubText">Tu cámara está activa. Esperando que el operador se conecte.</span>
         </div>
     </div>
     
@@ -233,9 +198,11 @@
             <h3>🔗 ENLACE PARA INVITADOS</h3>
             <div class="share-url" id="shareUrl" onclick="copyUrl()"></div>
             <div class="copy-msg" id="copyMsg">✓ Enlace copiado</div>
+            <div class="operator-info">
+                Comparte este enlace. Los invitados entrarán automáticamente cuando estén listos.
+            </div>
         </div>
         
-        <!-- 3 Slots -->
         <div class="slot-container"><div class="slot-label">Canal 1</div><div class="participant-card empty" id="slot-0"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
         <div class="slot-container"><div class="slot-label">Canal 2</div><div class="participant-card empty" id="slot-1"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
         <div class="slot-container"><div class="slot-label">Canal 3</div><div class="participant-card empty" id="slot-2"><div class="waiting-msg"><span class="spinner"></span>Esperando...</div></div></div>
@@ -243,7 +210,7 @@
         <div class="full-alert" id="fullAlert">⚠️ SALA COMPLETA (3/3)</div>
         
         <div class="alert-box" style="margin-top: 15px; font-size: 11px;">
-            <strong>🇭🇳 Modo Honduras:</strong> TURN/TCP 443 activo.
+            <strong>🇭🇳 Modo Honduras:</strong> TURN/TCP 443 activo para bypass de carriers.
         </div>
     </div>
 </div>
@@ -271,11 +238,11 @@
         <div class="role-selector">
             <div class="role-option selected" id="roleOperator" onclick="selectRole('operator')">
                 <h3>🎛️ OPERADOR</h3>
-                <p>Controlas la sala<br>3 invitados máximo<br>Tally control</p>
+                <p>Creas la sala<br>Controlas 3 invitados<br>Sistema Tally</p>
             </div>
             <div class="role-option" id="roleGuest" onclick="selectRole('guest')">
                 <h3>📹 INVITADO</h3>
-                <p>Entras a sala existente<br>Ves retorno + tu cámara<br>Esperas tu turno</p>
+                <p>Unes a sala existente<br>Ves retorno + tu cámara<br>Esperas tu turno</p>
             </div>
         </div>
         
@@ -298,11 +265,11 @@
         <select id="audioSource" class="device-select"></select>
         
         <div class="alert-box" id="operatorAlert">
-            <strong>Modo Operador:</strong> Comparte el enlace que aparecerá en el dashboard con tus invitados.
+            <strong>Modo Operador:</strong> Comparte el enlace del dashboard con tus invitados.
         </div>
         
         <div class="alert-box" id="guestAlert" style="display: none;">
-            <strong>Modo Invitado:</strong> Necesitas el ID de sala que te proporcionó el operador.
+            <strong>Modo Invitado:</strong> Ingresa el ID de sala que te dio el operador.
         </div>
         
         <button class="join-btn" onclick="startBroadcast()">INICIAR CONEXIÓN</button>
@@ -337,7 +304,9 @@ let connections = new Map();
 let myPeerId;
 let connectedPeers = new Set();
 let availableSlots = [0, 1, 2];
-let operatorPeerId = null; // Para invitados, guardar ID del operador
+let operatorPeerId = null;
+let retryCount = 0;
+const MAX_RETRIES = 10;
 
 // UI Init
 if (URL_ROOM) {
@@ -369,6 +338,14 @@ function selectRole(role) {
     document.getElementById('guestAlert').style.display = role === 'guest' ? 'block' : 'none';
 }
 
+function updateStatusIndicators(cam, mic) {
+    const camDot = myRole === 'operator' ? 'localCamDot' : 'guestCamDot';
+    const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
+    
+    document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
+    document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
+}
+
 function startBroadcast() {
     const name = myRole === 'operator' 
         ? document.getElementById('userName').value 
@@ -391,7 +368,6 @@ function startBroadcast() {
     document.getElementById('roomDisplay').textContent = ROOM_ID;
     document.getElementById('modalRoom').textContent = ROOM_ID;
     
-    // Layout según rol
     const container = document.getElementById('mainContainer');
     container.className = 'main-container ' + myRole;
     
@@ -407,14 +383,13 @@ function startBroadcast() {
         const shareUrl = window.location.origin + window.location.pathname + '?room=' + ROOM_ID;
         document.getElementById('shareUrl').textContent = shareUrl;
     } else {
-        // Invitado: mostrar preview propio + esperar retorno
         document.getElementById('dashboard').style.display = 'none';
         document.getElementById('previewBar').style.display = 'none';
         document.getElementById('videoGrid').style.display = 'none';
         document.getElementById('operatorView').style.display = 'flex';
         document.getElementById('guestPreviewBar').style.display = 'flex';
         document.getElementById('shareBox').style.display = 'none';
-        document.getElementById('modeText').textContent = 'Modo: Invitado - Esperando';
+        document.getElementById('modeText').textContent = 'Modo: Invitado - Buscando...';
         document.getElementById('guestSelfName').textContent = name;
     }
     
@@ -433,12 +408,10 @@ function startBroadcast() {
         if (myRole === 'operator') {
             document.getElementById('localVideo').srcObject = stream;
         } else {
-            // Invitado: mostrar su propia cámara en el preview inferior
             document.getElementById('guestLocalVideo').srcObject = stream;
             updateStatusIndicators(true, true);
         }
         
-        // Iniciar PeerJS
         initPeer(name);
         
     }).catch(err => {
@@ -446,16 +419,8 @@ function startBroadcast() {
     });
 }
 
-function updateStatusIndicators(cam, mic) {
-    const camDot = myRole === 'operator' ? 'localCamDot' : 'guestCamDot';
-    const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
-    
-    document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
-    document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
-}
-
 function initPeer(name) {
-    myPeerId = myRole + '_' + ROOM_ID + '_' + Math.random().toString(36).substr(2, 6);
+    myPeerId = myRole + '_' + ROOM_ID + '_' + Date.now();
     
     const peerConfig = {
         host: '0.peerjs.com',
@@ -474,7 +439,7 @@ function initPeer(name) {
     peer = new Peer(myPeerId, peerConfig);
     
     peer.on('open', (id) => {
-        document.getElementById('connStatus').textContent = 'Listo - Esperando...';
+        document.getElementById('connStatus').textContent = myRole === 'operator' ? 'Listo - Esperando invitados' : 'Listo - Buscando operador...';
         document.getElementById('connStatus').className = 'yellow';
         initSignaling(name);
     });
@@ -500,18 +465,19 @@ function initSignaling(name) {
     const roomRef = db.ref('rooms/' + ROOM_ID);
     const myRef = roomRef.child('peers').child(myPeerId);
     
-    // Registrar en Firebase
+    // Registrar con presence
     myRef.set({
         role: myRole,
         name: name,
-        joined: Date.now(),
-        status: 'online'
+        joined: firebase.database.ServerValue.TIMESTAMP,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        peerId: myPeerId
     });
     
-    // Heartbeat
+    // Heartbeat más frecuente
     const heartbeat = setInterval(() => {
-        myRef.child('lastSeen').set(Date.now());
-    }, 5000);
+        myRef.child('lastSeen').set(firebase.database.ServerValue.TIMESTAMP);
+    }, 3000);
     
     window.addEventListener('beforeunload', () => {
         clearInterval(heartbeat);
@@ -519,20 +485,24 @@ function initSignaling(name) {
     });
     
     if (myRole === 'operator') {
-        // Escuchar invitados entrando
-        roomRef.child('peers').on('child_added', (snapshot) => {
-            const peerId = snapshot.key;
-            const data = snapshot.val();
+        // ESCUCHAR INVITADOS - Usar 'value' para detectar todos incluyendo existentes
+        roomRef.child('peers').on('value', (snapshot) => {
+            const peers = snapshot.val() || {};
             
-            if (peerId === myPeerId || data.role !== 'guest') return;
-            if (connectedPeers.has(peerId)) return;
-            if (availableSlots.length === 0) {
-                document.getElementById('fullAlert').style.display = 'block';
-                return;
-            }
-            
-            // Conectar al invitado
-            connectToGuest(peerId, data.name);
+            Object.keys(peers).forEach(peerId => {
+                const data = peers[peerId];
+                
+                if (peerId === myPeerId) return;
+                if (data.role !== 'guest') return;
+                if (connectedPeers.has(peerId)) return;
+                if (availableSlots.length === 0) {
+                    document.getElementById('fullAlert').style.display = 'block';
+                    return;
+                }
+                
+                // Conectar al invitado
+                connectToGuest(peerId, data.name);
+            });
         });
         
         roomRef.child('peers').on('child_removed', (snapshot) => {
@@ -541,28 +511,59 @@ function initSignaling(name) {
         });
         
     } else {
-        // INVITADO: Buscar operador y conectar
+        // INVITADO: Buscar operador con reintentos
         document.getElementById('connStatus').textContent = 'Buscando operador...';
         
-        roomRef.child('peers').once('value', (snapshot) => {
-            const peers = snapshot.val() || {};
+        const searchOperator = () => {
+            if (operatorPeerId && connectedPeers.has(operatorPeerId)) return;
             
-            // Buscar operador existente
-            Object.keys(peers).forEach(peerId => {
-                if (peers[peerId].role === 'operator' && peerId !== myPeerId) {
-                    operatorPeerId = peerId;
-                    connectToOperator(peerId, peers[peerId].name);
+            roomRef.child('peers').once('value', (snapshot) => {
+                const peers = snapshot.val() || {};
+                let found = false;
+                
+                Object.keys(peers).forEach(peerId => {
+                    const data = peers[peerId];
+                    if (data.role === 'operator' && peerId !== myPeerId) {
+                        found = true;
+                        operatorPeerId = peerId;
+                        connectToOperator(peerId, data.name);
+                    }
+                });
+                
+                if (!found) {
+                    retryCount++;
+                    document.getElementById('retryText').textContent = `Intento ${retryCount}/${MAX_RETRIES} - Buscando operador...`;
+                    
+                    if (retryCount < MAX_RETRIES) {
+                        setTimeout(searchOperator, 2000);
+                    } else {
+                        document.getElementById('connectingText').textContent = 'Operador no encontrado';
+                        document.getElementById('retryText').textContent = 'Verifica el ID de sala';
+                        document.getElementById('guestStatusText').textContent = 'Operador no encontrado';
+                        document.getElementById('guestSubText').textContent = 'El ID de sala puede ser incorrecto o el operador aún no ha entrado.';
+                    }
                 }
             });
-        });
+        };
         
-        // Si el operador entra después
+        // Buscar inmediatamente y cada 2 segundos
+        searchOperator();
+        const searchInterval = setInterval(() => {
+            if (!operatorPeerId || !connectedPeers.has(operatorPeerId)) {
+                searchOperator();
+            } else {
+                clearInterval(searchInterval);
+            }
+        }, 3000);
+        
+        // También escuchar si el operador entra después
         roomRef.child('peers').on('child_added', (snapshot) => {
             const peerId = snapshot.key;
             const data = snapshot.val();
             
             if (data.role === 'operator' && !connectedPeers.has(peerId) && !operatorPeerId) {
                 operatorPeerId = peerId;
+                clearInterval(searchInterval);
                 connectToOperator(peerId, data.name);
             }
         });
@@ -576,26 +577,26 @@ function initSignaling(name) {
     });
 }
 
-// OPERADOR: Conectar a un invitado
+// OPERADOR: Conectar a invitado
 function connectToGuest(peerId, guestName) {
     if (connectedPeers.has(peerId) || availableSlots.length === 0) return;
     
     connectedPeers.add(peerId);
     const slot = availableSlots.shift();
     
-    console.log('Operador conectando a invitado:', peerId, 'slot:', slot);
+    console.log('Operador conectando a invitado:', peerId);
     
-    // 1. DataChannel primero
-    const conn = peer.connect(peerId, { reliable: true, metadata: { slot: slot } });
+    // DataChannel
+    const conn = peer.connect(peerId, { reliable: true });
     
     conn.on('open', () => {
         console.log('DataChannel abierto con invitado');
         
-        // 2. Llamar al invitado (enviar nuestro video)
+        // Llamar al invitado (enviar nuestro video)
         const call = peer.call(peerId, localStream);
         
         call.on('stream', (remoteStream) => {
-            console.log('Stream del invitado recibido en slot', slot);
+            console.log('Stream del invitado recibido');
             
             connections.set(peerId, {
                 conn: conn,
@@ -607,7 +608,6 @@ function connectToGuest(peerId, guestName) {
             
             addGuestVideo(slot, remoteStream, guestName, peerId);
             updateDashboardSlot(slot, peerId, guestName, true);
-            
             document.getElementById('connStatus').textContent = 'Conectado';
             document.getElementById('connStatus').className = 'green';
         });
@@ -616,18 +616,20 @@ function connectToGuest(peerId, guestName) {
         call.on('error', () => freeSlot(peerId));
     });
     
-    conn.on('data', (data) => {
-        // Recibir comandos del invitado si es necesario
+    conn.on('error', () => {
+        connectedPeers.delete(peerId);
+        availableSlots.unshift(slot);
     });
 }
 
-// INVITADO: Conectar al operador
+// INVITADO: Conectar a operador
 function connectToOperator(opPeerId, opName) {
     if (connectedPeers.has(opPeerId)) return;
     connectedPeers.add(opPeerId);
     
     console.log('Invitado conectando a operador:', opPeerId);
     document.getElementById('connStatus').textContent = 'Conectando a estudio...';
+    document.getElementById('guestStatusText').textContent = 'Conectando...';
     
     // 1. DataChannel al operador
     const conn = peer.connect(opPeerId, { reliable: true });
@@ -635,18 +637,22 @@ function connectToOperator(opPeerId, opName) {
     conn.on('open', () => {
         console.log('DataChannel abierto con operador');
         
-        // 2. Enviar nuestro stream al operador (llamada saliente)
-        const call = peer.call(opPeerId, localStream);
+        // Notificar que estamos listos
+        conn.send({ type: 'ready', name: document.getElementById('guestName').value });
         
-        conn.on('data', (data) => {
-            if (data.type === 'tally') {
-                updateGuestTally(data.state);
-            }
-        });
+        // 2. Llamar al operador (enviar nuestro stream)
+        const call = peer.call(opPeerId, localStream);
+        console.log('Llamada saliente al operador enviada');
     });
     
-    // 3. IMPORTANTE: Recibir la llamada del operador (su retorno)
-    // El operador nos llamará para enviarnos su video
+    conn.on('data', (data) => {
+        if (data.type === 'tally') {
+            updateGuestTally(data.state);
+        }
+    });
+    
+    // 3. IMPORTANTE: El operador nos llamará de vuelta con su video
+    // Esto se maneja en handleIncomingCall
 }
 
 function handleIncomingCall(call) {
@@ -655,11 +661,11 @@ function handleIncomingCall(call) {
     if (myRole === 'operator') {
         // Recibir llamada de invitado
         if (connectedPeers.has(peerId)) {
-            call.answer(localStream); // Ya estamos conectados, solo confirmar
+            call.answer(localStream);
             return;
         }
         
-        // Nuevo invitado llamando directamente
+        // Nuevo invitado llamando
         db.ref('rooms/' + ROOM_ID + '/peers/' + peerId).once('value', (snap) => {
             const data = snap.val();
             if (data && data.role === 'guest' && availableSlots.length > 0) {
@@ -684,10 +690,8 @@ function handleIncomingCall(call) {
         
     } else {
         // INVITADO: Recibir llamada del operador (SU retorno)
-        if (!operatorPeerId) operatorPeerId = peerId;
-        
-        console.log('Invitado recibiendo retorno del operador');
-        call.answer(localStream); // Importante: answer para establecer conexión
+        console.log('Invitado recibiendo llamada del operador');
+        call.answer(localStream);
         
         call.on('stream', (remoteStream) => {
             console.log('Retorno del operador recibido!');
@@ -695,10 +699,14 @@ function handleIncomingCall(call) {
             document.getElementById('connectingOverlay').classList.add('hidden');
             document.getElementById('connStatus').textContent = 'En línea';
             document.getElementById('connStatus').className = 'green';
+            document.getElementById('guestStatusText').textContent = 'Conectado al estudio';
+            document.getElementById('guestSubText').textContent = 'El operador puede verte. Espera instrucciones.';
+            document.getElementById('modeText').textContent = 'Modo: Conectado';
         });
         
         call.on('close', () => {
             document.getElementById('connectingOverlay').classList.remove('hidden');
+            document.getElementById('connectingText').textContent = 'Desconectado';
             document.getElementById('connStatus').textContent = 'Desconectado';
         });
     }
@@ -836,16 +844,23 @@ function updateGuestTally(state) {
         mainTally.textContent = '🔴 AL AIRE';
         document.getElementById('modeText').textContent = 'Modo: TRANSMITIENDO';
         document.getElementById('modeText').style.color = '#ff0000';
+        document.getElementById('guestStatusText').textContent = '🔴 ESTÁS AL AIRE';
+        document.getElementById('guestStatusText').style.color = '#ff0000';
     } else if (state === 'standby') {
         container.classList.add('standby');
         container.classList.remove('live');
         mainTally.textContent = '⏺ ATENTO';
         document.getElementById('modeText').textContent = 'Modo: PREPARADO';
         document.getElementById('modeText').style.color = '#ffff00';
+        document.getElementById('guestStatusText').textContent = '⏺ ATENTO';
+        document.getElementById('guestStatusText').style.color = '#ffff00';
     } else {
         container.classList.remove('live', 'standby');
-        mainTally.textContent = 'AL AIRE';
         mainTally.classList.add('off');
+        document.getElementById('modeText').textContent = 'Modo: Conectado';
+        document.getElementById('modeText').style.color = '#999';
+        document.getElementById('guestStatusText').textContent = 'Conectado - Fuera del aire';
+        document.getElementById('guestStatusText').style.color = '#666';
     }
 }
 
