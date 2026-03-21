@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamcall Power - Broadcast</title>
+    <title>Streamcall Power</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,23 +14,16 @@
         .room-badge { background: #ff6b00; color: #000; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; }
         .role-badge { background: #00ff00; color: #000; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; }
         .role-badge.guest { background: #0088ff; }
-        .role-badge.obs { background: #ff00ff; }
-        
-        /* OBS Mode - Full screen, no controles */
-        body.obs-mode header { display: none; }
-        body.obs-mode .controls { display: none; }
-        body.obs-mode .stats { display: none; }
-        body.obs-mode .guest-preview-bar { display: none !important; }
-        body.obs-mode .main-container.guest { grid-template-rows: 1fr; }
-        body.obs-mode .operator-view { padding: 0; }
-        body.obs-mode .video-container.operator-large { max-width: 100%; max-height: 100vh; border: none; border-radius: 0; }
         
         .main-container { display: grid; height: calc(100vh - 70px); }
+        
+        /* OPERADOR */
         .main-container.operator { grid-template-columns: 1fr 350px; grid-template-rows: 180px 1fr; }
         .main-container.operator .preview-bar { grid-column: 1; grid-row: 1; display: flex; gap: 10px; padding: 10px; background: #1a1a1a; border-bottom: 2px solid #333; overflow-x: auto; align-items: center; }
         .main-container.operator .video-grid { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 10px; background: #000; }
         .main-container.operator .dashboard { grid-column: 2; grid-row: 1 / 3; background: #1a1a1a; border-left: 2px solid #333; padding: 20px; overflow-y: auto; }
         
+        /* INVITADO */
         .main-container.guest { grid-template-columns: 1fr; grid-template-rows: 1fr 200px; }
         .main-container.guest .operator-view { grid-row: 1; display: flex; justify-content: center; align-items: center; background: #000; padding: 20px; position: relative; }
         .main-container.guest .guest-preview-bar { grid-row: 2; display: flex; gap: 15px; padding: 15px; background: #1a1a1a; border-top: 3px solid #ff6b00; justify-content: center; align-items: center; }
@@ -46,39 +39,12 @@
         
         .retorno-label { position: absolute; top: 10px; right: 10px; background: #ff6b00; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
         .self-label { position: absolute; top: 10px; right: 10px; background: #0088ff; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 20; }
+        .tally-label-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; text-shadow: 0 0 20px currentColor; pointer-events: none; z-index: 30; }
+        .tally-label-main.off { display: none; }
+        .tally-label-main.standby { color: #ffff00; }
+        .tally-label-main.live { color: #ff0000; animation: pulse 1s infinite; }
         
-        /* TALLY EN PANTALLA COMPLETA PARA INVITADO */
-        .tally-overlay { 
-            position: absolute; 
-            top: 0; left: 0; right: 0; bottom: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            pointer-events: none; 
-            z-index: 40;
-            transition: all 0.3s;
-        }
-        .tally-overlay.off { opacity: 0; }
-        .tally-overlay.standby { 
-            background: rgba(255, 255, 0, 0.1); 
-            box-shadow: inset 0 0 100px rgba(255, 255, 0, 0.3);
-        }
-        .tally-overlay.live { 
-            background: rgba(255, 0, 0, 0.2); 
-            box-shadow: inset 0 0 150px rgba(255, 0, 0, 0.5);
-        }
-        .tally-text { 
-            font-size: 72px; 
-            font-weight: bold; 
-            text-transform: uppercase;
-            letter-spacing: 10px;
-            text-shadow: 0 0 30px currentColor;
-            animation: pulse 1s infinite;
-        }
-        .tally-overlay.standby .tally-text { color: #ffff00; }
-        .tally-overlay.live .tally-text { color: #ff0000; }
-        
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         .tally-light { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #333; border: 2px solid #555; z-index: 10; }
         .tally-light.live { background: #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; animation: pulse 1s infinite; }
@@ -103,11 +69,6 @@
         .id-display { background: #0f0f0f; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 24px; font-weight: bold; color: #00ff00; letter-spacing: 2px; }
         .id-hint { font-size: 11px; color: #999; margin-top: 8px; }
         
-        .obs-box { background: #2d002d; border: 2px solid #ff00ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .obs-box h3 { color: #ff00ff; font-size: 11px; margin-bottom: 10px; }
-        .obs-url { background: #0f0f0f; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 9px; word-break: break-all; color: #ff00ff; }
-        .obs-hint { font-size: 10px; color: #999; margin-top: 8px; }
-        
         .slot-container { margin-bottom: 15px; }
         .slot-label { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
         .participant-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 2px solid #444; }
@@ -131,14 +92,17 @@
         .modal.active { display: flex; }
         .modal-content { background: #1a1a1a; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; border: 2px solid #ff6b00; box-shadow: 0 0 50px rgba(255,107,0,0.3); }
         
-        .role-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .role-option { background: #2d2d2d; border: 2px solid #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .role-option { background: #2d2d2d; border: 2px solid #444; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
         .role-option:hover { border-color: #ff6b00; }
         .role-option.selected { background: #ff6b00; border-color: #ff6b00; color: #000; }
-        .role-option.obs-selected { background: #ff00ff; border-color: #ff00ff; color: #fff; }
-        .role-option h3 { font-size: 14px; margin-bottom: 8px; }
-        .role-option p { font-size: 11px; color: #999; }
-        .role-option.selected p, .role-option.obs-selected p { color: #000; }
+        .role-option h3 { font-size: 16px; margin-bottom: 8px; }
+        .role-option p { font-size: 12px; color: #999; }
+        .role-option.selected p { color: #000; }
+        
+        .device-select { width: 100%; padding: 12px; margin: 10px 0; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 14px; }
+        .join-btn { width: 100%; padding: 15px; background: #ff6b00; color: #fff; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; text-transform: uppercase; }
+        .join-btn:hover { background: #ff8533; box-shadow: 0 0 20px rgba(255,107,0,0.5); }
         
         .input-group { margin: 15px 0; }
         .input-group label { display: block; font-size: 12px; color: #ccc; margin-bottom: 5px; }
@@ -198,12 +162,7 @@
     <div class="operator-view" id="operatorView" style="display: none;">
         <div class="video-container operator-large" id="operatorVideoContainer">
             <div class="retorno-label">📡 RETORNO DEL ESTUDIO</div>
-            
-            <!-- TALLY EN PANTALLA COMPLETA -->
-            <div class="tally-overlay off" id="tallyOverlay">
-                <div class="tally-text" id="tallyText">AL AIRE</div>
-            </div>
-            
+            <div class="tally-label-main off" id="mainTally">AL AIRE</div>
             <video id="operatorVideo" autoplay playsinline></video>
             <div class="participant-name">Operador</div>
             
@@ -238,13 +197,7 @@
         <div class="id-box" id="idBox">
             <h3>📢 TU ID DE OPERADOR</h3>
             <div class="id-display" id="operatorIdDisplay">---</div>
-            <div class="id-hint">Pide a invitados/OBS que ingresen este ID</div>
-        </div>
-        
-        <div class="obs-box" id="obsBox">
-            <h3>🔗 ENLACE PARA OBS</h3>
-            <div class="obs-url" id="obsUrl">---</div>
-            <div class="obs-hint">En OBS: Fuente Navegador → pega esta URL</div>
+            <div class="id-hint">Pide a los invitados que ingresen este ID exacto</div>
         </div>
         
         <!-- 3 Slots -->
@@ -277,15 +230,11 @@
         <div class="role-selector">
             <div class="role-option selected" id="roleOperator" onclick="selectRole('operator')">
                 <h3>🎛️ OPERADOR</h3>
-                <p>Controlas la sala<br>3 invitados máximo</p>
+                <p>Creas la sala<br>3 invitados máximo<br>Control Tally</p>
             </div>
             <div class="role-option" id="roleGuest" onclick="selectRole('guest')">
                 <h3>📹 INVITADO</h3>
-                <p>Unes a sala<br>Ves retorno + tu cámara</p>
-            </div>
-            <div class="role-option" id="roleOBS" onclick="selectRole('obs')">
-                <h3>🎬 OBS VIRTUAL</h3>
-                <p>Para streaming<br>Full screen, no UI</p>
+                <p>Unes a sala existente<br>Ves retorno + tu cámara<br>Esperas tu turno</p>
             </div>
         </div>
         
@@ -303,16 +252,6 @@
             <input type="text" id="guestName" class="device-select" value="Invitado">
         </div>
         
-        <div id="obsFields" style="display: none;">
-            <div class="input-group">
-                <label>ID del Operador (6 caracteres):</label>
-                <input type="text" id="obsIdInput" class="id-input" placeholder="ABC123" maxlength="6">
-            </div>
-            <div class="alert-box" style="background: #2d002d; border-color: #ff00ff;">
-                <strong>Modo OBS:</strong> Se ocultarán todos los controles. Solo verás el retorno del operador en pantalla completa.
-            </div>
-        </div>
-        
         <label style="font-size: 12px; color: #ccc; margin-top: 10px;">Cámara:</label>
         <select id="videoSource" class="device-select"></select>
         
@@ -324,25 +263,13 @@
 </div>
 
 <script>
-// Detectar modo OBS desde URL
-const urlParams = new URLSearchParams(window.location.search);
-const IS_OBS_MODE = urlParams.get('obs') === 'true';
-const URL_ID = urlParams.get('id');
-
 let myRole = 'operator';
 let peer;
 let localStream;
-let connections = new Map();
+let connections = new Map(); // peerId -> {call, returnCall, stream, returnStream, name, slot, dataConn}
 let myPeerId;
 let operatorId = null;
 let availableSlots = [0, 1, 2];
-let dataChannels = new Map(); // Almacenar DataChannels activos
-
-// Si viene de URL en modo OBS
-if (IS_OBS_MODE && URL_ID) {
-    myRole = 'obs';
-    document.body.classList.add('obs-mode');
-}
 
 navigator.mediaDevices.enumerateDevices().then(devices => {
     const videoSelect = document.getElementById('videoSource');
@@ -359,53 +286,38 @@ navigator.mediaDevices.enumerateDevices().then(devices => {
 
 function selectRole(role) {
     myRole = role;
-    document.getElementById('roleOperator').className = 'role-option' + (role === 'operator' ? ' selected' : '');
-    document.getElementById('roleGuest').className = 'role-option' + (role === 'guest' ? ' selected' : '');
-    document.getElementById('roleOBS').className = 'role-option' + (role === 'obs' ? ' obs-selected' : '');
-    
+    document.getElementById('roleOperator').classList.toggle('selected', role === 'operator');
+    document.getElementById('roleGuest').classList.toggle('selected', role === 'guest');
     document.getElementById('operatorFields').style.display = role === 'operator' ? 'block' : 'none';
-    document.getElementById('guestFields').style.display = (role === 'guest' || role === 'obs') ? 'block' : 'none';
-    document.getElementById('obsFields').style.display = role === 'obs' ? 'block' : 'none';
-    
-    if (role === 'obs') {
-        document.getElementById('operatorIdInput').style.display = 'none';
-        document.getElementById('guestName').value = 'OBS Virtual Camera';
-    }
+    document.getElementById('guestFields').style.display = role === 'guest' ? 'block' : 'none';
 }
 
 function updateStatusIndicators(cam, mic) {
     const camDot = myRole === 'operator' ? 'localCamDot' : 'guestCamDot';
     const micDot = myRole === 'operator' ? 'localMicDot' : 'guestMicDot';
-    if (document.getElementById(camDot)) {
-        document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
-        document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
-    }
+    document.getElementById(camDot).className = 'status-dot ' + (cam ? 'active' : 'muted');
+    document.getElementById(micDot).className = 'status-dot ' + (mic ? 'active' : 'muted');
 }
 
 function startBroadcast() {
     const name = myRole === 'operator' 
         ? document.getElementById('userName').value 
-        : (myRole === 'obs' ? 'OBS Virtual' : document.getElementById('guestName').value);
+        : document.getElementById('guestName').value;
     
-    if (myRole === 'operator') {
-        operatorId = null;
-    } else {
-        operatorId = (myRole === 'obs' ? document.getElementById('obsIdInput').value : document.getElementById('operatorIdInput').value).toUpperCase().trim();
+    if (myRole === 'guest') {
+        operatorId = document.getElementById('operatorIdInput').value.toUpperCase().trim();
         if (operatorId.length !== 6) {
             alert('Ingresa el ID de 6 caracteres del operador');
             return;
         }
     }
     
-    // UI Updates
-    const roleText = myRole === 'operator' ? 'OPERADOR' : (myRole === 'obs' ? 'OBS' : 'INVITADO');
-    document.getElementById('roleBadge').textContent = roleText;
+    document.getElementById('roleBadge').textContent = myRole === 'operator' ? 'OPERADOR' : 'INVITADO';
     document.getElementById('roleBadge').classList.toggle('guest', myRole === 'guest');
-    document.getElementById('roleBadge').classList.toggle('obs', myRole === 'obs');
-    document.getElementById('roleDisplay').textContent = roleText;
+    document.getElementById('roleDisplay').textContent = myRole === 'operator' ? 'Operador' : 'Invitado';
     
     const container = document.getElementById('mainContainer');
-    container.className = 'main-container ' + (myRole === 'obs' ? 'guest' : myRole);
+    container.className = 'main-container ' + myRole;
     
     if (myRole === 'operator') {
         document.getElementById('dashboard').style.display = 'block';
@@ -415,52 +327,31 @@ function startBroadcast() {
         document.getElementById('guestPreviewBar').style.display = 'none';
         document.getElementById('modeText').textContent = 'Modo: Control Total';
     } else {
-        // Guest u OBS
         document.getElementById('dashboard').style.display = 'none';
         document.getElementById('previewBar').style.display = 'none';
         document.getElementById('videoGrid').style.display = 'none';
         document.getElementById('operatorView').style.display = 'flex';
-        document.getElementById('guestPreviewBar').style.display = myRole === 'obs' ? 'none' : 'flex';
-        document.getElementById('modeText').textContent = myRole === 'obs' ? 'Modo: OBS Full Screen' : 'Modo: Invitado';
-        if (document.getElementById('guestSelfName')) {
-            document.getElementById('guestSelfName').textContent = name;
-        }
+        document.getElementById('guestPreviewBar').style.display = 'flex';
+        document.getElementById('modeText').textContent = 'Modo: Invitado';
+        document.getElementById('guestSelfName').textContent = name;
     }
     
-    // Get media con audio optimizado para música
     const videoId = document.getElementById('videoSource').value;
     const audioId = document.getElementById('audioSource').value;
     
-    // Configuración de audio mejorada para música (stereo, high quality)
-    const audioConstraints = audioId ? {
-        deviceId: { exact: audioId },
-        echoCancellation: false, // Desactivado para música
-        noiseSuppression: false,  // Desactivado para música
-        autoGainControl: false,   // Desactivado para música
-        sampleRate: 48000,
-        channelCount: 2 // Stereo
-    } : {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        sampleRate: 48000,
-        channelCount: 2
-    };
-    
     navigator.mediaDevices.getUserMedia({
-        video: videoId ? { deviceId: { exact: videoId }, width: 1280, height: 720 } : { width: 1280, height: 720 },
-        audio: audioConstraints
+        video: videoId ? { deviceId: { exact: videoId } } : true,
+        audio: audioId ? { deviceId: { exact: audioId } } : true
     }).then(stream => {
         localStream = stream;
         document.getElementById('configModal').classList.remove('active');
         
         if (myRole === 'operator') {
             document.getElementById('localVideo').srcObject = stream;
-        } else if (myRole === 'guest') {
+        } else {
             document.getElementById('guestLocalVideo').srcObject = stream;
             updateStatusIndicators(true, true);
         }
-        // OBS no muestra preview local
         
         initPeer(name);
         
@@ -474,12 +365,8 @@ function initPeer(name) {
         myPeerId = 'SC' + Math.random().toString(36).substr(2, 4).toUpperCase();
         document.getElementById('operatorIdDisplay').textContent = myPeerId;
         document.getElementById('headerRoom').textContent = 'ID: ' + myPeerId;
-        
-        // Generar URL para OBS
-        const obsUrl = window.location.origin + window.location.pathname + '?obs=true&id=' + myPeerId;
-        document.getElementById('obsUrl').textContent = obsUrl;
     } else {
-        myPeerId = (myRole === 'obs' ? 'OBS_' : 'GUEST_') + operatorId + '_' + Date.now();
+        myPeerId = 'GUEST_' + operatorId + '_' + Date.now();
         document.getElementById('headerRoom').textContent = 'SALA ' + operatorId;
     }
     
@@ -503,7 +390,7 @@ function initPeer(name) {
     peer.on('open', (id) => {
         document.getElementById('connStatus').textContent = myRole === 'operator' ? 'Listo - Esperando' : 'Conectando...';
         
-        if (myRole !== 'operator') {
+        if (myRole === 'guest') {
             connectToOperator();
         }
     });
@@ -518,53 +405,46 @@ function initPeer(name) {
     
     peer.on('error', (err) => {
         console.log('Peer error:', err.type);
-        if (err.type === 'peer-unavailable' && myRole !== 'operator') {
+        if (err.type === 'peer-unavailable' && myRole === 'guest') {
             document.getElementById('connectingText').textContent = 'Operador no encontrado';
-            if (document.getElementById('guestStatusText')) {
-                document.getElementById('guestStatusText').textContent = 'Error: ID incorrecto';
-            }
+            document.getElementById('guestStatusText').textContent = 'Error: ID incorrecto';
         }
     });
 }
 
+// INVITADO: Conectar al operador
 function connectToOperator() {
     if (!operatorId) return;
     
-    console.log('Conectando a operador:', operatorId);
+    console.log('Invitado conectando a operador:', operatorId);
     document.getElementById('connStatus').textContent = 'Conectando...';
     
-    // DataChannel al operador
-    const conn = peer.connect(operatorId, { 
-        reliable: true, 
-        metadata: { 
-            name: myRole === 'obs' ? 'OBS Virtual' : document.getElementById('guestName').value,
-            role: myRole 
-        } 
-    });
-    
-    dataChannels.set(operatorId, conn);
+    // 1. DataChannel al operador
+    const conn = peer.connect(operatorId, { reliable: true, metadata: { name: document.getElementById('guestName').value } });
     
     conn.on('open', () => {
         console.log('DataChannel abierto con operador');
         document.getElementById('connStatus').textContent = 'Canal listo - Enviando video...';
         
-        // Enviar nuestro stream al operador
+        // 2. Llamar al operador (enviar nuestro stream)
         const call = peer.call(operatorId, localStream);
+        console.log('Llamada enviada al operador');
     });
     
     conn.on('data', (data) => {
-        console.log('Data recibida:', data);
         if (data.type === 'tally') {
             updateGuestTally(data.state);
         }
     });
 }
 
+// Manejar llamadas entrantes
 function handleIncomingCall(call) {
     const callerId = call.peer;
     console.log('Llamada entrante de:', callerId, 'Rol:', myRole);
     
     if (myRole === 'operator') {
+        // OPERADOR: Recibir de invitado
         if (availableSlots.length === 0) {
             console.log('Sala llena');
             return;
@@ -572,15 +452,16 @@ function handleIncomingCall(call) {
         
         const slot = availableSlots.shift();
         
-        // Responder con nuestro stream (retorno)
+        // IMPORTANTE: Responder con nuestro stream (retorno al invitado)
         call.answer(localStream);
         console.log('Respondiendo llamada con retorno, slot:', slot);
         
         call.on('stream', (remoteStream) => {
-            console.log('Stream recibido en slot', slot);
+            console.log('Stream del invitado recibido en slot', slot);
             
             const guestName = 'Invitado ' + (slot + 1);
             
+            // Guardar conexión
             connections.set(callerId, {
                 call: call,
                 stream: remoteStream,
@@ -594,61 +475,62 @@ function handleIncomingCall(call) {
             document.getElementById('connStatus').textContent = 'Conectado';
             document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
             
-            // Llamar DE VUELTA para asegurar el retorno
+            // IMPORTANTE: Llamar DE VUELTA al invitado con nuestro video (retorno)
+            // Esto asegura que el invitado reciba nuestro stream incluso si la primera llamada falló
             setTimeout(() => {
-                console.log('Enviando retorno a:', callerId);
+                console.log('Enviando retorno al invitado:', callerId);
                 const returnCall = peer.call(callerId, localStream);
+                
+                returnCall.on('stream', (returnStream) => {
+                    console.log('Retorno confirmado por invitado');
+                });
+                
+                returnCall.on('error', (err) => {
+                    console.log('Error en retorno:', err);
+                });
             }, 500);
         });
         
-        call.on('close', () => freeSlot(callerId));
-        call.on('error', () => freeSlot(callerId));
+        call.on('close', () => {
+            console.log('Llamada cerrada de:', callerId);
+            freeSlot(callerId);
+        });
+        
+        call.on('error', (err) => {
+            console.log('Error en llamada:', err);
+            freeSlot(callerId);
+        });
         
     } else {
-        // Guest u OBS: Recibir retorno
-        console.log('Recibiendo retorno del operador');
+        // INVITADO: Recibir retorno del operador
+        console.log('Invitado recibiendo retorno del operador');
+        
+        // Responder para establecer conexión
         call.answer(localStream);
         
         call.on('stream', (remoteStream) => {
-            console.log('RETORNO RECIBIDO!');
+            console.log('RETORNO RECIBIDO! Mostrando video del operador');
             document.getElementById('operatorVideo').srcObject = remoteStream;
             document.getElementById('connectingOverlay').classList.add('hidden');
             document.getElementById('connStatus').textContent = 'En línea';
-            
-            if (document.getElementById('guestStatusText')) {
-                document.getElementById('guestStatusText').textContent = 'Conectado al estudio';
-                document.getElementById('guestSubText').textContent = 'El operador puede verte';
-            }
+            document.getElementById('guestStatusText').textContent = 'Conectado al estudio';
+            document.getElementById('guestSubText').textContent = 'El operador puede verte y tú ves el retorno';
+        });
+        
+        call.on('close', () => {
+            console.log('Retorno cerrado');
+            document.getElementById('connectingOverlay').classList.remove('hidden');
+            document.getElementById('connectingText').textContent = 'Desconectado';
         });
     }
 }
 
 function handleDataConnection(conn) {
-    const peerId = conn.peer;
-    
-    // Guardar DataChannel
-    if (!dataChannels.has(peerId)) {
-        dataChannels.set(peerId, conn);
-    }
-    
     conn.on('data', (data) => {
-        console.log('Data de', peerId, ':', data);
-        if (data.type === 'tally') {
-            // Si soy invitado/OBS, mostrar tally
-            if (myRole !== 'operator') {
-                updateGuestTally(data.state);
-            }
+        if (data.type === 'tally' && myRole === 'guest') {
+            updateGuestTally(data.state);
         }
     });
-    
-    // Si soy operador y es nuevo invitado, guardar referencia
-    if (myRole === 'operator') {
-        const existing = connections.get(peerId);
-        if (existing) {
-            existing.dataConn = conn;
-            connections.set(peerId, existing);
-        }
-    }
 }
 
 function addGuestVideo(slot, stream, name, peerId) {
@@ -712,20 +594,12 @@ function updateDashboardSlot(slot, peerId, name, connected) {
 function sendTally(peerId, state) {
     updateTally(peerId, state);
     
-    // Enviar por DataChannel
-    const conn = dataChannels.get(peerId);
-    if (conn && conn.open) {
-        console.log('Enviando tally a', peerId, ':', state);
+    // Enviar a través de DataChannel
+    const conn = peer.connections[peerId]?.find(c => c.label === 'data');
+    if (conn) {
         conn.send({ type: 'tally', state: state });
-    } else {
-        // Intentar crear nueva conexión si no existe
-        const newConn = peer.connect(peerId, { reliable: true });
-        newConn.on('open', () => {
-            newConn.send({ type: 'tally', state: state });
-        });
     }
     
-    // Actualizar UI del operador
     const slot = connections.get(peerId)?.slot;
     if (slot !== undefined) {
         const slotEl = document.getElementById('slot-' + slot);
@@ -763,45 +637,34 @@ function updateTally(peerId, state) {
 }
 
 function updateGuestTally(state) {
-    const overlay = document.getElementById('tallyOverlay');
-    const text = document.getElementById('tallyText');
+    const mainTally = document.getElementById('mainTally');
     const container = document.getElementById('operatorVideoContainer');
     
-    console.log('Actualizando Tally en invitado:', state);
-    
-    overlay.classList.remove('off', 'standby', 'live');
+    mainTally.className = 'tally-label-main ' + state;
     
     if (state === 'live') {
-        overlay.classList.add('live');
-        text.textContent = '🔴 AL AIRE';
         container.classList.add('live');
         container.classList.remove('standby');
-        document.getElementById('modeText').textContent = '🔴 TRANSMITIENDO';
+        mainTally.textContent = '🔴 AL AIRE';
+        document.getElementById('modeText').textContent = 'Modo: TRANSMITIENDO';
         document.getElementById('modeText').style.color = '#ff0000';
-        if (document.getElementById('guestStatusText')) {
-            document.getElementById('guestStatusText').textContent = '🔴 ESTÁS AL AIRE';
-            document.getElementById('guestStatusText').style.color = '#ff0000';
-        }
+        document.getElementById('guestStatusText').textContent = '🔴 ESTÁS AL AIRE';
+        document.getElementById('guestStatusText').style.color = '#ff0000';
     } else if (state === 'standby') {
-        overlay.classList.add('standby');
-        text.textContent = '⏺ ATENTO';
         container.classList.add('standby');
         container.classList.remove('live');
-        document.getElementById('modeText').textContent = '⏺ PREPARADO';
+        mainTally.textContent = '⏺ ATENTO';
+        document.getElementById('modeText').textContent = 'Modo: PREPARADO';
         document.getElementById('modeText').style.color = '#ffff00';
-        if (document.getElementById('guestStatusText')) {
-            document.getElementById('guestStatusText').textContent = '⏺ ATENTO';
-            document.getElementById('guestStatusText').style.color = '#ffff00';
-        }
+        document.getElementById('guestStatusText').textContent = '⏺ ATENTO';
+        document.getElementById('guestStatusText').style.color = '#ffff00';
     } else {
-        overlay.classList.add('off');
         container.classList.remove('live', 'standby');
-        document.getElementById('modeText').textContent = myRole === 'obs' ? 'Modo: OBS' : 'Modo: Conectado';
+        mainTally.classList.add('off');
+        document.getElementById('modeText').textContent = 'Modo: Conectado';
         document.getElementById('modeText').style.color = '#999';
-        if (document.getElementById('guestStatusText')) {
-            document.getElementById('guestStatusText').textContent = 'Conectado';
-            document.getElementById('guestStatusText').style.color = '#666';
-        }
+        document.getElementById('guestStatusText').textContent = 'Conectado';
+        document.getElementById('guestStatusText').style.color = '#666';
     }
 }
 
@@ -819,7 +682,6 @@ function freeSlot(peerId) {
     updateDashboardSlot(slot, null, null, false);
     
     connections.delete(peerId);
-    dataChannels.delete(peerId);
     document.getElementById('peerCount').textContent = (3 - availableSlots.length) + '/3';
     document.getElementById('fullAlert').style.display = availableSlots.length === 0 ? 'block' : 'none';
 }
