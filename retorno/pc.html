@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamCall Laptop-to-Laptop (8h Eventos)</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { margin: 0; padding: 0; background: #000; color: white; font-family: 'Inter', sans-serif; overflow: hidden; }
+        
+        /* VIEWER LAPTOP - Interfaz limpia desktop */
+        .viewer-laptop { 
+            width: 100vw; height: 100vh; background: #000; position: relative; 
+            cursor: none; /* Ocultar cursor para modo presentación */
+        }
+        .viewer-laptop:hover { cursor: auto; }
+        
+        .video-desktop { 
+            width: 100%; height: 100%; object-fit: contain; background: #000; 
+        }
+        
+        /* Controles flotantes estilo Netflix/YouTube */
+        .controls-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 40px 30px 30px;
+            opacity: 0; transition: opacity 0.3s;
+            z-index: 50;
+        }
+        .viewer-laptop:hover .controls-overlay { opacity: 1; }
+        
+        .progress-bar {
+            width: 100%; height: 4px; background: rgba(255,255,255,0.3);
+            border-radius: 2px; margin-bottom: 20px;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%; background: #ef4444; width: 100%;
+            border-radius: 2px; animation: pulse-bar 2s infinite;
+        }
+        @keyframes pulse-bar { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        
+        .control-row { display: flex; justify-content: space-between; align-items: center; }
+        .control-group { display: flex; gap: 15px; align-items: center; }
+        
+        .control-btn { 
+            background: none; border: none; color: white; 
+            font-size: 20px; cursor: pointer; padding: 8px;
+            border-radius: 50%; transition: background 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px;
+        }
+        .control-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        .badge-live { 
+            background: #ef4444; color: white; padding: 4px 8px; 
+            border-radius: 4px; font-size: 12px; font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .status-corner {
+            position: absolute; top: 30px; left: 30px;
+            background: rgba(0,0,0,0.6); padding: 12px 20px;
+            border-radius: 8px; z-index: 40;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .status-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .status-value { font-size: 18px; font-weight: bold; color: white; margin-top: 4px; }
+        
+        .reconnecting-banner {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(245, 158, 11, 0.95); color: black;
+            padding: 20px 40px; border-radius: 50px; font-weight: bold;
+            font-size: 16px; z-index: 100; display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .reconnecting-banner.show { display: block; }
+        
+        /* Loading elegante */
+        .loading-screen {
+            position: absolute; inset: 0; background: #0f172a;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .loader-ring {
+            width: 80px; height: 80px; border: 4px solid #1e293b;
+            border-top: 4px solid #3b82f6; border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Director - Optimizado para presentaciones */
+        .director-layout { display: flex; flex-direction: column; height: 100vh; background: #0f172a; }
+        .dir-header { 
+            background: #1e293b; padding: 15px 25px; border-bottom: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .timer-big { 
+            font-family: 'Courier New', monospace; font-size: 24px; color: #10b981;
+            background: #000; padding: 8px 16px; border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        
+        .dir-content { flex: 1; display: grid; grid-template-columns: 1fr 400px; gap: 0; overflow: hidden; }
+        @media (max-width: 1200px) { .dir-content { grid-template-columns: 1fr; } }
+        
+        .stage-area { background: #000; display: flex; flex-direction: column; position: relative; }
+        .preview-large { flex: 1; background: #000; position: relative; overflow: hidden; }
+        
+        .preview-video { width: 100%; height: 100%; object-fit: contain; }
+        
+        .broadcast-overlay {
+            position: absolute; inset: 0; pointer-events: none;
+            border: 4px solid transparent;
+            transition: border-color 0.3s;
+        }
+        .broadcast-overlay.live { border-color: #ef4444; }
+        
+        .stage-controls {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 50px;
+            display: flex; gap: 15px; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-control { 
+            background: #1e293b; border-left: 1px solid #334155;
+            padding: 20px; display: flex; flex-direction: column; gap: 20px;
+            overflow-y: auto;
+        }
+        
+        .source-selector { display: flex; gap: 10px; }
+        .source-btn { 
+            flex: 1; padding: 15px; background: #0f172a; border: 2px solid #334155;
+            border-radius: 8px; color: #94a3b8; font-weight: bold; cursor: pointer;
+            transition: all 0.2s; text-align: center;
+        }
+        .source-btn.active { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.1); }
+        .source-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .receivers-list { display: flex; flex-direction: column; gap: 8px; }
+        .rec-item { 
+            background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .rec-item.online { border-color: #10b981; }
+        .rec-item.streaming { border-color: #10b981; background: rgba(16,185,129,0.1); }
+        .rec-item.reconnecting { border-color: #f59e0b; animation: border-flash 1s infinite; }
+        
+        @keyframes border-flash { 0%, 100% { border-color: #f59e0b; } 50% { border-color: transparent; } }
+        
+        .rec-info { display: flex; flex-direction: column; }
+        .rec-name { font-weight: bold; color: white; }
+        .rec-status { font-size: 11px; color: #64748b; margin-top: 2px; }
+        
+        .copy-url { 
+            background: #000; border: 1px solid #334155; padding: 10px;
+            border-radius: 6px; font-size: 11px; color: #94a3b8; font-family: monospace;
+            cursor: pointer; word-break: break-all; margin-top: 10px;
+        }
+        .copy-url:hover { border-color: #3b82f6; color: white; }
+        
+        .btn-action { 
+            padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold;
+            cursor: pointer; font-size: 14px; transition: all 0.2s;
+        }
+        .btn-start { background: #ef4444; color: white; }
+        .btn-start:hover { background: #dc2626; }
+        .btn-stop { background: #10b981; color: black; }
+        .btn-copy { background: #3b82f6; color: white; padding: 8px 16px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; }
+        
+        .tip-box { 
+            background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b;
+            padding: 15px; border-radius: 8px; font-size: 13px; color: #fbbf24;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+        
+        const PEER_CONFIG = {
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true,
+            config: { 
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ] 
+            }
+        };
+        
+        // Hook para formatear tiempo
+        const useTimer = (running) => {
+            const [seconds, setSeconds] = useState(0);
+            useEffect(() => {
+                if (!running) { setSeconds(0); return; }
+                const i = setInterval(() => setSeconds(s => s + 1), 1000);
+                return () => clearInterval(i);
+            }, [running]);
+            const fmt = (s) => {
+                const h = Math.floor(s / 3600).toString().padStart(2,'0');
+                const m = Math.floor((s % 3600) / 60).toString().padStart(2,'0');
+                const sec = (s % 60).toString().padStart(2,'0');
+                return `${h}:${m}:${sec}`;
+            };
+            return fmt(seconds);
+        };
+        
+        // ==================== DIRECTOR (LAPTOP EMISORA) ====================
+        const Director = ({ room }) => {
+            const [isBroadcasting, setIsBroadcasting] = useState(false);
+            const [source, setSource] = useState('screen'); // Default screen para PPTs
+            const [stream, setStream] = useState(null);
+            const [receivers, setReceivers] = useState({});
+            const [selectedReceiver, setSelectedReceiver] = useState(null);
+            
+            const timer = useTimer(isBroadcasting);
+            const peerRef = useRef(null);
+            const streamRef = useRef(null);
+            const videoRef = useRef(null);
+            
+            useEffect(() => {
+                if (videoRef.current && stream) videoRef.current.srcObject = stream;
+            }, [stream]);
+            
+            useEffect(() => {
+                const id = `dir-${room}`;
+                peerRef.current = new Peer(id, PEER_CONFIG);
+                
+                peerRef.current.on('connection', (conn) => {
+                    const slot = conn.peer.split('-').pop();
+                    console.log(`Laptop #${slot} conectada`);
+                    
+                    setReceivers(prev => ({
+                        ...prev,
+                        [slot]: { slot, conn, status: 'connected', call: null, reconnecting: false }
+                    }));
+                    
+                    conn.on('data', (data) => {
+                        if (data === 'READY_FOR_STREAM') {
+                            if (streamRef.current && isBroadcasting) {
+                                sendStream(slot);
+                            }
+                        } else if (data === 'RECONNECT_PLEASE') {
+                            console.log(`Reconexión solicitada por #${slot}`);
+                            if (streamRef.current) sendStream(slot);
+                        }
+                    });
+                    
+                    conn.on('close', () => {
+                        setReceivers(prev => ({
+                            ...prev,
+                            [slot]: { ...prev[slot], status: 'offline', call: null }
+                        }));
+                    });
+                });
+                
+                return () => peerRef.current?.destroy();
+            }, [room]);
+            
+            const sendStream = useCallback((slot) => {
+                if (!peerRef.current || !streamRef.current) return;
+                
+                const vid = `view-${room}-${slot}`;
+                const call = peerRef.current.call(vid, streamRef.current);
+                
+                if (!call) return;
+                
+                setReceivers(prev => ({
+                    ...prev,
+                    [slot]: { ...prev[slot], status: 'streaming', call, reconnecting: false }
+                }));
+                
+                // Detectar desconexiones ICE (cambio de red, etc)
+                call.peerConnection?.addEventListener('iceconnectionstatechange', () => {
+                    const state = call.peerConnection.iceConnectionState;
+                    if (state === 'disconnected' || state === 'failed') {
+                        setReceivers(prev => ({
+                            ...prev,
+                            [slot]: { ...prev[slot], reconnecting: true }
+                        }));
+                        // Auto-reintentar en 4 segundos
+                        setTimeout(() => {
+                            if (streamRef.current) sendStream(slot);
+                        }, 4000);
+                    } else if (state === 'connected') {
+                        setReceivers(prev => ({
+                            ...prev,
+                            [slot]: { ...prev[slot], reconnecting: false }
+                        }));
+                    }
+                });
+                
+                call.on('close', () => {
+                    setReceivers(prev => ({
+                        ...prev,
+                        [slot]: { ...prev[slot], status: 'connected', call: null }
+                    }));
+                });
+            }, [room]);
+            
+            const startBroadcast = async () => {
+                try {
+                    let s;
+                    const constraints = {
+                        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: 30 },
+                        audio: true
+                    };
+                    
+                    if (source === 'screen') {
+                        s = await navigator.mediaDevices.getDisplayMedia(constraints);
+                        // Si el usuario detiene la pantalla, detener broadcast
+                        s.getVideoTracks()[0].onended = () => stopBroadcast();
+                    } else {
+                        s = await navigator.mediaDevices.getUserMedia(constraints);
+                    }
+                    
+                    streamRef.current = s;
+                    setStream(s);
+                    setIsBroadcasting(true);
+                    
+                    // Enviar a todos los receptores ya conectados
+                    Object.entries(receivers).forEach(([slot, rec]) => {
+                        if (rec.conn?.open) sendStream(slot);
+                    });
+                    
+                } catch (e) {
+                    alert('Error al iniciar: ' + e.message);
+                }
+            };
+            
+            const stopBroadcast = () => {
+                streamRef.current?.getTracks().forEach(t => t.stop());
+                streamRef.current = null;
+                setStream(null);
+                setIsBroadcasting(false);
+                
+                // Notificar a receptores que se detuvo
+                Object.values(receivers).forEach(rec => {
+                    if (rec.conn?.open) rec.conn.send('BROADCAST_ENDED');
+                    rec.call?.close();
+                });
+            };
+            
+            const copyLink = (slot) => {
+                const url = `${window.location.origin}${window.location.pathname}?mode=view&room=${room}&slot=${slot}`;
+                navigator.clipboard.writeText(url);
+            };
+            
+            return (
+                <div className="director-layout">
+                    <div className="dir-header">
+                        <div>
+                            <h1 className="text-xl font-bold text-blue-400">EVENTO: {room}</h1>
+                            <div className="text-xs text-gray-400">Transmisión Laptop → Laptop</div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="timer-big">⏱️ {timer}</div>
+                            {!isBroadcasting ? (
+                                <button onClick={startBroadcast} className="btn-action btn-start">INICIAR TRANSMISIÓN</button>
+                            ) : (
+                                <button onClick={stopBroadcast} className="btn-action btn-stop">DETENER</button>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="dir-content">
+                        <div className="stage-area">
+                            <div className="preview-large">
+                                {stream ? (
+                                    <>
+                                        <video ref={videoRef} className="preview-video" autoPlay muted playsInline />
+                                        <div className={`broadcast-overlay ${isBroadcasting ? 'live' : ''}`}></div>
+                                        <div className="stage-controls">
+                                            <span className="badge-live">● TRANSMITIENDO</span>
+                                            <span style={{color:'#94a3b8', fontSize:'14px'}}>
+                                                {stream?.getVideoTracks()[0]?.getSettings()?.width}x{stream?.getVideoTracks()[0]?.getSettings()?.height}
+                                            </span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-500 flex-col gap-4">
+                                        <div className="text-6xl">🎥</div>
+                                        <div className="text-xl">Preparado para transmitir</div>
+                                        <div className="text-sm">Selecciona fuente y presiona INICIAR</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="sidebar-control">
+                            <div className="source-selector">
+                                <button 
+                                    className={`source-btn ${source === 'screen' ? 'active' : ''}`} 
+                                    onClick={() => setSource('screen')}
+                                    disabled={isBroadcasting}
+                                >
+                                    🖥️ PANTALLA / PPT
+                                </button>
+                                <button 
+                                    className={`source-btn ${source === 'camera' ? 'active' : ''}`} 
+                                    onClick={() => setSource('camera')}
+                                    disabled={isBroadcasting}
+                                >
+                                    📷 CÁMARA WEB
+                                </button>
+                            </div>
+                            
+                            <div className="tip-box">
+                                <strong>💡 Para eventos de 8 horas:</strong><br/>
+                                • Ambas laptops conectadas a corriente<br/>
+                                • Desactiva suspensión automática<br/>
+                                • Si se corta la red, se reconecta solo en 4s
+                            </div>
+                            
+                            <div className="receivers-list">
+                                <h3 className="font-bold text-gray-400 text-sm mb-2">RECEPTORES (10)</h3>
+                                {[1,2,3,4,5,6,7,8,9,10].map(n => {
+                                    const rec = receivers[n];
+                                    const status = rec?.status || 'offline';
+                                    const isStreaming = status === 'streaming';
+                                    const isReconnecting = rec?.reconnecting;
+                                    
+                                    return (
+                                        <div key={n} className={`rec-item ${status} ${isStreaming ? 'streaming' : ''} ${isReconnecting ? 'reconnecting' : ''}`}>
+                                            <div className="rec-info">
+                                                <span className="rec-name">Laptop Receptora #{n}</span>
+                                                <span className="rec-status">
+                                                    {isReconnecting ? '⚠️ Reconectando...' : 
+                                                     isStreaming ? '✓ Transmitiendo video' : 
+                                                     status === 'connected' ? 'Conectada (esperando señal)' : 
+                                                     'Desconectada'}
+                                                </span>
+                                            </div>
+                                            <button onClick={() => copyLink(n)} className="btn-copy">URL</button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            
+                            <div style={{marginTop:'auto'}}>
+                                <div className="text-xs text-gray-500 mb-2">URL para compartir (ejemplo):</div>
+                                <div className="copy-url" onClick={() => copyLink(1)}>
+                                    {`${window.location.origin}${window.location.pathname}?mode=view&room=${room}&slot=1`}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ==================== VIEWER (LAPTOP RECEPTORA) ====================
+        const Viewer = ({ room, slot }) => {
+            const [status, setStatus] = useState('connecting'); // connecting, live, reconnecting
+            const [isMuted, setIsMuted] = useState(false); // En desktop permitimos audio desde el inicio
+            const [showReconnecting, setShowReconnecting] = useState(false);
+            
+            const peerRef = useRef(null);
+            const videoRef = useRef(null);
+            const connRef = useRef(null);
+            const callRef = useRef(null);
+            const reconnectAttempts = useRef(0);
+            
+            const connect = () => {
+                const myId = `view-${room}-${slot}`;
+                const dirId = `dir-${room}`;
+                
+                peerRef.current = new Peer(myId, PEER_CONFIG);
+                
+                peerRef.current.on('open', () => {
+                    const conn = peerRef.current.connect(dirId, { reliable: true });
+                    connRef.current = conn;
+                    
+                    conn.on('open', () => {
+                        conn.send('READY_FOR_STREAM');
+                    });
+                    
+                    conn.on('data', (data) => {
+                        if (data === 'BROADCAST_ENDED') {
+                            // Director detuvo, mantener último frame o mostrar mensaje
+                            setStatus('connecting');
+                        }
+                    });
+                    
+                    conn.on('close', () => {
+                        if (status === 'live') attemptReconnect();
+                    });
+                });
+                
+                peerRef.current.on('call', (call) => {
+                    // Evitar duplicados
+                    if (callRef.current && status === 'live') {
+                        call.close();
+                        return;
+                    }
+                    
+                    callRef.current = call;
+                    call.answer(null); // No enviamos nada, solo recibimos
+                    
+                    call.on('stream', (remoteStream) => {
+                        reconnectAttempts.current = 0; // Reset contador
+                        setShowReconnecting(false);
+                        
+                        if (videoRef.current) {
+                            videoRef.current.srcObject = remoteStream;
+                            // En desktop podemos intentar con audio directo
+                            videoRef.current.play().then(() => {
+                                setStatus('live');
+                            }).catch(() => {
+                                setIsMuted(true);
+                                videoRef.current.muted = true;
+                                videoRef.current.play().then(() => setStatus('live'));
+                            });
+                        }
+                    });
+                    
+                    call.on('close', () => {
+                        setStatus('reconnecting');
+                        attemptReconnect();
+                    });
+                    
+                    call.on('error', () => {
+                        attemptReconnect();
+                    });
+                });
+                
+                peerRef.current.on('error', (err) => {
+                    if (err.type === 'unavailable-id') window.location.reload();
+                });
+            };
+            
+            const attemptReconnect = () => {
+                reconnectAttempts.current++;
+                setShowReconnecting(true);
+                setStatus('reconnecting');
+                
+                // Destruir y recrear
+                peerRef.current?.destroy();
+                callRef.current = null;
+                
+                setTimeout(() => {
+                    connect();
+                }, 4000);
+            };
+            
+            useEffect(() => {
+                connect();
+                
+                // Mantener pantalla encendida
+                if ('wakeLock' in navigator) {
+                    navigator.wakeLock.request('screen').catch(() => {});
+                }
+                
+                // Detectar retorno de conexión
+                window.addEventListener('online', () => {
+                    if (status !== 'live') attemptReconnect();
+                });
+                
+                return () => peerRef.current?.destroy();
+            }, [room, slot]);
+            
+            const toggleMute = () => {
+                if (videoRef.current) {
+                    videoRef.current.muted = !videoRef.current.muted;
+                    setIsMuted(videoRef.current.muted);
+                }
+            };
+            
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            };
+            
+            return (
+                <div className="viewer-laptop">
+                    <video 
+                        ref={videoRef} 
+                        className="video-desktop" 
+                        autoPlay 
+                        playsInline
+                        muted={isMuted}
+                    />
+                    
+                    {/* Banner de reconexión */}
+                    <div className={`reconnecting-banner ${showReconnecting ? 'show' : ''}`}>
+                        ⚠️ Señal interrumpida - Reconectando...
+                    </div>
+                    
+                    {/* Estado inicial */}
+                    {status !== 'live' && (
+                        <div className="loading-screen">
+                            <div className="loader-ring"></div>
+                            <div style={{marginTop:'20px', fontSize:'18px', color:'#94a3b8'}}>
+                                {status === 'reconnecting' ? 'RECONECTANDO...' : 'CONECTANDO AL EVENTO...'}
+                            </div>
+                            <div style={{marginTop:'10px', fontSize:'14px', color:'#64748b'}}>
+                                Sala: {room} | Receptor: #{slot}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Info esquina */}
+                    {status === 'live' && (
+                        <div className="status-corner">
+                            <div className="status-title">Transmisión Activa</div>
+                            <div className="status-value">{room} #{slot}</div>
+                        </div>
+                    )}
+                    
+                    {/* Controles (hover) */}
+                    {status === 'live' && (
+                        <div className="controls-overlay">
+                            <div className="progress-bar">
+                                <div className="progress-fill"></div>
+                            </div>
+                            <div className="control-row">
+                                <div className="control-group">
+                                    <button className="control-btn" onClick={toggleMute} title={isMuted ? 'Activar audio' : 'Silenciar'}>
+                                        {isMuted ? '🔇' : '🔊'}
+                                    </button>
+                                    <span style={{color:'white', fontSize:'14px'}}>
+                                        {isMuted ? 'Audio silenciado' : 'Audio activo'}
+                                    </span>
+                                </div>
+                                <div className="control-group">
+                                    <span className="badge-live">● EN VIVO</span>
+                                    <button className="control-btn" onClick={toggleFullscreen} title="Pantalla completa">
+                                        ⛶
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        // ==================== ROUTER ====================
+        const App = () => {
+            const [state, setState] = useState({mode:null, room:null, slot:null});
+            
+            useEffect(() => {
+                const p = new URLSearchParams(window.location.search);
+                const m = p.get('mode'), r = p.get('room'), s = p.get('slot');
+                
+                if (m === 'director' && r) setState({mode:'director', room:r});
+                else if (m === 'view' && r && s) setState({mode:'view', room:r, slot:s});
+                else setState({mode:'lobby', room: Math.random().toString(36).substring(2,6).toUpperCase()});
+            }, []);
+            
+            if (state.mode === 'director') return <Director room={state.room} />;
+            if (state.mode === 'view') return <Viewer room={state.room} slot={state.slot} />;
+            
+            return (
+                <div className="flex items-center justify-center h-screen bg-slate-900">
+                    <div className="bg-slate-800 p-10 rounded-2xl border border-slate-700 max-w-lg w-full text-center mx-4 shadow-2xl">
+                        <h1 className="text-4xl font-bold text-blue-400 mb-2">Laptop-to-Laptop</h1>
+                        <p className="text-gray-400 mb-8">Transmisión P2P profesional para eventos largos</p>
+                        
+                        <input 
+                            value={state.room} 
+                            onChange={e => setState({...state, room: e.target.value.toUpperCase()})}
+                            className="w-full bg-black border-2 border-slate-600 rounded-lg p-4 text-center text-xl font-bold mb-6 text-white uppercase tracking-wider focus:border-blue-500 focus:outline-none"
+                            placeholder="NOMBRE DEL EVENTO"
+                        />
+                        
+                        <button 
+                            onClick={() => window.location.href = `?mode=director&room=${state.room}`}
+                            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-5 rounded-lg text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-red-900/20"
+                        >
+                            🎬 INICIAR COMO EMISOR (LAPTOP CON PPT)
+                        </button>
+                        
+                        <div className="mt-8 text-slate-400 text-sm space-y-2 text-left bg-slate-900/50 p-4 rounded-lg">
+                            <div className="flex items-center gap-2"><span className="text-green-400">✓</span> Sin límite de tiempo (soporta 8+ horas)</div>
+                            <div className="flex items-center gap-2"><span className="text-green-400">✓</span> Reconexión automática ante cortes</div>
+                            <div className="flex items-center gap-2"><span className="text-green-400">✓</span> Optimizado para PowerPoint / Presentaciones</div>
+                            <div className="flex items-center gap-2"><span className="text-blue-400">ℹ</span> Ambas laptops deben estar conectadas a corriente</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
