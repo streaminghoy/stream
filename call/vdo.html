@@ -1,0 +1,2272 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meshcast Studio</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --muted: #64748b;
+            --text: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .studio-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            grid-template-rows: auto auto 1fr auto;
+            height: 100vh;
+            gap: 1px;
+            background: #334155;
+        }
+        .header {
+            grid-column: 1 / -1;
+            background: var(--panel);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #334155;
+        }
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+        .status-dot.live { background: var(--danger); animation: pulse 1.5s infinite; }
+        .status-dot.ready { background: var(--success); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin { animation: spin 1s linear infinite; }
+        /* Publishing Tabs */
+        .publishing-tabs {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 2px;
+            background: var(--panel);
+            padding: 8px 20px;
+            border-bottom: 1px solid #334155;
+        }
+        .pub-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pub-tab:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        .pub-tab.active { background: var(--accent); color: white; }
+        .pub-tab.disabled { opacity: 0.4; cursor: not-allowed; }
+        .pub-tab.disabled:hover { background: transparent; color: var(--muted); }
+        .pub-tab .badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .pub-tab.disabled .badge { background: var(--danger); }
+        .pub-tab .live-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 1.5s infinite;
+            display: none;
+        }
+        .pub-tab.has-stream .live-indicator { display: block; }
+        /* External source placeholder */
+        .external-preview {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--muted);
+            text-align: center;
+            padding: 40px;
+        }
+        .external-preview.active { display: flex; }
+        .external-preview svg { margin-bottom: 20px; opacity: 0.5; }
+        .external-preview h3 { color: var(--text); margin-bottom: 8px; font-size: 18px; }
+        .external-preview p { font-size: 13px; max-width: 300px; line-height: 1.5; }
+        .external-preview .incoming-stream { display: none; width: 100%; height: 100%; }
+        .external-preview.has-stream .incoming-stream { display: block; }
+        .external-preview.has-stream .placeholder-content { display: none; }
+        /* Browser-only controls */
+        .browser-only { display: flex; }
+        .external-source-mode .browser-only { display: none; }
+        /* Tab content sections */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* Watch Links Modal */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-backdrop.visible { display: flex; }
+        .modal {
+            background: var(--panel);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+        }
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal-body {
+            padding: 20px;
+        }
+        /* Incoming stream preview */
+        .incoming-preview {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .incoming-preview.visible { display: flex; }
+        .incoming-preview-video {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 8px;
+            background: #000;
+        }
+        .incoming-preview .status {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .incoming-preview .status.live {
+            color: var(--success);
+            font-weight: 600;
+        }
+        /* Upgrade overlay for disabled tabs */
+        .upgrade-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border-radius: 8px;
+        }
+        .upgrade-overlay svg {
+            color: var(--muted);
+        }
+        .upgrade-overlay p {
+            color: var(--muted);
+            font-size: 13px;
+            margin: 0;
+        }
+        .upgrade-overlay a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .upgrade-overlay a:hover { text-decoration: underline; }
+        .preview-area {
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 0; /* Allow shrinking in grid */
+            overflow: hidden;
+        }
+        #videoPreview {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+        .preview-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+        }
+        .preview-overlay.visible { display: block; }
+        .sidebar {
+            background: var(--panel);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        .control-group {
+            margin-bottom: 16px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: var(--muted);
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        input::placeholder {
+            color: var(--muted);
+            opacity: 0.7;
+        }
+        .audio-meter {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .audio-meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--success) 70%, #eab308 85%, var(--danger) 100%);
+            width: 0%;
+            transition: width 50ms linear;
+            border-radius: 4px;
+        }
+        .controls {
+            grid-column: 1 / -1;
+            background: var(--panel);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            border-top: 1px solid #334155;
+        }
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-secondary {
+            background: #334155;
+            color: var(--text);
+        }
+        .btn-secondary:hover { background: #475569; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stream-info {
+            background: var(--bg);
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+        .stream-info .label {
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .stream-info .value {
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+            color: var(--text);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .stat-box {
+            background: var(--bg);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-box .value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .stat-box .label {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+        .toggle-btn:hover { border-color: var(--accent); }
+        .toggle-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .toggle-btn.muted-state {
+            background: var(--danger);
+            border-color: var(--danger);
+        }
+        .btn.muted-state {
+            background: var(--danger) !important;
+            border-color: var(--danger) !important;
+        }
+        /* Source tabs */
+        .source-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .source-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+        .source-tab:hover { border-color: var(--accent); }
+        .source-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        /* Watch links */
+        .watch-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .link-group {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .link-group .label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .link-group .link-row {
+            display: flex;
+            gap: 8px;
+        }
+        .link-group input {
+            flex: 1;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .link-group .copy-btn {
+            padding: 8px 12px;
+            background: #334155;
+            border: none;
+            border-radius: 6px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .link-group .copy-btn:hover { background: #475569; }
+        .link-group.locked {
+            opacity: 0.6;
+        }
+        .upgrade-hint {
+            font-size: 11px;
+            color: #f59e0b;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .upgrade-hint a { color: #f59e0b; }
+        @media (max-width: 768px) {
+            .studio-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto minmax(200px, 1fr) auto auto;
+                height: 100%;
+            }
+            .publishing-tabs {
+                padding: 6px 12px;
+                gap: 4px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .pub-tab {
+                padding: 8px 12px;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+            .header {
+                padding: 10px 16px;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .sidebar {
+                max-height: 35vh;
+                padding: 16px;
+                gap: 16px;
+            }
+            .control-section h3 {
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+            .control-group {
+                margin-bottom: 12px;
+            }
+            .control-group label {
+                font-size: 12px;
+            }
+            select, input[type="text"] {
+                padding: 12px;
+                font-size: 16px; /* Prevents iOS zoom */
+            }
+            .controls {
+                padding: 12px 16px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .controls .btn {
+                padding: 12px 16px;
+                font-size: 14px;
+                flex: 1 1 auto;
+                min-width: 120px;
+                justify-content: center;
+            }
+            .controls .btn svg {
+                width: 18px;
+                height: 18px;
+            }
+            /* Hide text on very small screens, show only icons */
+            .source-tabs {
+                flex-wrap: wrap;
+            }
+            .source-tab {
+                flex: 1;
+                justify-content: center;
+            }
+            .link-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .link-row input {
+                font-size: 14px;
+            }
+            .link-row .copy-btn {
+                width: 100%;
+                padding: 10px;
+            }
+            .quality-row {
+                flex-direction: column;
+            }
+            .quality-row select {
+                width: 100%;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            #toast-container {
+                left: 16px;
+                right: 16px;
+                bottom: 80px;
+            }
+        }
+        @media (max-width: 480px) {
+            .controls .btn {
+                padding: 10px 12px;
+                font-size: 13px;
+                min-width: 100px;
+            }
+            .controls .btn#startBtn,
+            .controls .btn#stopBtn {
+                width: 100%;
+                order: -1;
+            }
+        }
+        @media (max-height: 500px) {
+            .header {
+                padding: 8px 16px;
+            }
+            .header h1 {
+                font-size: 15px;
+            }
+            .controls {
+                padding: 8px 16px;
+                gap: 8px;
+            }
+            .controls .btn {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+        }
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: toastSlideIn 0.3s ease;
+            max-width: 400px;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: #f59e0b; }
+        .toast.info { background: var(--accent); }
+        @keyframes toastSlideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        /* Anonymous Sign-in Banner */
+        .signin-banner {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 0 16px 16px 16px;
+        }
+        .signin-banner .banner-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .signin-banner .banner-icon {
+            font-size: 20px;
+        }
+        .signin-banner .banner-text {
+            flex: 1;
+            min-width: 200px;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .signin-banner .banner-text strong {
+            color: #a78bfa;
+        }
+        .signin-banner .btn-signin {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .signin-banner .btn-signin:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+        .signin-banner .usage-bar {
+            margin-top: 12px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .signin-banner .usage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #a78bfa);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .signin-banner .usage-text {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 6px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="studio-layout">
+        <header class="header">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <a href="/dashboard" style="display: flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 13px; padding: 6px 10px; border-radius: 6px; transition: all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='var(--text)'" onmouseout="this.style.background='transparent';this.style.color='var(--muted)'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Dashboard
+                </a>
+                <h1>Meshcast Studio</h1>
+            </div>
+            <div class="status">
+                <span id="statusText">Not Connected</span>
+                <div class="status-dot" id="statusDot"></div>
+            </div>
+        </header>
+
+        
+        <div class="signin-banner">
+            <div class="banner-content">
+                <span class="banner-icon">⚡</span>
+                <div class="banner-text">
+                    <strong>Anonymous Mode</strong> — 20 viewers, 2hr sessions, 50GB/month
+                </div>
+                <a href="/login?next=/studio" class="btn-signin">
+                    Sign In for More
+                </a>
+            </div>
+            <div class="usage-bar">
+                <div class="usage-fill" style="width: 0.0%"></div>
+            </div>
+            <div class="usage-text">0.0% of monthly bandwidth used</div>
+        </div>
+        
+
+        <div class="publishing-tabs">
+            <button class="pub-tab active" data-tab="browser" onclick="setPublishTab('browser')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                Browser
+                <span class="live-indicator"></span>
+            </button>
+            <button class="pub-tab disabled" data-tab="whip" onclick="setPublishTab('whip')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                WHIP
+                <span class="badge">Pro</span>
+                <span class="live-indicator"></span>
+            </button>
+            <button class="pub-tab disabled" data-tab="rtmp" onclick="setPublishTab('rtmp')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                RTMP
+                <span class="badge">Pro</span>
+                <span class="live-indicator"></span>
+            </button>
+            <button class="pub-tab disabled" data-tab="srt" onclick="setPublishTab('srt')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                SRT
+                <span class="badge">Pro</span>
+                <span class="live-indicator"></span>
+            </button>
+        </div>
+
+        <div class="preview-area">
+            <video id="videoPreview" autoplay muted playsinline></video>
+            <div class="preview-overlay" id="liveOverlay">LIVE</div>
+            <!-- External source placeholder (shown for WHIP/RTMP/SRT tabs) -->
+            <div class="external-preview" id="externalPreview">
+                <div class="placeholder-content">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+                    </svg>
+                    <h3 id="externalSourceTitle">Waiting for stream...</h3>
+                    <p id="externalSourceDesc">Start streaming from your encoder using the URL shown in the sidebar.</p>
+                </div>
+                <video id="incomingStream" class="incoming-stream" autoplay muted playsinline></video>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <!-- ===== BROWSER TAB CONTENT ===== -->
+            <div class="tab-content active" id="tab-browser">
+                <!-- Stream Selection -->
+                <div class="control-section">
+                    <h3>Stream</h3>
+                    <div class="control-group">
+                        <select id="streamSelector" style="width: 100%;">
+                            
+                            <option value="anon_7MNuPbZxBaIVOhsHrAsDfg"
+                                    data-stream-id="anon_7MNuPbZxBaIVOhsHrAsDfg"
+                                    data-stream-key="anon_7MNuPbZxBaIVOhsHrAsDfg"
+                                    data-key-id="None"
+                                    selected>
+                                Anonymous Stream
+                            </option>
+                            
+                            <option value="__create__">+ Create New Stream</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Source</h3>
+                    <div class="source-tabs">
+                        <button class="source-tab active" id="tabCamera" onclick="setSourceType('camera')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                            Camera
+                        </button>
+                        <button class="source-tab" id="tabScreen" onclick="setSourceType('screen')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                            Screen
+                        </button>
+                    </div>
+                    <div id="cameraSettings">
+                        <div class="control-group">
+                            <label>Camera</label>
+                            <select id="videoSource"></select>
+                        </div>
+                    </div>
+                    <div id="screenSettings" style="display: none;">
+                        <button class="btn btn-secondary" style="width: 100%;" id="selectScreenBtn" onclick="selectScreen()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                            Select Screen to Share
+                        </button>
+                        <div style="margin-top: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+                                <input type="checkbox" id="screenMicEnabled" checked style="width: auto;">
+                                Include microphone audio
+                            </label>
+                        </div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 8px;">
+                            Share your screen, window, or browser tab. Toggle mic to overlay your voice.
+                        </div>
+                    </div>
+                    <div class="control-group" style="margin-top: 12px;">
+                        <label>Microphone</label>
+                        <select id="audioSource"></select>
+                        <div class="audio-meter">
+                            <div class="audio-meter-fill" id="audioMeter"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Quality</h3>
+                    <div class="control-group">
+                        <label>Resolution</label>
+                        <select id="resolutionSelect">
+                            <option value="3840x2160">4K (3840x2160)</option>
+                            <option value="2560x1440">2K (2560x1440)</option>
+                            <option value="1920x1080">1080p (1920x1080)</option>
+                            <option value="1280x720" selected>720p (1280x720)</option>
+                            <option value="854x480">480p (854x480)</option>
+                            <option value="640x360">360p (640x360)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Bitrate</label>
+                        <select id="bitrateSelect">
+                            <option value="8000">8 Mbps (Ultra)</option>
+                            <option value="6000">6 Mbps (High)</option>
+                            <option value="4000" selected>4 Mbps (Medium)</option>
+                            <option value="2500">2.5 Mbps (Standard)</option>
+                            <option value="1500">1.5 Mbps (Low)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Codec</label>
+                        <select id="codecSelect">
+                            <option value="h264" selected>H.264 (Best Compatibility)</option>
+                            <option value="vp8">VP8</option>
+                            <option value="vp9">VP9 (Better Quality)</option>
+                            <option value="av1">AV1 (Best Quality)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Frame Rate</label>
+                        <select id="framerateSelect">
+                            <option value="60">60 fps</option>
+                            <option value="30" selected>30 fps</option>
+                            <option value="24">24 fps</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-section" id="statsSection">
+                    <h3>Stream Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="value" id="statBitrate">--</div>
+                            <div class="label">kbps</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value" id="statFps">--</div>
+                            <div class="label">fps</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value" id="statRtt">--</div>
+                            <div class="label">RTT ms</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value" id="statLoss">--</div>
+                            <div class="label">% loss</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== WHIP TAB CONTENT ===== -->
+            <div class="tab-content" id="tab-whip" style="position: relative;">
+                
+                <div class="upgrade-overlay">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <p>Sign in to use WHIP publishing</p>
+                    <a href="/login">Sign In</a>
+                </div>
+                
+                <div class="control-section">
+                    <h3>WHIP Publishing</h3>
+                    <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+                        Use WHIP to publish from OBS 30+, VDO.Ninja, or other WebRTC sources.
+                    </p>
+                    <div class="watch-links">
+                        <div class="link-group">
+                            <div class="label">Publish Key <span style="font-size: 10px; color: var(--muted);">(secret)</span></div>
+                            <div class="link-row">
+                                <input type="text" id="streamKeyWhip" readonly value="anon_7MNuPbZxBaIVOhsHrAsDfg">
+                                <button class="copy-btn" onclick="copyLink('streamKeyWhip')">Copy</button>
+                            </div>
+                        </div>
+                        <div class="link-group">
+                            <div class="label">WHIP URL</div>
+                            <div class="link-row">
+                                <input type="text" id="whipUrl" readonly value="">
+                                <button class="copy-btn" onclick="copyLink('whipUrl')">Copy</button>
+                            </div>
+                        </div>
+                        <div class="link-group" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                            <div class="label" style="color: var(--accent);">One-Click VDO.Ninja</div>
+                            <div class="link-row">
+                                <input type="text" id="vdoNinjaPush" readonly value="">
+                                <button class="copy-btn" onclick="copyLink('vdoNinjaPush')">Copy</button>
+                            </div>
+                            <div style="font-size: 10px; color: var(--muted); margin-top: 4px;">
+                                Opens VDO.Ninja pre-configured to publish to Meshcast
+                            </div>
+                            <a href="" id="vdoNinjaPushLink" target="_blank" class="btn btn-secondary" style="width: 100%; margin-top: 8px; justify-content: center; text-decoration: none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                Open VDO.Ninja
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Server</h3>
+                    <div class="control-group">
+                        <label>Server Code (optional)</label>
+                        <input type="text" id="serverCodeWhip" placeholder="auto" value="ovh-use1" onchange="updateWatchLinks()">
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                            Leave empty for automatic routing
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Incoming Stream</h3>
+                    <div class="incoming-preview" id="whipPreview">
+                        <div class="status" id="whipStatus">No incoming stream detected</div>
+                        <video class="incoming-preview-video" id="whipPreviewVideo" autoplay muted playsinline style="display: none;"></video>
+                    </div>
+                </div>
+                
+            </div>
+
+            <!-- ===== RTMP TAB CONTENT ===== -->
+            <div class="tab-content" id="tab-rtmp" style="position: relative;">
+                
+                <div class="upgrade-overlay">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <p>Sign in to use RTMP publishing</p>
+                    <a href="/login">Sign In</a>
+                </div>
+                
+                <div class="control-section">
+                    <h3>RTMP Publishing</h3>
+                    <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+                        Use RTMP to publish from OBS, Streamlabs, vMix, or other encoders.
+                    </p>
+                    <div class="watch-links">
+                        <div class="link-group">
+                            <div class="label">Publish Key <span style="font-size: 10px; color: var(--muted);">(secret)</span></div>
+                            <div class="link-row">
+                                <input type="text" id="streamKeyRtmp" readonly value="anon_7MNuPbZxBaIVOhsHrAsDfg">
+                                <button class="copy-btn" onclick="copyLink('streamKeyRtmp')">Copy</button>
+                            </div>
+                        </div>
+                        <div class="link-group">
+                            <div class="label">RTMP Server</div>
+                            <div class="link-row">
+                                <input type="text" id="rtmpServer" readonly value="">
+                                <button class="copy-btn" onclick="copyLink('rtmpServer')">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Recommended Encoder Settings</h3>
+                    <div style="font-size: 12px; color: var(--text); background: var(--bg); padding: 12px; border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;">
+                            <span style="color: var(--muted);">Bitrate:</span> <span>4500 kbps</span>
+                            <span style="color: var(--muted);">Keyframe:</span> <span>2 seconds</span>
+                            <span style="color: var(--muted);">Profile:</span> <span>Main or High</span>
+                            <span style="color: var(--muted);">Encoder:</span> <span>x264 or NVENC</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Server</h3>
+                    <div class="control-group">
+                        <label>Server Code (optional)</label>
+                        <input type="text" id="serverCodeRtmp" placeholder="auto" value="ovh-use1" onchange="updateWatchLinks()">
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                            Leave empty for automatic routing
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Incoming Stream</h3>
+                    <div class="incoming-preview" id="rtmpPreview">
+                        <div class="status" id="rtmpStatus">No incoming stream detected</div>
+                        <video class="incoming-preview-video" id="rtmpPreviewVideo" autoplay muted playsinline style="display: none;"></video>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SRT TAB CONTENT ===== -->
+            <div class="tab-content" id="tab-srt" style="position: relative;">
+                
+                <div class="upgrade-overlay">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <p>Sign in to use SRT publishing</p>
+                    <a href="/login">Sign In</a>
+                </div>
+                
+                <div class="control-section">
+                    <h3>SRT Publishing</h3>
+                    <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+                        Use SRT for low-latency, reliable streaming over unstable networks.
+                    </p>
+                    <div class="watch-links">
+                        <div class="link-group">
+                            <div class="label">Publish Key <span style="font-size: 10px; color: var(--muted);">(secret)</span></div>
+                            <div class="link-row">
+                                <input type="text" id="streamKeySrt" readonly value="anon_7MNuPbZxBaIVOhsHrAsDfg">
+                                <button class="copy-btn" onclick="copyLink('streamKeySrt')">Copy</button>
+                            </div>
+                        </div>
+                        <div class="link-group">
+                            <div class="label">SRT URL (Caller Mode)</div>
+                            <div class="link-row">
+                                <input type="text" id="srtUrl" readonly value="">
+                                <button class="copy-btn" onclick="copyLink('srtUrl')">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Server</h3>
+                    <div class="control-group">
+                        <label>Server Code (optional)</label>
+                        <input type="text" id="serverCodeSrt" placeholder="auto" value="ovh-use1" onchange="updateWatchLinks()">
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                            Leave empty for automatic routing
+                        </div>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <h3>Incoming Stream</h3>
+                    <div class="incoming-preview" id="srtPreview">
+                        <div class="status" id="srtStatus">No incoming stream detected</div>
+                        <video class="incoming-preview-video" id="srtPreviewVideo" autoplay muted playsinline style="display: none;"></video>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden server code for backwards compat -->
+            <input type="hidden" id="serverCode" value="ovh-use1">
+        </div>
+
+        <div class="controls" id="controlsBar">
+            <button class="btn btn-secondary" id="watchLinksBtn" onclick="openWatchModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Watch Links
+            </button>
+            <button class="btn btn-secondary browser-only" id="toggleVideo" onclick="toggleVideo()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                Mute Video
+            </button>
+            <button class="btn btn-secondary browser-only" id="toggleAudio" onclick="toggleAudio()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                Mute Audio
+            </button>
+            <button class="btn btn-primary browser-only" id="startBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+                Go Live
+            </button>
+            <button class="btn btn-danger browser-only" id="stopBtn" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                End Stream
+            </button>
+        </div>
+    </div>
+
+    <!-- Watch Links Modal -->
+    <div class="modal-backdrop" id="watchModal" onclick="closeWatchModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Watch Your Stream</h2>
+                <button class="modal-close" onclick="closeWatchModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="watch-links">
+                    <div class="link-group">
+                        <div class="label">Watch Page (WebRTC - lowest latency)</div>
+                        <div class="link-row">
+                            <input type="text" id="embedLink" readonly value="">
+                            <button class="copy-btn" onclick="copyLink('embedLink')">Copy</button>
+                        </div>
+                        <a href="" id="embedLinkOpen" target="_blank" style="display: inline-block; margin-top: 6px; font-size: 12px; color: var(--accent);">Open in new tab →</a>
+                    </div>
+                    <div class="link-group">
+                        <div class="label">WHEP URL (for custom players)</div>
+                        <div class="link-row">
+                            <input type="text" id="whepUrl" readonly value="">
+                            <button class="copy-btn" onclick="copyLink('whepUrl')">Copy</button>
+                        </div>
+                        <div style="font-size: 10px; color: var(--muted); margin-top: 4px;">Use this URL in OBS WHEP source or custom WebRTC players</div>
+                    </div>
+                    
+                    <div class="link-group locked">
+                        <div class="label">HLS / RTMP</div>
+                        <div class="upgrade-hint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <a href="/pricing">Upgrade</a> for HLS &amp; RTMP
+                        </div>
+                    </div>
+                    
+                    <div class="link-group" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                        <div class="label" style="color: var(--accent);">VDO.Ninja View Link</div>
+                        <div class="link-row">
+                            <input type="text" id="vdoNinjaView" readonly value="">
+                            <button class="copy-btn" onclick="copyLink('vdoNinjaView')">Copy</button>
+                        </div>
+                        <div style="font-size: 10px; color: var(--muted); margin-top: 4px;">View this stream in VDO.Ninja</div>
+                        <a href="" id="vdoNinjaViewLink" target="_blank" class="btn btn-secondary" style="width: 100%; margin-top: 8px; justify-content: center; text-decoration: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            Open VDO.Ninja
+                        </a>
+                    </div>
+                    <div class="link-group">
+                        <div class="label">Embed Code</div>
+                        <div class="link-row">
+                            <input type="text" id="embedCode" readonly value="">
+                            <button class="copy-btn" onclick="copyLink('embedCode')">Copy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Stream Modal -->
+    <div class="modal-backdrop" id="createStreamModal" onclick="closeCreateStreamModal(event)">
+        <div class="modal" onclick="event.stopPropagation()" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Create New Stream</h2>
+                <button class="modal-close" onclick="closeCreateStreamModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="control-group">
+                    <label>Stream Label (optional)</label>
+                    <input type="text" id="newStreamLabel" placeholder="e.g., My Gaming Stream" style="width: 100%; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                    <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">Give your stream a name to easily identify it later</div>
+                </div>
+                <button class="btn btn-primary" id="createStreamBtn" onclick="createNewStream()" style="width: 100%; margin-top: 16px; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Create Stream
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <script>
+        // Toast notification function
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Publishing Tab Switching
+        function setPublishTab(tab) {
+            const tabBtn = document.querySelector(`.pub-tab[data-tab="${tab}"]`);
+            if (tabBtn && tabBtn.classList.contains('disabled')) {
+                showToast('Sign in to use this publishing method', 'warning');
+                return;
+            }
+
+            activePublishTab = tab;
+
+            // Update tab buttons
+            document.querySelectorAll('.pub-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `tab-${tab}`);
+            });
+
+            // Toggle browser vs external source mode
+            const videoPreview = document.getElementById('videoPreview');
+            const externalPreview = document.getElementById('externalPreview');
+            const controlsBar = document.getElementById('controlsBar');
+            const externalTitle = document.getElementById('externalSourceTitle');
+            const externalDesc = document.getElementById('externalSourceDesc');
+
+            if (tab === 'browser') {
+                // Browser mode - show camera preview and all controls
+                videoPreview.style.display = 'block';
+                externalPreview.classList.remove('active');
+                controlsBar.classList.remove('external-source-mode');
+            } else {
+                // External source mode - show placeholder and hide browser controls
+                videoPreview.style.display = 'none';
+                externalPreview.classList.add('active');
+                controlsBar.classList.add('external-source-mode');
+
+                // Update placeholder text based on protocol
+                const titles = {
+                    whip: 'Waiting for WHIP stream...',
+                    rtmp: 'Waiting for RTMP stream...',
+                    srt: 'Waiting for SRT stream...'
+                };
+                const descs = {
+                    whip: 'Start streaming from OBS (v30+), vMix, or any WHIP-compatible encoder using the URL shown in the sidebar.',
+                    rtmp: 'Start streaming from OBS, vMix, Wirecast, or any RTMP encoder using the server and stream key shown in the sidebar.',
+                    srt: 'Start streaming from OBS, vMix, or any SRT-compatible encoder using the URL shown in the sidebar.'
+                };
+                externalTitle.textContent = titles[tab] || 'Waiting for stream...';
+                externalDesc.textContent = descs[tab] || 'Start streaming from your encoder.';
+
+                // Check for incoming stream
+                checkIncomingStream(tab);
+            }
+        }
+
+        // Watch Modal
+        function openWatchModal() {
+            document.getElementById('watchModal').classList.add('visible');
+        }
+
+        function closeWatchModal(event) {
+            if (!event || event.target === document.getElementById('watchModal')) {
+                document.getElementById('watchModal').classList.remove('visible');
+            }
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeWatchModal();
+                closeCreateStreamModal();
+            }
+        });
+
+        // Create Stream Modal
+        function openCreateStreamModal() {
+            document.getElementById('newStreamLabel').value = '';
+            document.getElementById('createStreamModal').classList.add('visible');
+            document.getElementById('newStreamLabel').focus();
+        }
+
+        function closeCreateStreamModal(event) {
+            if (!event || event.target === document.getElementById('createStreamModal')) {
+                document.getElementById('createStreamModal').classList.remove('visible');
+                // Reset selector to current stream if modal was cancelled
+                const selector = document.getElementById('streamSelector');
+                if (selector.value === '__create__') {
+                    selector.value = config.publishKey;
+                }
+            }
+        }
+
+        // Stream Selection Handler
+        document.getElementById('streamSelector').addEventListener('change', function(e) {
+            if (e.target.value === '__create__') {
+                openCreateStreamModal();
+                return;
+            }
+
+            // Prevent switching while streaming
+            if (isStreaming) {
+                showToast('Stop the stream before switching', 'error');
+                e.target.value = config.publishKey;
+                return;
+            }
+
+            // Update config with selected stream
+            const option = e.target.selectedOptions[0];
+            config.publishKey = e.target.value;
+            config.streamId = option.dataset.streamId;
+            config.streamKey = option.dataset.streamKey;
+            config.streamKeyId = parseInt(option.dataset.keyId) || null;
+
+            // Update watch links
+            updateWatchLinks();
+            showToast(`Switched to ${option.textContent.trim()}`, 'success', 1500);
+        });
+
+        // Create New Stream
+        async function createNewStream() {
+            const label = document.getElementById('newStreamLabel').value.trim();
+            const btn = document.getElementById('createStreamBtn');
+            const originalText = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg> Creating...';
+
+            try {
+                const response = await fetch('/api/stream-keys', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ label: label || null })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create stream');
+                }
+
+                const newKey = await response.json();
+
+                // Add to dropdown
+                const selector = document.getElementById('streamSelector');
+                const createOption = selector.querySelector('option[value="__create__"]');
+                const newOption = document.createElement('option');
+                newOption.value = newKey.publish_key;
+                newOption.dataset.streamId = newKey.stream_id;
+                newOption.dataset.streamKey = newKey.key;
+                newOption.dataset.keyId = newKey.id;
+                newOption.textContent = newKey.label || `Stream ${selector.options.length}`;
+                selector.insertBefore(newOption, createOption);
+
+                // Select the new stream
+                selector.value = newKey.publish_key;
+                config.publishKey = newKey.publish_key;
+                config.streamId = newKey.stream_id;
+                config.streamKey = newKey.key;
+                config.streamKeyId = newKey.id;
+
+                updateWatchLinks();
+                closeCreateStreamModal();
+                showToast('New stream created!', 'success');
+
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Handle Enter key in label input
+        document.getElementById('newStreamLabel').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                createNewStream();
+            }
+        });
+
+        // Check for incoming stream (for WHIP/RTMP/SRT tabs)
+        let incomingStreamCheckInterval = null;
+        function checkIncomingStream(tab) {
+            // Stop any existing check
+            if (incomingStreamCheckInterval) {
+                clearInterval(incomingStreamCheckInterval);
+                incomingStreamCheckInterval = null;
+            }
+
+            const statusEl = document.getElementById(`${tab}Status`);
+            const videoEl = document.getElementById(`${tab}PreviewVideo`);
+            const previewEl = document.getElementById(`${tab}Preview`);
+
+            if (!statusEl) return;
+
+            // Initial check
+            checkStreamStatus();
+
+            // Poll every 3 seconds
+            incomingStreamCheckInterval = setInterval(checkStreamStatus, 3000);
+
+            async function checkStreamStatus() {
+                try {
+                    // Check if stream is active via API
+                    const resp = await fetch(`/api/streams/${encodeURIComponent(config.streamKey)}/status`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.active) {
+                            statusEl.textContent = '● LIVE - Stream detected';
+                            statusEl.classList.add('live');
+                            previewEl.classList.add('visible');
+                            // Could start WHEP playback here for preview
+                        } else {
+                            statusEl.textContent = 'No incoming stream detected';
+                            statusEl.classList.remove('live');
+                        }
+                    }
+                } catch (e) {
+                    // Silent fail - API may not exist yet
+                }
+            }
+        }
+
+        // Configuration
+        const config = {
+            streamKey: 'anon_7MNuPbZxBaIVOhsHrAsDfg',  // Legacy key (for backward compat)
+            streamId: 'anon_7MNuPbZxBaIVOhsHrAsDfg',    // Public ID for watch links
+            publishKey: 'anon_7MNuPbZxBaIVOhsHrAsDfg', // Secret key for publishing
+            streamKeyId: null,
+            inviteToken: '',
+            serverHint: 'ovh-use1',
+            mediaBaseUrl: 'https://app.meshcast.io/api/gateway',
+            hlsEnabled: false,
+            serverIp: '15.204.218.210'
+        };
+
+        // State
+        let activePublishTab = 'browser';
+        let localStream = null;
+        let screenStream = null;
+        let peerConnection = null;
+        let audioContext = null;
+        let audioAnalyser = null;
+        let isStreaming = false;
+        let statsInterval = null;
+        let sourceType = 'camera';
+        let currentServerIp = config.serverIp;
+        let blankVideoTrack = null;
+        let blankAudioTrack = null;
+
+        // Create blank video track (black frame)
+        function createBlankVideoTrack() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const stream = canvas.captureStream(1);
+            return stream.getVideoTracks()[0];
+        }
+
+        // Create blank audio track (silence)
+        function createBlankAudioTrack() {
+            const ctx = new AudioContext();
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+            gain.gain.value = 0; // Silent
+            oscillator.connect(gain);
+            const dest = ctx.createMediaStreamDestination();
+            gain.connect(dest);
+            oscillator.start();
+            return dest.stream.getAudioTracks()[0];
+        }
+
+        // Get or create blank tracks
+        function getBlankVideoTrack() {
+            if (!blankVideoTrack || blankVideoTrack.readyState === 'ended') {
+                blankVideoTrack = createBlankVideoTrack();
+            }
+            return blankVideoTrack;
+        }
+
+        function getBlankAudioTrack() {
+            if (!blankAudioTrack || blankAudioTrack.readyState === 'ended') {
+                blankAudioTrack = createBlankAudioTrack();
+            }
+            return blankAudioTrack;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await enumerateDevices();
+            await startPreview();
+            updateWatchLinks();
+        });
+
+        function setSourceType(type) {
+            sourceType = type;
+            document.getElementById('tabCamera').classList.toggle('active', type === 'camera');
+            document.getElementById('tabScreen').classList.toggle('active', type === 'screen');
+            document.getElementById('cameraSettings').style.display = type === 'camera' ? 'block' : 'none';
+            document.getElementById('screenSettings').style.display = type === 'screen' ? 'block' : 'none';
+
+            if (type === 'camera') {
+                startPreview();
+            } else {
+                // Stop camera preview when switching to screen mode
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+                document.getElementById('videoPreview').srcObject = null;
+            }
+        }
+
+        async function selectScreen() {
+            try {
+                const resolution = document.getElementById('resolutionSelect').value.split('x');
+                const width = parseInt(resolution[0]);
+                const height = parseInt(resolution[1]);
+                const fps = parseInt(document.getElementById('framerateSelect').value);
+                const includeMic = document.getElementById('screenMicEnabled')?.checked !== false;
+
+                const constraints = {
+                    video: {
+                        width: { ideal: width },
+                        height: { ideal: height },
+                        frameRate: { ideal: fps }
+                    },
+                    audio: true // Request system audio
+                };
+
+                screenStream = await navigator.mediaDevices.getDisplayMedia(constraints);
+                const videoTrack = screenStream.getVideoTracks()[0];
+                let audioTrack = null;
+
+                if (includeMic) {
+                    // Get microphone audio
+                    const audioSource = document.getElementById('audioSource').value;
+                    try {
+                        const micStream = await navigator.mediaDevices.getUserMedia({
+                            audio: { deviceId: audioSource ? { exact: audioSource } : undefined }
+                        });
+                        audioTrack = micStream.getAudioTracks()[0];
+                    } catch (e) {
+                        console.warn('Could not get microphone, using system audio:', e);
+                        audioTrack = screenStream.getAudioTracks()[0];
+                    }
+                } else {
+                    // Use system audio or silent track
+                    audioTrack = screenStream.getAudioTracks()[0] || getBlankAudioTrack();
+                }
+
+                // Build stream with video and audio
+                const tracks = [videoTrack];
+                if (audioTrack) tracks.push(audioTrack);
+                else tracks.push(getBlankAudioTrack());
+
+                localStream = new MediaStream(tracks);
+                document.getElementById('videoPreview').srcObject = localStream;
+                document.getElementById('selectScreenBtn').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Screen Selected';
+                document.getElementById('selectScreenBtn').style.background = 'var(--success)';
+
+                setupAudioMeter();
+                updateStatus('ready', 'Ready');
+
+                // Handle screen share ending
+                videoTrack.onended = () => {
+                    showToast('Screen sharing stopped', 'info');
+                    document.getElementById('selectScreenBtn').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Select Screen to Share';
+                    document.getElementById('selectScreenBtn').style.background = '';
+                    if (isStreaming) {
+                        // Switch to blank video instead of stopping
+                        replaceVideoTrack(getBlankVideoTrack());
+                        showToast('Switched to blank video - select new source', 'warning');
+                    }
+                };
+            } catch (err) {
+                console.error('Screen share failed:', err);
+                if (err.name !== 'NotAllowedError') {
+                    showToast('Failed to share screen: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // Replace video track while streaming (for source switching)
+        async function replaceVideoTrack(newTrack) {
+            if (!peerConnection || !isStreaming) return;
+
+            const senders = peerConnection.getSenders();
+            const videoSender = senders.find(s => s.track?.kind === 'video');
+            if (videoSender) {
+                await videoSender.replaceTrack(newTrack);
+            }
+
+            // Update local stream for preview
+            const oldVideoTrack = localStream.getVideoTracks()[0];
+            if (oldVideoTrack) localStream.removeTrack(oldVideoTrack);
+            localStream.addTrack(newTrack);
+            document.getElementById('videoPreview').srcObject = localStream;
+        }
+
+        // Replace audio track while streaming
+        async function replaceAudioTrack(newTrack) {
+            if (!peerConnection || !isStreaming) return;
+
+            const senders = peerConnection.getSenders();
+            const audioSender = senders.find(s => s.track?.kind === 'audio');
+            if (audioSender) {
+                await audioSender.replaceTrack(newTrack);
+            }
+
+            // Update local stream
+            const oldAudioTrack = localStream.getAudioTracks()[0];
+            if (oldAudioTrack) localStream.removeTrack(oldAudioTrack);
+            localStream.addTrack(newTrack);
+            setupAudioMeter();
+        }
+
+        function getVideoConstraints() {
+            const resolution = document.getElementById('resolutionSelect').value.split('x');
+            const width = parseInt(resolution[0]);
+            const height = parseInt(resolution[1]);
+            const fps = parseInt(document.getElementById('framerateSelect').value);
+
+            return {
+                width: { ideal: width },
+                height: { ideal: height },
+                frameRate: { ideal: fps }
+            };
+        }
+
+        function updateWatchLinks() {
+            // Get server code from active tab's input or fallback
+            const serverCode = (
+                document.getElementById('serverCodeWhip')?.value ||
+                document.getElementById('serverCodeRtmp')?.value ||
+                document.getElementById('serverCodeSrt')?.value ||
+                document.getElementById('serverCode')?.value ||
+                config.serverHint ||
+                ''
+            ).trim();
+            const serverParam = serverCode ? `?server=${encodeURIComponent(serverCode)}` : '';
+
+            // Separate identifiers for publish vs watch
+            // publishKey: Secret key for WHIP/RTMP/SRT publishing (pk_xxx or legacy key)
+            // viewId: Public ID for watch/embed URLs (st_xxx or legacy key)
+            const publishKey = config.publishKey || config.streamKey;
+            const viewId = config.streamId || config.streamKey;
+
+            // === PUBLISH SECTION (uses publishKey - secret) ===
+
+            // Update all stream key fields to show publishKey
+            ['streamKeyWhip', 'streamKeyRtmp', 'streamKeySrt'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = publishKey;
+            });
+
+            // WHIP URL (always show - this is what VDO.Ninja and OBS WHIP need)
+            const whipUrl = document.getElementById('whipUrl');
+            if (whipUrl) {
+                whipUrl.value = `${window.location.origin}/api/gateway/whip/${encodeURIComponent(publishKey)}${serverParam}`;
+            }
+
+            // RTMP Server (for OBS/Streamlabs)
+            const rtmpServer = document.getElementById('rtmpServer');
+            if (rtmpServer && currentServerIp) {
+                rtmpServer.value = `rtmp://${currentServerIp}:1935/live`;
+            }
+
+            // SRT URL
+            const srtUrl = document.getElementById('srtUrl');
+            if (srtUrl && currentServerIp) {
+                srtUrl.value = `srt://${currentServerIp}:8890?streamid=publish:${encodeURIComponent(publishKey)}`;
+            }
+
+            // VDO.Ninja Publish Link (opens VDO.Ninja and pushes to Meshcast via WHIP)
+            const vdoNinjaPushUrl = `https://vdo.ninja/?push=${publishKey}&whip=${encodeURIComponent(`${window.location.origin}/api/gateway/whip/${publishKey}${serverParam}`)}`;
+            const vdoNinjaPush = document.getElementById('vdoNinjaPush');
+            if (vdoNinjaPush) {
+                vdoNinjaPush.value = vdoNinjaPushUrl;
+            }
+            const vdoNinjaPushLink = document.getElementById('vdoNinjaPushLink');
+            if (vdoNinjaPushLink) {
+                vdoNinjaPushLink.href = vdoNinjaPushUrl;
+            }
+
+            // === WATCH SECTION (uses viewId - public) ===
+
+            // Embed/Watch page link
+            const embedUrl = `${window.location.origin}/embed/${encodeURIComponent(viewId)}${serverParam}`;
+            const embedLink = document.getElementById('embedLink');
+            if (embedLink) {
+                embedLink.value = embedUrl;
+            }
+            const embedLinkOpen = document.getElementById('embedLinkOpen');
+            if (embedLinkOpen) {
+                embedLinkOpen.href = embedUrl;
+            }
+
+            // WHEP URL (for viewing - uses public viewId)
+            const whepUrl = document.getElementById('whepUrl');
+            if (whepUrl) {
+                whepUrl.value = `${window.location.origin}/api/gateway/whep/${encodeURIComponent(viewId)}${serverParam}`;
+            }
+
+            // HLS link (if enabled)
+            if (config.hlsEnabled) {
+                const hlsLink = document.getElementById('hlsLink');
+                if (hlsLink) {
+                    hlsLink.value = `${window.location.origin}/hls/${encodeURIComponent(viewId)}/index.m3u8${serverParam}`;
+                }
+                const hlsPlayerLink = document.getElementById('hlsPlayerLink');
+                if (hlsPlayerLink) {
+                    hlsPlayerLink.value = `${window.location.origin}/hls-player/${encodeURIComponent(viewId)}${serverParam}`;
+                }
+
+                // RTMP Pull URL (for re-streaming - uses public viewId)
+                const rtmpPullUrl = document.getElementById('rtmpPullUrl');
+                if (rtmpPullUrl && currentServerIp) {
+                    rtmpPullUrl.value = `rtmp://${currentServerIp}:1935/live/${viewId}`;
+                }
+            }
+
+            // VDO.Ninja View Link (opens VDO.Ninja and views Meshcast stream via WHEP)
+            const vdoNinjaViewUrl = `https://vdo.ninja/?view=${viewId}&whep=${encodeURIComponent(`${window.location.origin}/api/gateway/whep/${viewId}${serverParam}`)}`;
+            const vdoNinjaView = document.getElementById('vdoNinjaView');
+            if (vdoNinjaView) {
+                vdoNinjaView.value = vdoNinjaViewUrl;
+            }
+            const vdoNinjaViewLink = document.getElementById('vdoNinjaViewLink');
+            if (vdoNinjaViewLink) {
+                vdoNinjaViewLink.href = vdoNinjaViewUrl;
+            }
+
+            // Embed code
+            const embedCode = document.getElementById('embedCode');
+            if (embedCode) {
+                embedCode.value = `<iframe src="${embedUrl}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`;
+            }
+        }
+
+        function copyLink(inputId) {
+            const input = document.getElementById(inputId);
+            if (input && input.value) {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    showToast('Copied to clipboard!', 'success', 1500);
+                });
+            }
+        }
+
+        async function rotatePublishKey() {
+            // Require streamId for rotation
+            if (!config.streamId) {
+                showToast('Cannot rotate key: stream ID not available', 'error');
+                return;
+            }
+
+            // Confirm with user
+            if (!confirm('Are you sure you want to rotate your publish key?\n\nThis will invalidate your current publish key. You will need to update your streaming software (OBS, etc.) with the new key.\n\nWatch links will NOT be affected.')) {
+                return;
+            }
+
+            const btn = document.getElementById('rotateKeyBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span style="opacity: 0.7;">Rotating...</span>';
+            }
+
+            try {
+                const response = await fetch(`/api/gateway/streams/${encodeURIComponent(config.streamId)}/rotate-key`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to rotate key');
+                }
+
+                const data = await response.json();
+
+                // Update config with new publish key
+                config.publishKey = data.publish_key;
+
+                // Refresh all the stream key displays
+                updateWatchLinks();
+
+                showToast('Publish key rotated! Update your streaming software.', 'success', 5000);
+
+            } catch (e) {
+                console.error('Error rotating key:', e);
+                showToast(`Error: ${e.message}`, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        Rotate Publish Key
+                    `;
+                }
+            }
+        }
+
+        // Update links when server code changes
+        document.getElementById('serverCode')?.addEventListener('change', async function() {
+            const serverCode = this.value.trim();
+            if (serverCode) {
+                // Fetch server info to get IP for direct links
+                try {
+                    const resp = await fetch(`/api/nodes/${encodeURIComponent(serverCode)}`);
+                    if (resp.ok) {
+                        const node = await resp.json();
+                        currentServerIp = node.ip || '';
+                    }
+                } catch (e) {}
+            }
+            updateWatchLinks();
+        });
+
+        async function enumerateDevices() {
+            try {
+                // Request permission first
+                await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoSelect = document.getElementById('videoSource');
+                const audioSelect = document.getElementById('audioSource');
+
+                videoSelect.innerHTML = '';
+                audioSelect.innerHTML = '';
+
+                devices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `${device.kind} ${device.deviceId.slice(0, 8)}`;
+
+                    if (device.kind === 'videoinput') {
+                        videoSelect.appendChild(option);
+                    } else if (device.kind === 'audioinput') {
+                        audioSelect.appendChild(option);
+                    }
+                });
+
+                videoSelect.onchange = startPreview;
+                audioSelect.onchange = startPreview;
+            } catch (err) {
+                console.error('Device enumeration failed:', err);
+                showToast('Please allow camera and microphone access to use the studio.', 'warning');
+            }
+        }
+
+        async function startPreview() {
+            if (sourceType !== 'camera') return;
+
+            try {
+                // Stop old tracks but not if streaming (we'll replace instead)
+                if (localStream && !isStreaming) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+
+                const videoSource = document.getElementById('videoSource').value;
+                const audioSource = document.getElementById('audioSource').value;
+                const videoConstraints = getVideoConstraints();
+
+                let videoTrack, audioTrack;
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            deviceId: videoSource ? { exact: videoSource } : undefined,
+                            ...videoConstraints
+                        },
+                        audio: { deviceId: audioSource ? { exact: audioSource } : undefined }
+                    });
+                    videoTrack = stream.getVideoTracks()[0];
+                    audioTrack = stream.getAudioTracks()[0];
+                } catch (e) {
+                    console.warn('Device access failed, using blank tracks:', e);
+                    videoTrack = getBlankVideoTrack();
+                    audioTrack = getBlankAudioTrack();
+                }
+
+                // Ensure we have both tracks
+                if (!videoTrack) videoTrack = getBlankVideoTrack();
+                if (!audioTrack) audioTrack = getBlankAudioTrack();
+
+                if (isStreaming) {
+                    // Replace tracks while streaming
+                    await replaceVideoTrack(videoTrack);
+                    await replaceAudioTrack(audioTrack);
+                } else {
+                    localStream = new MediaStream([videoTrack, audioTrack]);
+                    document.getElementById('videoPreview').srcObject = localStream;
+                }
+
+                setupAudioMeter();
+                updateStatus('ready', 'Ready');
+            } catch (err) {
+                console.error('Preview failed:', err);
+                updateStatus('error', 'Device Error');
+            }
+        }
+
+        // Re-apply constraints when quality settings change
+        document.getElementById('resolutionSelect')?.addEventListener('change', () => {
+            if (sourceType === 'camera') startPreview();
+        });
+        document.getElementById('framerateSelect')?.addEventListener('change', () => {
+            if (sourceType === 'camera') startPreview();
+        });
+
+        // Allow switching devices while live
+        document.getElementById('videoSource')?.addEventListener('change', async () => {
+            if (sourceType === 'camera') {
+                await startPreview();
+                if (isStreaming) showToast('Camera switched', 'success', 1500);
+            }
+        });
+        document.getElementById('audioSource')?.addEventListener('change', async () => {
+            if (sourceType === 'camera') {
+                await startPreview();
+                if (isStreaming) showToast('Microphone switched', 'success', 1500);
+            }
+        });
+
+        function setupAudioMeter() {
+            if (audioContext) audioContext.close();
+
+            audioContext = new AudioContext();
+            audioAnalyser = audioContext.createAnalyser();
+            audioAnalyser.fftSize = 256;
+
+            const source = audioContext.createMediaStreamSource(localStream);
+            source.connect(audioAnalyser);
+
+            const dataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+            const meterFill = document.getElementById('audioMeter');
+
+            function updateMeter() {
+                if (!audioAnalyser) return;
+                audioAnalyser.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const level = Math.min(100, (average / 128) * 100);
+                meterFill.style.width = level + '%';
+                requestAnimationFrame(updateMeter);
+            }
+            updateMeter();
+        }
+
+        async function startStream() {
+            console.log('startStream called, isStreaming:', isStreaming);
+            if (isStreaming) {
+                console.log('Already streaming, ignoring');
+                return;
+            }
+            // Set flag immediately to prevent duplicate clicks during ICE gathering
+            isStreaming = true;
+            document.getElementById('startBtn').disabled = true;
+
+            if (!config.streamKey) {
+                console.log('No stream key!');
+                showToast('No stream key configured.', 'warning');
+                isStreaming = false;
+                document.getElementById('startBtn').disabled = false;
+                return;
+            }
+            console.log('Stream key:', config.streamKey);
+
+            // Ensure we have a stream with both tracks
+            if (!localStream) {
+                console.log('Creating blank localStream');
+                localStream = new MediaStream([getBlankVideoTrack(), getBlankAudioTrack()]);
+                document.getElementById('videoPreview').srcObject = localStream;
+            }
+
+            // Ensure both video and audio tracks exist
+            if (!localStream.getVideoTracks().length) {
+                localStream.addTrack(getBlankVideoTrack());
+            }
+            if (!localStream.getAudioTracks().length) {
+                localStream.addTrack(getBlankAudioTrack());
+            }
+            console.log('LocalStream tracks:', localStream.getTracks().map(t => t.kind));
+
+            try {
+                const serverCode = (document.getElementById('serverCode')?.value || config.serverHint || '').trim();
+                let base = config.mediaBaseUrl;
+                if (!base) {
+                    // Use gateway proxy when no direct media URL configured
+                    base = `${window.location.origin}/api/gateway`;
+                }
+                if (base.endsWith('/')) base = base.slice(0, -1);
+                // Build query params: always include force=1 to allow reconnection
+                const params = new URLSearchParams();
+                params.set('force', '1');
+                if (serverCode) params.set('server', serverCode);
+                // Use publishKey for WHIP publishing (fall back to legacy streamKey)
+                const pubKey = config.publishKey || config.streamKey;
+                const whipUrl = `${base}/${pubKey}/whip?${params.toString()}`;
+                console.log('WHIP URL:', whipUrl);
+
+                // Get encoding settings
+                const bitrate = parseInt(document.getElementById('bitrateSelect').value) * 1000;
+                const codec = document.getElementById('codecSelect').value;
+                console.log('Encoding settings - bitrate:', bitrate, 'codec:', codec);
+
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+
+                // Add tracks with encoding parameters
+                localStream.getTracks().forEach(track => {
+                    const sender = peerConnection.addTrack(track, localStream);
+
+                    // Set bitrate for video
+                    if (track.kind === 'video') {
+                        const params = sender.getParameters();
+                        if (!params.encodings) params.encodings = [{}];
+                        params.encodings[0].maxBitrate = bitrate;
+                        sender.setParameters(params).catch(() => {});
+                    }
+                });
+
+                // Apply codec preference
+                const transceivers = peerConnection.getTransceivers();
+                for (const transceiver of transceivers) {
+                    if (transceiver.sender.track?.kind === 'video') {
+                        const codecs = RTCRtpSender.getCapabilities('video')?.codecs || [];
+                        const preferredCodec = codecs.find(c => c.mimeType.toLowerCase().includes(codec));
+                        if (preferredCodec) {
+                            const sorted = [preferredCodec, ...codecs.filter(c => c !== preferredCodec)];
+                            transceiver.setCodecPreferences?.(sorted);
+                        }
+                    }
+                }
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Send offer immediately - WHIP server handles ICE negotiation
+                console.log('Sending WHIP offer to:', whipUrl);
+                const response = await fetch(whipUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sdp' },
+                    body: peerConnection.localDescription.sdp
+                });
+
+                if (!response.ok) {
+                    // Try to get detailed error from response body
+                    let errorDetail = '';
+                    let errorCode = '';
+                    try {
+                        const errorBody = await response.text();
+                        const errorJson = JSON.parse(errorBody);
+                        errorCode = errorJson.code || '';
+                        errorDetail = errorJson.error || errorJson.detail || errorJson.message || errorBody;
+                    } catch (e) {
+                        errorDetail = `HTTP ${response.status}`;
+                    }
+
+                    // Make error messages more user-friendly
+                    let userMessage = errorDetail;
+                    if (errorCode === 'KEY_ALREADY_IN_USE' || errorDetail.includes('already in use')) {
+                        userMessage = 'Stream key is already in use. Please wait a moment and try again, or refresh the page.';
+                    } else if (errorCode === 'INVALID_KEY' || errorDetail.includes('Invalid stream key')) {
+                        userMessage = 'Invalid stream key. Please check your settings or try refreshing the page.';
+                    } else if (response.status === 503) {
+                        userMessage = 'No media server available. Please try again in a moment.';
+                    }
+                    throw new Error(userMessage);
+                }
+
+                const answerSdp = await response.text();
+                await peerConnection.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+                isStreaming = true;
+                updateStatus('live', 'Live');
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-flex';
+                document.getElementById('liveOverlay').classList.add('visible');
+
+                startStatsCollection();
+                reportTelemetry();
+
+            } catch (err) {
+                console.error('Stream start failed:', err);
+                showToast('Failed to start stream: ' + err.message, 'error');
+                stopStream();
+            }
+        }
+
+        function stopStream() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+            }
+
+            isStreaming = false;
+            updateStatus('ready', 'Ready');
+            document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('liveOverlay').classList.remove('visible');
+        }
+
+        function toggleVideo() {
+            if (!localStream) return;
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                const btn = document.getElementById('toggleVideo');
+                if (videoTrack.enabled) {
+                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Mute Video';
+                } else {
+                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Unmute Video';
+                }
+                btn.classList.toggle('muted-state', !videoTrack.enabled);
+            }
+        }
+
+        function toggleAudio() {
+            if (!localStream) return;
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                const btn = document.getElementById('toggleAudio');
+                if (audioTrack.enabled) {
+                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Mute Audio';
+                } else {
+                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .74-.11 1.45-.32 2.12"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Unmute Audio';
+                }
+                btn.classList.toggle('muted-state', !audioTrack.enabled);
+            }
+        }
+
+        function updateStatus(state, text) {
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            dot.className = 'status-dot ' + state;
+            statusText.textContent = text;
+        }
+
+        function startStatsCollection() {
+            statsInterval = setInterval(async () => {
+                if (!peerConnection) return;
+
+                try {
+                    const stats = await peerConnection.getStats();
+                    let bitrate = 0, fps = 0, rtt = 0, packetsLost = 0, packetsTotal = 0;
+
+                    stats.forEach(report => {
+                        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                            if (report.bytesSent) {
+                                bitrate = Math.round((report.bytesSent * 8) / 1000);
+                            }
+                            if (report.framesPerSecond) {
+                                fps = report.framesPerSecond;
+                            }
+                        }
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            rtt = report.currentRoundTripTime ? Math.round(report.currentRoundTripTime * 1000) : 0;
+                        }
+                        if (report.type === 'remote-inbound-rtp') {
+                            packetsLost = report.packetsLost || 0;
+                            packetsTotal = (report.packetsReceived || 0) + packetsLost;
+                        }
+                    });
+
+                    document.getElementById('statBitrate').textContent = bitrate;
+                    document.getElementById('statFps').textContent = fps;
+                    document.getElementById('statRtt').textContent = rtt;
+                    document.getElementById('statLoss').textContent = packetsTotal > 0
+                        ? ((packetsLost / packetsTotal) * 100).toFixed(1)
+                        : '0';
+                } catch (err) {
+                    console.error('Stats collection failed:', err);
+                }
+            }, 1000);
+        }
+
+        function reportTelemetry() {
+            // Report telemetry to the API
+            const telemetryInterval = setInterval(async () => {
+                if (!isStreaming || !peerConnection) {
+                    clearInterval(telemetryInterval);
+                    return;
+                }
+
+                try {
+                    const stats = await peerConnection.getStats();
+                    let data = {
+                        stream_key: config.streamKey,
+                        invite_token: config.inviteToken || null,
+                        source: 'studio',
+                        role: 'publisher'
+                    };
+
+                    stats.forEach(report => {
+                        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                            data.bitrate_kbps = Math.round((report.bytesSent * 8) / 1000);
+                            data.fps = report.framesPerSecond || 0;
+                        }
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            data.rtt_ms = report.currentRoundTripTime ? Math.round(report.currentRoundTripTime * 1000) : 0;
+                        }
+                        if (report.type === 'remote-inbound-rtp') {
+                            data.packets_lost = report.packetsLost || 0;
+                            data.packets_total = (report.packetsReceived || 0) + (report.packetsLost || 0);
+                        }
+                    });
+
+                    fetch('/api/telemetry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    }).catch(() => {});
+                } catch (err) {}
+            }, 5000);
+        }
+
+        // Attach event listeners for buttons (more reliable than onclick attributes)
+        document.addEventListener('DOMContentLoaded', function() {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if (startBtn) {
+                startBtn.addEventListener('click', function(e) {
+                    console.log('Start button clicked via addEventListener');
+                    e.preventDefault();
+                    startStream();
+                });
+            }
+
+            if (stopBtn) {
+                stopBtn.addEventListener('click', function(e) {
+                    console.log('Stop button clicked via addEventListener');
+                    e.preventDefault();
+                    stopStream();
+                });
+            }
+        });
+
+    </script>
+</body>
+</html>
