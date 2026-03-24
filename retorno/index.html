@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamCall Clean Viewer</title>
+    <title>Retorno StremaingHoy </title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -104,6 +104,14 @@
             font-size: 14px; font-weight: bold; cursor: pointer;
         }
         
+        /* ========== CAMBIO CLAVE: Ocultar todo en pantalla completa ========== */
+        .viewer-container.fullscreen-clean .live-badge,
+        .viewer-container.fullscreen-clean .room-info,
+        .viewer-container.fullscreen-clean .controls,
+        .viewer-container.fullscreen-clean .audio-overlay {
+            display: none !important;
+        }
+        
         /* Director styles (sin cambios) */
         .director-layout { display: flex; flex-direction: column; height: 100vh; background: #0f172a; }
         .dir-header { background: #1e293b; padding: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
@@ -144,7 +152,7 @@
             return { add };
         };
         
-        // ==================== DIRECTOR (CON LOGS) ====================
+        // ==================== DIRECTOR (SIN CAMBIOS) ====================
         const Director = ({ room }) => {
             const [stream, setStream] = useState(null);
             const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -304,19 +312,39 @@
             );
         };
         
-        // ==================== VIEWER (LIMPIO, SIN LOGS EN PANTALLA) ====================
+        // ==================== VIEWER (AGREGADO DETECTOR FULLSCREEN) ====================
         const Viewer = ({ room, slot }) => {
             const { add } = useLog(); // Solo consola
             const [isReceiving, setIsReceiving] = useState(false);
             const [isMuted, setIsMuted] = useState(true);
             const [showAudioOverlay, setShowAudioOverlay] = useState(false);
             const [hasError, setHasError] = useState(false);
+            // ========== NUEVO: Estado para detectar pantalla completa ==========
+            const [isFullscreen, setIsFullscreen] = useState(false);
             
             const peerRef = useRef(null);
             const videoRef = useRef(null);
             const connRef = useRef(null);
             const currentCallRef = useRef(null);
             const hasReceivedStreamRef = useRef(false);
+            
+            // ========== NUEVO: useEffect para escuchar cambios de fullscreen ==========
+            useEffect(() => {
+                const handleFullscreenChange = () => {
+                    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+                    setIsFullscreen(!!fullscreenElement);
+                };
+                
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+                document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+                
+                return () => {
+                    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+                    document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+                    document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+                };
+            }, []);
             
             useEffect(() => {
                 const myId = `view-${room}-${slot}`;
@@ -419,6 +447,7 @@
                 const el = document.documentElement;
                 if (el.requestFullscreen) el.requestFullscreen();
                 else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
             };
             
             if (hasError) {
@@ -434,7 +463,8 @@
             }
             
             return (
-                <div className="viewer-container">
+                // ========== NUEVO: Clase condicional 'fullscreen-clean' ==========
+                <div className={`viewer-container ${isFullscreen ? 'fullscreen-clean' : ''}`}>
                     {/* Video principal */}
                     <video 
                         ref={videoRef} 
