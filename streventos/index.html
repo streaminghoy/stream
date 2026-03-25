@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamCall Presenter - 720p Optimized</title>
+    <title>StreamCall Presenter - 720p</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -15,10 +15,10 @@
     
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; touch-action: none; user-select: none; }
+        body { background-color: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
         
         .lobby-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #0f172a; padding: 20px; text-align: center; }
-        .glass-box { background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 16px; max-width: 500px; width: 100%; border: 1px solid #334155; backdrop-filter: blur(10px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .glass-box { background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 16px; max-width: 500px; width: 100%; border: 1px solid #334155; backdrop-filter: blur(10px); }
         input { width: 100%; background: #000; border: 2px solid #334155; color: white; padding: 15px; border-radius: 8px; font-size: 1rem; margin-bottom: 15px; text-align: center; font-weight: 600; }
         .btn { width: 100%; padding: 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 1rem; margin-bottom: 10px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4); }
@@ -26,29 +26,25 @@
         .btn-purple { background: #8b5cf6; }
         .btn-purple:hover { box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.4); }
         .btn-red { background: #ef4444; }
-        .btn-orange { background: #f97316; color: black; }
-        .btn-dark { background: #1e293b; border: 1px solid #334155; }
         
         .director-layout { display: flex; flex-direction: column; height: 100vh; background: #000; }
         .director-header { background: #0f172a; border-bottom: 1px solid #334155; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
-        .grid-container { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 15px; padding: 15px; overflow-y: auto; }
+        .grid-container { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 15px; padding: 15px; overflow-y: auto; }
         
-        .slot-card { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 300px; transition: all 0.3s; }
-        .slot-card:hover { border-color: #475569; }
-        .slot-video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 220px; overflow: hidden; }
+        .slot-card { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 280px; }
+        .slot-video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 200px; overflow: hidden; }
         .slot-video { width: 100%; height: 100%; object-fit: contain; background: #000; }
         .slot-status { position: absolute; color: #64748b; font-weight: bold; text-align: center; padding: 20px; }
         
-        .source-badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.85); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; display: flex; align-items: center; gap: 6px; z-index: 10; text-transform: uppercase; letter-spacing: 0.5px; }
+        .source-badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.85); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; display: flex; align-items: center; gap: 6px; z-index: 10; text-transform: uppercase; }
         .source-badge.screen { color: #8b5cf6; border: 1px solid #8b5cf6; }
         .source-badge.camera { color: #3b82f6; border: 1px solid #3b82f6; }
-        .source-badge.lan { color: #22c55e; border: 1px solid #22c55e; } /* Indicador LAN */
         
-        .quality-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; font-family: monospace; z-index: 10; border: 1px solid #22c55e; }
+        .connection-badge { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.85); padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; z-index: 10; }
+        .connection-badge.local { color: #22c55e; border: 1px solid #22c55e; }
+        .connection-badge.relay { color: #f59e0b; border: 1px solid #f59e0b; }
         
-        .connection-type { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.85); padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; z-index: 10; }
-        .connection-type.local { color: #22c55e; border: 1px solid #22c55e; }
-        .connection-type.relay { color: #f59e0b; border: 1px solid #f59e0b; }
+        .quality-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-family: monospace; border: 1px solid #22c55e; z-index: 10; }
         
         .vu-meter-container { width: 100%; height: 4px; background: #000; }
         .vu-meter-bar { height: 100%; background: linear-gradient(90deg, #22c55e, #facc15, #ef4444); width: 0%; transition: width 0.1s; }
@@ -58,7 +54,7 @@
         .t-btn { flex: 1; padding: 10px 0; font-size: 0.8rem; font-weight: bold; border-radius: 6px; cursor: pointer; border: 2px solid transparent; background: #1e293b; color: #94a3b8; text-align: center; transition: all 0.2s; }
         .t-btn.active-idle { border-color: #64748b; color: white; background: #334155; }
         .t-btn.active-prev { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; color: #22c55e; }
-        .t-btn.active-live { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
+        .t-btn.active-live { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; color: #ef4444; }
         
         .director-preview { position: fixed; bottom: 20px; right: 20px; width: 213px; height: 120px; background: #000; border: 3px solid #3b82f6; border-radius: 8px; overflow: hidden; z-index: 1000; display: none; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
         .director-preview.active { display: block; }
@@ -66,13 +62,13 @@
         .director-preview-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(59, 130, 246, 0.9); color: white; text-align: center; font-size: 0.7rem; padding: 4px; font-weight: bold; }
         
         .presenter-layout { width: 100vw; height: 100vh; position: relative; background: #000; overflow: hidden; }
-        .presenter-video { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .presenter-video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
         
         .tally-border { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 20px solid transparent; pointer-events: none; z-index: 50; box-sizing: border-box; transition: all 0.3s; }
         .tally-live .tally-border { border-color: #ef4444; box-shadow: inset 0 0 60px rgba(239,68,68,0.6); }
         .tally-prev .tally-border { border-color: #eab308; box-shadow: inset 0 0 60px rgba(234,179,8,0.5); }
         
-        .tally-overlay { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.9); color: white; padding: 10px 30px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; display: none; z-index: 100; letter-spacing: 2px; backdrop-filter: blur(10px); }
+        .tally-overlay { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.9); color: white; padding: 10px 30px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; display: none; z-index: 100; letter-spacing: 2px; }
         .tally-live .tally-overlay { display: block; animation: pulse 2s infinite; }
         .tally-prev .tally-overlay { display: block; background: rgba(234, 179, 8, 0.9); color: black; }
         
@@ -82,43 +78,36 @@
         .return-pip.active { display: block; }
         .return-pip video { width: 100%; height: 100%; object-fit: cover; }
         .pip-header { position: absolute; top: 0; left: 0; right: 0; height: 35px; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); z-index: 10; cursor: grab; display: flex; align-items: center; justify-content: center; }
-        .pip-header:active { cursor: grabbing; }
         .pip-header::before { content: '•••'; color: rgba(255,255,255,0.5); letter-spacing: 4px; font-size: 12px; }
         .pip-resize { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; cursor: se-resize; }
         .pip-resize::after { content: ''; position: absolute; bottom: 6px; right: 6px; width: 10px; height: 10px; border-right: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; }
         
-        .presenter-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.98); padding: 15px 25px; border-radius: 16px; display: flex; gap: 15px; z-index: 100; border: 1px solid #334155; backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.5); align-items: center; }
+        .presenter-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.98); padding: 15px 25px; border-radius: 16px; display: flex; gap: 15px; z-index: 100; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
         .control-btn { width: 56px; height: 56px; border-radius: 12px; border: none; background: #334155; color: white; font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .control-btn:hover { transform: translateY(-2px); background: #475569; }
-        .control-btn:active { transform: scale(0.95); }
-        .control-btn.active { background: #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+        .control-btn:hover { background: #475569; }
         .control-btn.off { background: #ef4444; }
-        .control-btn.switch { width: auto; padding: 0 25px; font-size: 0.95rem; font-weight: bold; gap: 10px; display: flex; }
+        .control-btn.active { background: #8b5cf6; }
+        .control-btn.switch { width: auto; padding: 0 20px; font-size: 0.9rem; font-weight: bold; gap: 8px; }
         
-        .source-label-floating { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; z-index: 90; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(10px); border: 1px solid; }
+        .source-label-floating { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; z-index: 90; border: 1px solid; backdrop-filter: blur(10px); }
         .source-label-floating.screen { color: #8b5cf6; border-color: #8b5cf6; }
         .source-label-floating.camera { color: #3b82f6; border-color: #3b82f6; }
         
-        .network-status { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 90; display: flex; align-items: center; gap: 6px; font-weight: 600; }
-        .network-status.local { color: #22c55e; border: 1px solid #22c55e; }
-        .network-status.relay { color: #f59e0b; border: 1px solid #f59e0b; }
+        .network-status { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 90; font-weight: 600; border: 1px solid; }
+        .network-status.local { color: #22c55e; border-color: #22c55e; }
+        .network-status.relay { color: #f59e0b; border-color: #f59e0b; }
         
         .obs-layout { width: 100vw; height: 100vh; position: relative; overflow: hidden; background: #000; }
         .obs-video { width: 100%; height: 100%; object-fit: contain; display: block; }
-        .obs-status { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; font-size: 20px; font-weight: 500; text-align: center; background: rgba(0,0,0,0.9); padding: 40px; border-radius: 16px; border: 2px solid #334155; }
-        
-        .connection-info { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; color: #94a3b8; border: 1px solid #334155; display: flex; align-items: center; gap: 8px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .obs-status { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; font-size: 18px; background: rgba(0,0,0,0.9); padding: 30px 40px; border-radius: 12px; border: 2px solid #334155; }
         
         .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .mode-card { background: rgba(51, 65, 85, 0.5); border: 2px solid #334155; border-radius: 12px; padding: 30px 20px; cursor: pointer; transition: all 0.3s; }
-        .mode-card:hover { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); transform: translateY(-2px); }
+        .mode-card { background: rgba(51, 65, 85, 0.5); border: 2px solid #334155; border-radius: 12px; padding: 25px 15px; cursor: pointer; transition: all 0.3s; }
+        .mode-card:hover { border-color: #8b5cf6; }
         .mode-card.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
-        .mode-icon { font-size: 2.5rem; margin-bottom: 12px; color: #8b5cf6; }
-        .mode-title { font-weight: bold; color: white; margin-bottom: 5px; }
-        .mode-desc { font-size: 0.8rem; color: #94a3b8; }
-        
-        .bandwidth-indicator { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-family: monospace; border: 1px solid #22c55e; z-index: 10; }
+        .mode-icon { font-size: 2rem; margin-bottom: 10px; color: #8b5cf6; }
+        .mode-title { font-weight: bold; margin-bottom: 5px; }
+        .mode-desc { font-size: 0.75rem; color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -127,166 +116,83 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         
-        // Configuración: TURN de backup por si acaso, pero prioriza conexión local
         const PEER_CONFIG = { 
             config: { 
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
-                    // TURN solo como fallback (no se usa si hay conexión directa)
                     { urls: 'turn:140.82.25.249:3478', username: 'reportero', credential: 'mundial2026' }
-                ],
-                iceTransportPolicy: 'all', // 'all' permite directo y relay
-                iceCandidatePoolSize: 10
-            },
-            // Optimizaciones para LAN
-            debug: 0
+                ]
+            }
         };
         
         const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
         
-        // Constantes de video 720p optimizado
-        const VIDEO_CONSTRAINTS = {
-            width: { ideal: 1280, max: 1280 },
-            height: { ideal: 720, max: 720 },
-            frameRate: { ideal: 24, max: 30 } // 24fps es suficiente para PPT y ahorra ancho de banda
-        };
-        
-        const VideoPlayer = ({ stream, muted, className, style }) => {
+        const VideoPlayer = ({ stream, muted, className }) => {
             const videoRef = useRef(null);
             useEffect(() => {
                 if (videoRef.current && stream) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(e => {
-                        videoRef.current.muted = true;
-                        videoRef.current.play();
-                    });
+                    videoRef.current.play().catch(e => console.log("Autoplay prevented"));
                 }
             }, [stream]);
-            return <video ref={videoRef} className={className} style={style} autoPlay playsInline muted={muted} />;
-        };
-
-        // Hook para detectar tipo de conexión WebRTC (Local vs Relay)
-        const useConnectionType = (peerConnection) => {
-            const [connType, setConnType] = useState('checking'); // 'local', 'relay', 'checking'
-            
-            useEffect(() => {
-                if (!peerConnection) return;
-                
-                const checkConnection = () => {
-                    const stats = peerConnection.getStats();
-                    stats.then(report => {
-                        report.forEach(stat => {
-                            if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
-                                const local = report.get(stat.localCandidateId);
-                                const remote = report.get(stat.remoteCandidateId);
-                                
-                                if (local && remote) {
-                                    // Si cualquiera es 'relay', estamos usando TURN
-                                    if (local.candidateType === 'relay' || remote.candidateType === 'relay') {
-                                        setConnType('relay');
-                                    } else {
-                                        setConnType('local');
-                                    }
-                                }
-                            }
-                        });
-                    });
-                };
-                
-                const interval = setInterval(checkConnection, 2000);
-                return () => clearInterval(interval);
-            }, [peerConnection]);
-            
-            return connType;
-        };
-
-        const VUMeter = ({ stream }) => {
-            const barRef = useRef(null);
-            useEffect(() => {
-                if (!stream) return;
-                try {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    const ctx = new AudioContext();
-                    const analyser = ctx.createAnalyser();
-                    analyser.fftSize = 256;
-                    const source = ctx.createMediaStreamSource(stream);
-                    source.connect(analyser);
-                    const data = new Uint8Array(analyser.frequencyBinCount);
-                    
-                    const tick = () => {
-                        analyser.getByteFrequencyData(data);
-                        let sum = 0;
-                        for(let i = 0; i < data.length; i++) sum += data[i];
-                        const level = Math.min((sum / data.length) * 3, 100);
-                        if (barRef.current) barRef.current.style.width = level + '%';
-                        requestAnimationFrame(tick);
-                    };
-                    tick();
-                } catch(e) {}
-            }, [stream]);
-            return <div className="vu-meter-container"><div ref={barRef} className="vu-meter-bar"></div></div>;
+            return <video ref={videoRef} className={className} autoPlay playsInline muted={muted} />;
         };
 
         const DraggablePIP = ({ stream }) => {
             const [pos, setPos] = useState({ x: 20, y: 20 });
-            const [size, setSize] = useState({ w: 213, h: 120 }); // 720p ratio reducido
-            const isDragging = useRef(false);
-            const isResizing = useRef(false);
+            const [size, setSize] = useState({ w: 240, h: 135 });
+            const dragRef = useRef(false);
+            const resizeRef = useRef(false);
             const startPos = useRef({ x: 0, y: 0 });
             const startRect = useRef({ x: 0, y: 0, w: 0, h: 0 });
 
             useEffect(() => {
-                const handleMove = (e) => {
-                    if (!isDragging.current && !isResizing.current) return;
-                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const onMove = (e) => {
+                    if (!dragRef.current && !resizeRef.current) return;
+                    const x = e.touches ? e.touches[0].clientX : e.clientX;
+                    const y = e.touches ? e.touches[0].clientY : e.clientY;
                     
-                    if (isDragging.current) {
+                    if (dragRef.current) {
                         setPos({
-                            x: Math.max(0, Math.min(window.innerWidth - size.w, startRect.current.x + (clientX - startPos.current.x))),
-                            y: Math.max(0, Math.min(window.innerHeight - size.h - 100, startRect.current.y + (clientY - startPos.current.y)))
+                            x: Math.max(0, Math.min(window.innerWidth - size.w, startRect.current.x + (x - startPos.current.x))),
+                            y: Math.max(0, Math.min(window.innerHeight - size.h - 100, startRect.current.y + (y - startPos.current.y)))
                         });
-                    } else if (isResizing.current) {
-                        const newW = Math.max(160, Math.min(window.innerWidth - pos.x - 10, startRect.current.w + (clientX - startPos.current.x)));
-                        setSize({ w: newW, h: newW * 0.5625 }); // 16:9 ratio
+                    } else if (resizeRef.current) {
+                        const newW = Math.max(160, Math.min(window.innerWidth - pos.x - 10, startRect.current.w + (x - startPos.current.x)));
+                        setSize({ w: newW, h: newW * 0.5625 });
                     }
                 };
+                const onEnd = () => { dragRef.current = false; resizeRef.current = false; };
                 
-                const handleEnd = () => { isDragging.current = false; isResizing.current = false; };
-                
-                document.addEventListener('mousemove', handleMove, { passive: false });
-                document.addEventListener('mouseup', handleEnd);
-                document.addEventListener('touchmove', handleMove, { passive: false });
-                document.addEventListener('touchend', handleEnd);
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onEnd);
+                window.addEventListener('touchmove', onMove);
+                window.addEventListener('touchend', onEnd);
                 return () => {
-                    document.removeEventListener('mousemove', handleMove);
-                    document.removeEventListener('mouseup', handleEnd);
-                    document.removeEventListener('touchmove', handleMove);
-                    document.removeEventListener('touchend', handleEnd);
+                    window.removeEventListener('mousemove', onMove);
+                    window.removeEventListener('mouseup', onEnd);
+                    window.removeEventListener('touchmove', onMove);
+                    window.removeEventListener('touchend', onEnd);
                 };
             }, [pos.x, size.w]);
 
             const startDrag = (e) => {
-                e.preventDefault();
-                isDragging.current = true;
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                startPos.current = { x: clientX, y: clientY };
+                dragRef.current = true;
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                const y = e.touches ? e.touches[0].clientY : e.clientY;
+                startPos.current = { x, y };
                 startRect.current = { x: pos.x, y: pos.y, w: size.w, h: size.h };
             };
 
             const startResize = (e) => {
-                e.preventDefault();
-                isResizing.current = true;
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                startPos.current = { x: clientX, y: clientY };
+                resizeRef.current = true;
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                startPos.current = { x };
                 startRect.current = { x: pos.x, y: pos.y, w: size.w, h: size.h };
             };
 
             if (!stream) return null;
-
             return (
                 <div className="return-pip active" style={{ left: pos.x, top: pos.y, width: size.w, height: size.h }}>
                     <div className="pip-header" onMouseDown={startDrag} onTouchStart={startDrag} />
@@ -297,75 +203,60 @@
         };
 
         // ==========================================
-        // DIRECTOR - 3 Slots 720p
+        // DIRECTOR
         // ==========================================
         const DirectorView = ({ roomName }) => {
             const [slots, setSlots] = useState({ 
-                1: { connected: false, tally: 'idle', stream: null, source: 'camera', quality: 'N/A', connType: 'checking' }, 
-                2: { connected: false, tally: 'idle', stream: null, source: 'camera', quality: 'N/A', connType: 'checking' }, 
-                3: { connected: false, tally: 'idle', stream: null, source: 'camera', quality: 'N/A', connType: 'checking' }
+                1: { connected: false, tally: 'idle', stream: null, source: 'camera', quality: '-' }, 
+                2: { connected: false, tally: 'idle', stream: null, source: 'camera', quality: '-' }, 
+                3: { connected: false, tally: 'idle', stream: null, source: 'camera', quality: '-' }
             });
             const [talkbackActive, setTalkbackActive] = useState(false);
             const [localStream, setLocalStream] = useState(null);
-            
             const peer = useRef(null);
             const mqttClient = useRef(null);
             const returnCallsRef = useRef({});
-            const peerConnections = useRef({}); // Guardar referencias para detectar tipo de conexión
+            const pcs = useRef({});
 
-            // Monitor de calidad y tipo de conexión
             useEffect(() => {
-                const interval = setInterval(() => {
-                    // Check video quality
+                // Actualizar calidad cada 3 segundos
+                const iv = setInterval(() => {
                     setSlots(prev => {
-                        const newSlots = {...prev};
-                        Object.keys(newSlots).forEach(id => {
-                            if (newSlots[id].stream) {
-                                const videoTrack = newSlots[id].stream.getVideoTracks()[0];
-                                if (videoTrack) {
-                                    const settings = videoTrack.getSettings();
-                                    newSlots[id].quality = `${settings.width}x${settings.height}`;
+                        const n = {...prev};
+                        Object.keys(n).forEach(k => {
+                            if (n[k].stream) {
+                                const t = n[k].stream.getVideoTracks()[0];
+                                if (t) {
+                                    const s = t.getSettings();
+                                    n[k].quality = s.width ? `${s.width}x${s.height}` : '720p';
+                                }
+                                // Detectar tipo de conexión
+                                const pc = pcs.current[k];
+                                if (pc) {
+                                    pc.getStats().then(stats => {
+                                        stats.forEach(stat => {
+                                            if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
+                                                const local = stats.get(stat.localCandidateId);
+                                                if (local) n[k].connType = local.candidateType === 'relay' ? 'relay' : 'local';
+                                            }
+                                        });
+                                    });
                                 }
                             }
                         });
-                        return newSlots;
-                    });
-                    
-                    // Check connection type (Local vs Relay)
-                    Object.keys(peerConnections.current).forEach(slotId => {
-                        const pc = peerConnections.current[slotId];
-                        if (pc) {
-                            pc.getStats().then(stats => {
-                                stats.forEach(stat => {
-                                    if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
-                                        const local = stats.get(stat.localCandidateId);
-                                        if (local) {
-                                            const isRelay = local.candidateType === 'relay';
-                                            setSlots(prev => ({
-                                                ...prev,
-                                                [slotId]: {
-                                                    ...prev[slotId],
-                                                    connType: isRelay ? 'relay' : 'local'
-                                                }
-                                            }));
-                                        }
-                                    }
-                                });
-                            });
-                        }
+                        return n;
                     });
                 }, 3000);
-                return () => clearInterval(interval);
+                return () => clearInterval(iv);
             }, []);
 
             useEffect(() => {
                 if (!talkbackActive || !localStream) return;
-                [1,2,3].forEach(slotId => {
-                    if (slots[slotId].connected && !returnCallsRef.current[slotId]) {
-                        // 720p para retorno también
-                        const returnCall = peer.current.call(`sc_presenter_${roomName}_${slotId}`, localStream);
-                        returnCallsRef.current[slotId] = returnCall;
-                        returnCall.on('close', () => delete returnCallsRef.current[slotId]);
+                [1,2,3].forEach(id => {
+                    if (slots[id].connected && !returnCallsRef.current[id]) {
+                        const c = peer.current.call(`sc_p_${roomName}_${id}`, localStream);
+                        returnCallsRef.current[id] = c;
+                        c.on('close', () => delete returnCallsRef.current[id]);
                     }
                 });
             }, [slots, talkbackActive, localStream, roomName]);
@@ -373,89 +264,58 @@
             useEffect(() => {
                 mqttClient.current = mqtt.connect(MQTT_BROKER);
                 mqttClient.current.on('connect', () => {
-                    [1,2,3].forEach(id => mqttClient.current.subscribe(`sc_tally/${roomName}/${id}`));
+                    [1,2,3].forEach(id => mqttClient.current.subscribe(`sc_t/${roomName}/${id}`));
                 });
-                
                 mqttClient.current.on('message', (t, msg) => {
                     try {
-                        const data = JSON.parse(msg.toString());
-                        const match = t.match(/\/(\d+)$/);
-                        if (match) {
-                            const id = match[1];
-                            setSlots(prev => ({ 
-                                ...prev, 
-                                [id]: { ...prev[id], tally: data.state, source: data.source || prev[id].source } 
-                            }));
-                        }
-                    } catch(e) {}
+                        const d = JSON.parse(msg.toString());
+                        const m = t.match(/\/(\d+)$/);
+                        if (m) setSlots(prev => ({...prev, [m[1]]: {...prev[m[1]], tally: d.s, source: d.src || prev[m[1]].source}}));
+                    } catch(e){}
                 });
 
-                peer.current = new Peer(`sc_dir_${roomName}`, PEER_CONFIG);
-                
-                peer.current.on('call', (call) => {
-                    const match = call.peer.match(/sc_presenter_${roomName}_(\d+)$/);
-                    if (match) {
-                        const slotId = match[1];
+                peer.current = new Peer(`sc_d_${roomName}`, PEER_CONFIG);
+                peer.current.on('call', call => {
+                    const m = call.peer.match(/sc_p_${roomName}_(\d+)$/);
+                    if (m) {
+                        const id = m[1];
+                        pcs.current[id] = call.peerConnection;
                         call.answer();
-                        
-                        // Guardar referencia a la conexión para detectar tipo (local vs relay)
-                        if (call.peerConnection) {
-                            peerConnections.current[slotId] = call.peerConnection;
-                        }
-                        
-                        call.on('stream', (stream) => {
-                            setSlots(prev => ({ 
-                                ...prev, 
-                                [slotId]: { ...prev[slotId], connected: true, stream: stream } 
-                            }));
-                        });
-                        call.on('close', () => {
-                            setSlots(prev => ({ 
-                                ...prev, 
-                                [slotId]: { ...prev[slotId], connected: false, stream: null, connType: 'checking' } 
-                            }));
-                            delete peerConnections.current[slotId];
-                        });
+                        call.on('stream', s => setSlots(prev => ({...prev, [id]: {...prev[id], connected: true, stream: s}})));
+                        call.on('close', () => setSlots(prev => ({...prev, [id]: {...prev[id], connected: false, stream: null}})));
                     }
                 });
 
-                return () => { 
-                    peer.current?.destroy(); 
-                    mqttClient.current?.end(); 
+                return () => {
+                    peer.current?.destroy();
+                    mqttClient.current?.end();
                     localStream?.getTracks().forEach(t => t.stop());
                 };
             }, [roomName]);
 
-            const handleTally = (slotId, state) => {
-                setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], tally: state } }));
-                mqttClient.current?.publish(`sc_tally/${roomName}/${slotId}`, JSON.stringify({ 
-                    state, 
-                    source: slots[slotId].source 
-                }), { retain: true });
+            const setTally = (id, state) => {
+                setSlots(prev => ({...prev, [id]: {...prev[id], tally: state}}));
+                mqttClient.current?.publish(`sc_t/${roomName}/${id}`, JSON.stringify({s: state, src: slots[id].source}), {retain: true});
             };
 
-            const toggleReturn = async () => {
+            const toggleTalkback = async () => {
                 if (talkbackActive) {
-                    Object.values(returnCallsRef.current).forEach(call => { try { call.close(); } catch(e) {} });
+                    Object.values(returnCallsRef.current).forEach(c => {try{c.close()}catch(e){}});
                     returnCallsRef.current = {};
                     localStream?.getTracks().forEach(t => t.stop());
                     setLocalStream(null);
                     setTalkbackActive(false);
                 } else {
                     try {
-                        // Retorno en 720p 16:9
-                        const s = await navigator.mediaDevices.getUserMedia({ 
-                            audio: true, 
-                            video: { width: 426, height: 240, aspectRatio: 16/9 } // Retorno pequeño pero nítido
-                        });
+                        const s = await navigator.mediaDevices.getUserMedia({audio: true, video: {width: 426, height: 240}});
                         setLocalStream(s);
                         setTalkbackActive(true);
-                    } catch(e) { alert("Error cámara: " + e.message); }
+                    } catch(e) {alert("Error cámara: " + e.message)}
                 }
             };
 
-            const copyObsLink = (slotId) => {
-                const url = `${window.location.href.split('?')[0]}?mode=obs&room=${roomName}&slot=${slotId}`;
+            const copyObs = id => {
+                const url = `${window.location.href.split('?')[0]}?mode=obs&room=${roomName}&slot=${id}`;
                 navigator.clipboard.writeText(url);
             };
 
@@ -463,78 +323,61 @@
                 <div className="director-layout">
                     <div className="director-header">
                         <div>
-                            <h2 style={{color: '#8b5cf6', margin: 0, fontSize: '1.3rem'}}>
-                                <i className="fas fa-laptop-code" style={{marginRight: '8px'}}></i>
-                                Presenter Control 720p | {roomName}
-                            </h2>
-                            <span style={{color: '#64748b', fontSize: '0.8rem'}}>
-                                Optimizado para red local (LAN) | 3 Canales HD
-                            </span>
+                            <h2 style={{color: '#8b5cf6', margin: 0}}><i className="fas fa-laptop-code"></i> {roomName} | 720p</h2>
+                            <small style={{color: '#64748b'}}>3 Canales Laptop | Optimizado LAN</small>
                         </div>
-                        <button 
-                            className={talkbackActive ? 'btn btn-red' : 'btn btn-purple'} 
-                            style={{width: 'auto', padding: '10px 25px', fontSize: '0.9rem', margin: 0}}
-                            onClick={toggleReturn}
-                        >
-                            <i className={talkbackActive ? 'fas fa-stop' : 'fas fa-comment-dots'}></i>
-                            {talkbackActive ? ' Cortar Talkback' : ' Hablar a Laptops'}
+                        <button className={talkbackActive ? 'btn btn-red' : 'btn btn-purple'} style={{width: 'auto', padding: '10px 20px', margin: 0}} onClick={toggleTalkback}>
+                            <i className={talkbackActive ? 'fas fa-stop' : 'fas fa-comment-dots'}></i> {talkbackActive ? 'Cortar Retorno' : 'Hablar'}
                         </button>
                     </div>
                     
                     <div className={`director-preview ${localStream ? 'active' : ''}`}>
                         {localStream && <VideoPlayer stream={localStream} muted={true} />}
-                        <div className="director-preview-label">TU RETORNO (240p)</div>
+                        <div className="director-preview-label">RETORNO</div>
                     </div>
 
                     <div className="grid-container">
-                        {[1,2,3].map(slotId => (
-                            <div key={slotId} className="slot-card" 
-                                style={{borderColor: slots[slotId].tally === 'live' ? '#ef4444' : slots[slotId].tally === 'prev' ? '#eab308' : '#334155'}}>
-                                
+                        {[1,2,3].map(id => (
+                            <div key={id} className="slot-card" style={{borderColor: slots[id].tally === 'live' ? '#ef4444' : slots[id].tally === 'prev' ? '#eab308' : '#334155'}}>
                                 <div className="slot-video-area">
-                                    {slots[slotId].stream ? (
+                                    {slots[id].stream ? (
                                         <>
-                                            <div className={`source-badge ${slots[slotId].source}`}>
-                                                <i className={slots[slotId].source === 'screen' ? 'fas fa-desktop' : 'fas fa-video'}></i>
-                                                {slots[slotId].source === 'screen' ? 'PANTALLA' : 'CÁMARA WEB'}
+                                            <div className={`source-badge ${slots[id].source}`}>
+                                                <i className={slots[id].source === 'screen' ? 'fas fa-desktop' : 'fas fa-video'}></i>
+                                                {slots[id].source === 'screen' ? 'PANTALLA' : 'CAMARA'}
                                             </div>
-                                            <div className="quality-badge">{slots[slotId].quality}</div>
-                                            
-                                            {/* Indicador de tipo de conexión */}
-                                            <div className={`connection-type ${slots[slotId].connType}`}>
-                                                <i className={slots[slotId].connType === 'local' ? 'fas fa-network-wired' : 'fas fa-globe'}></i>
-                                                {slots[slotId].connType === 'local' ? 'RED LOCAL' : 'INTERNET (TURN)'}
+                                            <div className="quality-badge">{slots[id].quality}</div>
+                                            <div className={`connection-badge ${slots[id].connType || 'checking'}`}>
+                                                <i className={slots[id].connType === 'local' ? 'fas fa-network-wired' : 'fas fa-globe'}></i>
+                                                {slots[id].connType === 'local' ? 'LAN' : 'INTERNET'}
                                             </div>
-                                            
-                                            <VideoPlayer stream={slots[slotId].stream} muted={false} className="slot-video" />
+                                            <VideoPlayer stream={slots[id].stream} muted={false} className="slot-video" />
                                         </>
                                     ) : (
                                         <div className="slot-status">
-                                            <i className="fas fa-laptop" style={{fontSize: '3rem', marginBottom: '15px', opacity: 0.3}}></i>
-                                            <div>LAPTOP {slotId}</div>
-                                            <small>Esperando conexión...</small>
+                                            <i className="fas fa-laptop" style={{fontSize: '2.5rem', marginBottom: '10px', opacity: 0.4}}></i>
+                                            <div>LAPTOP {id}</div>
+                                            <small>Esperando...</small>
                                         </div>
                                     )}
                                 </div>
                                 
-                                {slots[slotId].connected && <VUMeter stream={slots[slotId].stream} />}
-                                
                                 <div className="slot-controls-area">
-                                    <div style={{minWidth: '80px'}}>
-                                        <div style={{fontWeight: 'bold', fontSize: '1rem', color: '#8b5cf6'}}>#{slotId}</div>
-                                        <div style={{fontSize: '0.75rem', color: slots[slotId].connected ? '#22c55e' : '#64748b'}}>
-                                            {slots[slotId].connected ? '● ONLINE' : '○ OFFLINE'}
+                                    <div style={{minWidth: '60px'}}>
+                                        <div style={{fontWeight: 'bold', color: '#8b5cf6'}}>#{id}</div>
+                                        <div style={{fontSize: '0.75rem', color: slots[id].connected ? '#22c55e' : '#64748b'}}>
+                                            {slots[id].connected ? '● ONLINE' : '○ OFFLINE'}
                                         </div>
                                     </div>
                                     
                                     <div className="tally-group">
-                                        <button className={`t-btn ${slots[slotId].tally==='idle'?'active-idle':''}`} onClick={()=>handleTally(slotId, 'idle')}>SAFE</button>
-                                        <button className={`t-btn ${slots[slotId].tally==='prev'?'active-prev':''}`} onClick={()=>handleTally(slotId, 'prev')}>PREV</button>
-                                        <button className={`t-btn ${slots[slotId].tally==='live'?'active-live':''}`} onClick={()=>handleTally(slotId, 'live')}>LIVE</button>
+                                        <button className={`t-btn ${slots[id].tally==='idle'?'active-idle':''}`} onClick={()=>setTally(id,'idle')}>SAFE</button>
+                                        <button className={`t-btn ${slots[id].tally==='prev'?'active-prev':''}`} onClick={()=>setTally(id,'prev')}>PREV</button>
+                                        <button className={`t-btn ${slots[id].tally==='live'?'active-live':''}`} onClick={()=>setTally(id,'live')}>LIVE</button>
                                     </div>
                                     
-                                    <button className="btn btn-purple" style={{width: 'auto', padding: '8px 16px', fontSize: '0.8rem'}} onClick={()=>copyObsLink(slotId)}>
-                                        <i className="fas fa-external-link-alt" style={{marginRight: '6px'}}></i>COPY OBS
+                                    <button className="btn btn-purple" style={{width: 'auto', padding: '8px 12px', fontSize: '0.75rem'}} onClick={()=>copyObs(id)}>
+                                        <i className="fas fa-copy"></i> OBS
                                     </button>
                                 </div>
                             </div>
@@ -545,175 +388,156 @@
         };
 
         // ==========================================
-        // PRESENTER - 720p Optimizado
+        // PRESENTER (Laptop)
         // ==========================================
         const PresenterView = ({ roomName, slotId }) => {
             const [step, setStep] = useState('select');
             const [sourceType, setSourceType] = useState('screen');
             const [tally, setTally] = useState('idle');
             const [micMuted, setMicMuted] = useState(false);
+            const [connType, setConnType] = useState('checking');
             const [returnStream, setReturnStream] = useState(null);
-            const [connectionType, setConnectionType] = useState('checking'); // 'local', 'relay'
             
             const peer = useRef(null);
             const mqttClient = useRef(null);
             const localStream = useRef(null);
             const screenStream = useRef(null);
-            const audioContext = useRef(null);
-            const peerConnection = useRef(null); // Para detectar tipo de conexión
+            const audioCtx = useRef(null);
+            const pcRef = useRef(null);
 
             useEffect(() => {
                 if (step !== 'live') return;
                 
                 mqttClient.current = mqtt.connect(MQTT_BROKER);
                 mqttClient.current.on('connect', () => {
-                    mqttClient.current.subscribe(`sc_tally/${roomName}/${slotId}`);
+                    mqttClient.current.subscribe(`sc_t/${roomName}/${slotId}`);
                 });
                 mqttClient.current.on('message', (t, msg) => {
                     try {
-                        const data = JSON.parse(msg.toString());
-                        if (data.state) setTally(data.state);
-                    } catch(e) {}
+                        const d = JSON.parse(msg.toString());
+                        if (d.s) setTally(d.s);
+                    } catch(e){}
                 });
                 
                 initStream();
                 
-                return () => { cleanup(); };
+                return () => cleanup();
             }, [step, roomName, slotId, sourceType]);
 
             const cleanup = () => {
                 localStream.current?.getTracks().forEach(t => t.stop());
                 screenStream.current?.getTracks().forEach(t => t.stop());
-                if (audioContext.current) audioContext.current.close();
+                audioCtx.current?.close();
                 peer.current?.destroy();
                 mqttClient.current?.end();
             };
 
             const initStream = async () => {
                 try {
-                    let finalStream;
+                    let stream;
                     
                     if (sourceType === 'screen') {
-                        // Screen share 720p (Chrome limita calidad de screen share, pero pedimos 720p)
+                        // SCREEN SHARE (sin forzar resolución - evita pantalla negra)
                         screenStream.current = await navigator.mediaDevices.getDisplayMedia({
-                            video: { 
-                                cursor: "always",
-                                displaySurface: "monitor" // Preferir pantalla completa para mejor calidad
-                            },
-                            audio: true 
+                            video: true, // Chrome maneja esto automático
+                            audio: true
                         });
                         
-                        // Forzar resolución máxima 720p si es muy alta (ahorro de bandwidth)
-                        const videoTrack = screenStream.current.getVideoTracks()[0];
-                        const capabilities = videoTrack.getCapabilities();
-                        if (capabilities.width && capabilities.width.max > 1280) {
-                            await videoTrack.applyConstraints({
-                                width: { max: 1280 },
-                                height: { max: 720 },
-                                frameRate: { max: 24 }
-                            });
-                        }
-                        
-                        // Mezclar audio sistema + micrófono
+                        // Mezclar audio
                         if (screenStream.current.getAudioTracks().length > 0) {
-                            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
-                            const dest = audioContext.current.createMediaStreamDestination();
+                            const mic = await navigator.mediaDevices.getUserMedia({audio: true});
+                            audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
+                            const dest = audioCtx.current.createMediaStreamDestination();
                             
-                            const systemSource = audioContext.current.createMediaStreamSource(screenStream.current);
-                            systemSource.connect(dest);
+                            const sys = audioCtx.current.createMediaStreamSource(screenStream.current);
+                            sys.connect(dest);
                             
-                            const micSource = audioContext.current.createMediaStreamSource(micStream);
-                            const micGain = audioContext.current.createGain();
-                            micGain.gain.value = 0.8;
-                            micSource.connect(micGain);
-                            micGain.connect(dest);
+                            const m = audioCtx.current.createMediaStreamSource(mic);
+                            const g = audioCtx.current.createGain();
+                            g.gain.value = 0.8;
+                            m.connect(g);
+                            g.connect(dest);
                             
-                            finalStream = new MediaStream([
-                                videoTrack,
+                            stream = new MediaStream([
+                                screenStream.current.getVideoTracks()[0],
                                 ...dest.stream.getAudioTracks()
                             ]);
                         } else {
-                            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            finalStream = new MediaStream([
-                                videoTrack,
-                                ...micStream.getAudioTracks()
+                            const mic = await navigator.mediaDevices.getUserMedia({audio: true});
+                            stream = new MediaStream([
+                                screenStream.current.getVideoTracks()[0],
+                                ...mic.getAudioTracks()
                             ]);
                         }
                         
-                        // Detectar cierre de screen share
-                        videoTrack.onended = () => {
-                            if (sourceType === 'screen') switchSource('camera');
+                        // Auto-switch si cierran screen share
+                        screenStream.current.getVideoTracks()[0].onended = () => {
+                            if (sourceType === 'screen') toggleSource('camera');
                         };
                         
                     } else {
-                        // Cámara Web 720p (optimizado para LAN)
-                        const s = await navigator.mediaDevices.getUserMedia({ 
-                            video: { 
-                                width: { ideal: 1280, max: 1280 }, 
-                                height: { ideal: 720, max: 720 },
-                                frameRate: { ideal: 24 } // 24fps suficiente para presentador
-                            }, 
+                        // CÁMARA WEB 720p
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: { width: 1280, height: 720, frameRate: 24 },
                             audio: { echoCancellation: true, noiseSuppression: true }
                         });
-                        finalStream = s;
                     }
                     
-                    localStream.current = finalStream;
+                    localStream.current = stream;
                     
-                    // PeerJS con detección de conexión
-                    const myId = `sc_presenter_${roomName}_${slotId}`;
+                    // PeerJS
+                    const myId = `sc_p_${roomName}_${slotId}`;
                     peer.current = new Peer(myId, PEER_CONFIG);
                     
                     peer.current.on('open', () => {
-                        const dirCall = peer.current.call(`sc_dir_${roomName}`, localStream.current);
-                        peerConnection.current = dirCall.peerConnection;
+                        const dirCall = peer.current.call(`sc_d_${roomName}`, stream);
+                        pcRef.current = dirCall.peerConnection;
                         
-                        // Monitorear tipo de conexión
-                        if (dirCall.peerConnection) {
-                            setInterval(() => {
+                        // Detectar LAN vs Internet
+                        setInterval(() => {
+                            if (dirCall.peerConnection) {
                                 dirCall.peerConnection.getStats().then(stats => {
                                     stats.forEach(stat => {
                                         if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
-                                            const local = stats.get(stat.localCandidateId);
-                                            if (local) {
-                                                setConnectionType(local.candidateType === 'relay' ? 'relay' : 'local');
-                                            }
+                                            const l = stats.get(stat.localCandidateId);
+                                            if (l) setConnType(l.candidateType === 'relay' ? 'relay' : 'local');
                                         }
                                     });
                                 });
-                            }, 3000);
-                        }
+                            }
+                        }, 3000);
                         
-                        // Reconexión automática a OBS
-                        const connectObs = () => {
-                            const obsId = `sc_obs_${roomName}_${slotId}`;
+                        // Reconectar OBS cada 3s
+                        const obsId = `sc_o_${roomName}_${slotId}`;
+                        const tryObs = () => {
                             if (!peer.current.connections[obsId]?.some(c => c.open)) {
-                                peer.current.call(obsId, localStream.current);
+                                peer.current.call(obsId, stream);
                             }
                         };
-                        connectObs();
-                        setInterval(connectObs, 3000);
+                        tryObs();
+                        setInterval(tryObs, 3000);
                     });
                     
-                    peer.current.on('call', (call) => {
+                    peer.current.on('call', call => {
                         call.answer();
-                        call.on('stream', (s) => setReturnStream(s));
+                        call.on('stream', s => setReturnStream(s));
                     });
                     
-                    mqttClient.current?.publish(`sc_tally/${roomName}/${slotId}`, 
-                        JSON.stringify({ state: 'idle', source: sourceType }), { retain: true });
-                        
-                } catch (e) {
+                    mqttClient.current?.publish(`sc_t/${roomName}/${slotId}`, JSON.stringify({s: 'idle', src: sourceType}), {retain: true});
+                    
+                } catch(e) {
                     alert("Error: " + e.message);
                     console.error(e);
                 }
             };
 
-            const switchSource = async (newType) => {
+            const toggleSource = async (newType) => {
                 if (newType === sourceType) return;
+                // Limpiar y reiniciar
+                localStream.current?.getTracks().forEach(t => t.stop());
+                screenStream.current?.getTracks().forEach(t => t.stop());
                 setSourceType(newType);
-                // El useEffect reinicia el stream
+                // El useEffect detectará el cambio y reiniciará
             };
 
             const toggleMic = () => {
@@ -727,32 +551,30 @@
                 return (
                     <div className="lobby-container">
                         <div className="glass-box">
-                            <h2 style={{color: '#8b5cf6', marginBottom: '10px'}}>
-                                <i className="fas fa-laptop"></i> Laptop {slotId}
-                            </h2>
-                            <p style={{color: '#94a3b8', marginBottom: '25px'}}>Sala: {roomName} | Modo 720p Optimizado</p>
+                            <h2 style={{color: '#8b5cf6', marginBottom: '10px'}}><i className="fas fa-laptop"></i> Laptop {slotId}</h2>
+                            <p style={{color: '#94a3b8', marginBottom: '20px'}}>Sala: {roomName}</p>
                             
                             <div className="mode-grid">
                                 <div className={`mode-card ${sourceType === 'screen' ? 'selected' : ''}`} onClick={() => setSourceType('screen')}>
                                     <div className="mode-icon"><i className="fas fa-desktop"></i></div>
                                     <div className="mode-title">Presentación</div>
-                                    <div className="mode-desc">PowerPoint con audio (720p)</div>
+                                    <div className="mode-desc">PowerPoint + Audio</div>
                                 </div>
                                 <div className={`mode-card ${sourceType === 'camera' ? 'selected' : ''}`} onClick={() => setSourceType('camera')}>
                                     <div className="mode-icon"><i className="fas fa-video"></i></div>
                                     <div className="mode-title">Cámara Web</div>
-                                    <div className="mode-desc">Presentador 720p 24fps</div>
+                                    <div className="mode-desc">720p 24fps</div>
                                 </div>
                             </div>
                             
-                            <div style={{background: 'rgba(34, 197, 94, 0.1)', border: '1px solid #22c55e', borderRadius: '8px', padding: '12px', marginBottom: '20px', fontSize: '0.8rem', color: '#22c55e'}}>
-                                <i className="fas fa-check-circle" style={{marginRight: '8px'}}></i>
-                                <strong>Modo LAN detectado:</strong> Conecta esta laptop a la misma red WiFi del director para transmisión sin delay y sin consumo de datos externos.
-                            </div>
-                            
                             <button className="btn btn-purple" onClick={() => setStep('live')}>
-                                <i className="fas fa-play"></i> Iniciar Transmisión 720p
+                                <i className="fas fa-play"></i> Iniciar Transmisión
                             </button>
+                            
+                            <div style={{marginTop: '15px', fontSize: '0.8rem', color: '#64748b'}}>
+                                <i className="fas fa-wifi" style={{marginRight: '5px'}}></i>
+                                Conecta a la misma red WiFi que el director para mejor calidad
+                            </div>
                         </div>
                     </div>
                 );
@@ -761,56 +583,36 @@
             return (
                 <div className={`presenter-layout ${tally === 'live' ? 'tally-live' : tally === 'prev' ? 'tally-prev' : ''}`}>
                     <div className="tally-border"></div>
-                    <div className="tally-overlay">
-                        {tally === 'live' ? '● EN VIVO / ON AIR' : 'PREPARADO / STANDBY'}
-                    </div>
+                    <div className="tally-overlay">{tally === 'live' ? '● EN VIVO' : 'PREPARADO'}</div>
                     
                     <div className={`source-label-floating ${sourceType}`}>
                         <i className={sourceType === 'screen' ? 'fas fa-desktop' : 'fas fa-video'}></i>
-                        {sourceType === 'screen' ? 'MODO PANTALLA 720p' : 'MODO CÁMARA 720p'}
+                        {sourceType === 'screen' ? 'PANTALLA' : 'CAMARA WEB'} {connType === 'local' && '(LAN)'}
                     </div>
                     
-                    {/* Indicador de red */}
-                    <div className={`network-status ${connectionType}`}>
-                        <i className={connectionType === 'local' ? 'fas fa-network-wired' : 'fas fa-globe-americas'}></i>
-                        {connectionType === 'local' ? 'RED LOCAL (Óptimo)' : 
-                         connectionType === 'relay' ? 'Vía Internet (TURN)' : 'Verificando...'}
+                    <div className={`network-status ${connType}`}>
+                        <i className={connType === 'local' ? 'fas fa-network-wired' : 'fas fa-globe'}></i>
+                        {connType === 'local' ? 'RED LOCAL' : connType === 'relay' ? 'INTERNET' : 'CONECTANDO...'}
                     </div>
                     
                     <DraggablePIP stream={returnStream} />
                     
                     {localStream.current && (
-                        <VideoPlayer 
-                            stream={localStream.current} 
-                            muted={true}
-                            className="presenter-video" 
-                            style={{objectFit: sourceType === 'screen' ? 'contain' : 'cover'}} 
-                        />
+                        <VideoPlayer stream={localStream.current} muted={true} className="presenter-video" 
+                            style={{objectFit: sourceType === 'screen' ? 'contain' : 'cover'}} />
                     )}
                     
                     <div className="presenter-controls">
-                        <button 
-                            className={`control-btn ${micMuted ? 'off' : ''}`} 
-                            onClick={toggleMic}
-                            title={micMuted ? 'Micrófono apagado' : 'Micrófono activo'}
-                        >
+                        <button className={`control-btn ${micMuted ? 'off' : ''}`} onClick={toggleMic}>
                             <i className={micMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
                         </button>
                         
-                        <button 
-                            className={`control-btn switch ${sourceType === 'screen' ? 'active' : ''}`}
-                            onClick={() => switchSource(sourceType === 'screen' ? 'camera' : 'screen')}
-                        >
+                        <button className={`control-btn switch ${sourceType === 'screen' ? 'active' : ''}`} onClick={() => toggleSource(sourceType === 'screen' ? 'camera' : 'screen')}>
                             <i className="fas fa-exchange-alt"></i>
-                            Cambiar a {sourceType === 'screen' ? 'Cámara' : 'Pantalla'}
+                            {sourceType === 'screen' ? 'A CÁMARA' : 'A PANTALLA'}
                         </button>
                         
-                        <button 
-                            className="control-btn" 
-                            style={{background: '#ef4444'}}
-                            onClick={() => { if(confirm('¿Detener?')) cleanup(); window.location.reload(); }}
-                            title="Desconectar"
-                        >
+                        <button className="control-btn" style={{background: '#ef4444'}} onClick={() => {cleanup(); window.location.reload();}}>
                             <i className="fas fa-phone-slash"></i>
                         </button>
                     </div>
@@ -819,59 +621,31 @@
         };
 
         // ==========================================
-        // OBS Receiver 720p
+        // OBS
         // ==========================================
         const ObsView = ({ roomName, slotId }) => {
             const [stream, setStream] = useState(null);
-            const [status, setStatus] = useState('Esperando laptop 720p...');
-            const [info, setInfo] = useState({res: '', conn: 'checking'});
+            const [status, setStatus] = useState('Esperando señal...');
             const peer = useRef(null);
             const videoRef = useRef(null);
-            const received = useRef(false);
+            const gotStream = useRef(false);
 
             useEffect(() => {
-                const myId = `sc_obs_${roomName}_${slotId}`;
+                const myId = `sc_o_${roomName}_${slotId}`;
                 peer.current = new Peer(myId, PEER_CONFIG);
                 
-                peer.current.on('open', () => {
-                    setStatus('Listo - Esperando señal HD...');
-                });
+                peer.current.on('open', () => setStatus('Listo - Esperando laptop...'));
                 
-                peer.current.on('call', (call) => {
+                peer.current.on('call', call => {
                     call.answer();
-                    
-                    // Detectar tipo de conexión
-                    if (call.peerConnection) {
-                        setInterval(() => {
-                            call.peerConnection.getStats().then(stats => {
-                                stats.forEach(stat => {
-                                    if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
-                                        const local = stats.get(stat.localCandidateId);
-                                        if (local) {
-                                            setInfo(prev => ({...prev, conn: local.candidateType}));
-                                        }
-                                    }
-                                });
-                            });
-                        }, 3000);
-                    }
-                    
-                    call.on('stream', (remoteStream) => {
-                        if (received.current) return;
-                        const vt = remoteStream.getVideoTracks()[0];
-                        if (vt) {
-                            received.current = true;
-                            setStream(remoteStream);
-                            setStatus('');
-                            const settings = vt.getSettings();
-                            setInfo({
-                                res: `${settings.width}x${settings.height}`,
-                                conn: 'checking'
-                            });
-                        }
+                    call.on('stream', s => {
+                        if (gotStream.current) return;
+                        gotStream.current = true;
+                        setStream(s);
+                        setStatus('');
                     });
                     call.on('close', () => {
-                        received.current = false;
+                        gotStream.current = false;
                         setStream(null);
                         setStatus('Desconectado');
                     });
@@ -883,7 +657,7 @@
             useEffect(() => {
                 if (stream && videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(e => {
+                    videoRef.current.play().catch(() => {
                         videoRef.current.muted = true;
                         videoRef.current.play();
                     });
@@ -893,12 +667,7 @@
             return (
                 <div className="obs-layout">
                     {stream ? (
-                        <>
-                            <video ref={videoRef} className="obs-video" autoPlay playsInline muted={false}></video>
-                            <div className="bandwidth-indicator">
-                                {info.res} | {info.conn === 'relay' ? 'INTERNET' : 'LAN'} | 720p
-                            </div>
-                        </>
+                        <video ref={videoRef} className="obs-video" autoPlay playsInline muted={false}></video>
                     ) : (
                         <div className="obs-status">
                             <i className="fas fa-circle-notch fa-spin" style={{marginRight: '10px'}}></i>
@@ -913,85 +682,56 @@
         // APP
         // ==========================================
         const App = () => {
-            const [appState, setAppState] = useState({ mode: null, room: 'EVENTO1', slot: '1' });
+            const [state, setState] = useState({mode: null, room: 'EVENTO1', slot: '1'});
 
             useEffect(() => {
-                const params = new URLSearchParams(window.location.search);
-                const m = params.get('mode'); 
-                const r = params.get('room');
-                const s = params.get('slot') || '1';
-                
-                if (m && r) { 
+                const p = new URLSearchParams(window.location.search);
+                const m = p.get('mode'), r = p.get('room'), s = p.get('slot') || '1';
+                if (m && r) {
                     if (m === 'obs') document.body.style.background = 'transparent';
-                    setAppState({ mode: m, room: r.toUpperCase(), slot: s });
+                    setState({mode: m, room: r.toUpperCase(), slot: s});
                 } else {
-                    setAppState({ mode: 'lobby', room: 'EVENTO1', slot: '1' });
-                });
+                    setState({mode: 'lobby', room: 'EVENTO1', slot: '1'});
+                }
             }, []);
 
-            if (appState.mode === 'director') return <DirectorView roomName={appState.room} />;
-            if (appState.mode === 'obs') return <ObsView roomName={appState.room} slotId={appState.slot} />;
-            if (appState.mode === 'presenter') return <PresenterView roomName={appState.room} slotId={appState.slot} />;
+            if (state.mode === 'director') return <DirectorView roomName={state.room} />;
+            if (state.mode === 'obs') return <ObsView roomName={state.room} slotId={state.slot} />;
+            if (state.mode === 'presenter') return <PresenterView roomName={state.room} slotId={state.slot} />;
             
             return (
                 <div className="lobby-container">
                     <div className="glass-box">
-                        <h1 style={{color: '#8b5cf6', marginBottom: '10px'}}>
-                            <i className="fas fa-broadcast-tower"></i> StreamCall Presenter
-                        </h1>
-                        <p style={{color: '#64748b', marginBottom: '25px'}}>720p Optimizado para redes locales</p>
+                        <h1 style={{color: '#8b5cf6', marginBottom: '10px'}}><i className="fas fa-broadcast-tower"></i> StreamCall</h1>
+                        <p style={{color: '#64748b', marginBottom: '25px'}}>Transmisión Laptop 720p</p>
                         
-                        <input 
-                            value={appState.room} 
-                            onChange={(e) => setAppState({...appState, room: e.target.value.toUpperCase()})} 
-                            placeholder="NOMBRE DEL EVENTO" 
-                        />
+                        <input value={state.room} onChange={e => setState({...state, room: e.target.value.toUpperCase()})} placeholder="NOMBRE EVENTO" />
                         
-                        <button className="btn btn-purple" onClick={() => window.location.href=`?mode=presenter&room=${appState.room}&slot=1`}>
-                            <i className="fas fa-laptop"></i> Soy Presentador (Laptop)
+                        <button className="btn btn-purple" onClick={() => window.location.href=`?mode=presenter&room=${state.room}&slot=1`}>
+                            <i className="fas fa-laptop"></i> Soy Presentador
                         </button>
                         
-                        <button className="btn" onClick={() => window.location.href=`?mode=director&room=${appState.room}`}>
-                            <i className="fas fa-th-large"></i> Panel de Control (Director)
+                        <button className="btn" onClick={() => window.location.href=`?mode=director&room=${state.room}`}>
+                            <i className="fas fa-th-large"></i> Panel Director
                         </button>
                         
-                        <div style={{marginTop: '25px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px'}}>
-                            <div style={{fontSize: '0.75rem', color: '#94a3b8', marginBottom: '10px'}}>Enlaces para OBS/vMix (720p):</div>
+                        <div style={{marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px'}}>
+                            <div style={{fontSize: '0.75rem', color: '#94a3b8', marginBottom: '10px'}}>Links OBS:</div>
                             <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
                                 {['1','2','3'].map(n => (
-                                    <button 
-                                        key={n} 
-                                        onClick={() => {
-                                            const url = `${window.location.href.split('?')[0]}?mode=obs&room=${appState.room}&slot=${n}`;
-                                            navigator.clipboard.writeText(url);
-                                        }}
-                                        style={{
-                                            background: '#8b5cf6',
-                                            border: 'none',
-                                            color: 'white',
-                                            padding: '6px 12px',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            fontSize: '0.75rem'
-                                        }}
-                                    >
-                                        Copy OBS {n}
+                                    <button key={n} onClick={() => navigator.clipboard.writeText(`${window.location.href.split('?')[0]}?mode=obs&room=${state.room}&slot=${n}`)}
+                                        style={{background: '#8b5cf6', border: 'none', color: 'white', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem'}}>
+                                        Slot {n}
                                     </button>
                                 ))}
                             </div>
-                        </div>
-                        
-                        <div style={{marginTop: '15px', fontSize: '0.75rem', color: '#64748b'}}>
-                            <i className="fas fa-info-circle" style={{marginRight: '5px'}}></i>
-                            Conecta todas las laptops al mismo router para transmisión LAN (sin consumo de datos externos)
                         </div>
                     </div>
                 </div>
             );
         };
         
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
