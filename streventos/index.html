@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StreamCall Pro - Corporate Events</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+        
+        .lobby-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #0f172a; padding: 20px; text-align: center; }
+        .glass-box { background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 16px; max-width: 450px; width: 100%; border: 1px solid #334155; backdrop-filter: blur(10px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        input { width: 100%; background: #000; border: 2px solid #334155; color: white; padding: 15px; border-radius: 8px; font-size: 1rem; margin-bottom: 15px; text-align: center; font-weight: 600; }
+        .btn { width: 100%; padding: 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 1rem; margin-bottom: 10px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4); }
+        .btn:active { transform: scale(0.98); }
+        .btn-green { background: #10b981; color: black; }
+        .btn-green:hover { box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); }
+        .btn-purple { background: #8b5cf6; }
+        .btn-purple:hover { box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.4); }
+        .btn-red { background: #ef4444; }
+        .btn-orange { background: #f97316; color: black; }
+        
+        /* Director Layout - Corporate Version */
+        .director-layout { display: flex; flex-direction: column; height: 100vh; background: #000; }
+        .director-header { background: #0f172a; border-bottom: 1px solid #334155; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .grid-container { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 12px; padding: 12px; overflow-y: auto; }
+        
+        /* Slot Cards */
+        .slot-card { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 280px; transition: border-color 0.3s; }
+        .slot-card.presenter-slot { border-color: #8b5cf6; background: #1e1b4b; }
+        .slot-video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 200px; overflow: hidden; }
+        .slot-video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+        .slot-status { position: absolute; color: #64748b; font-weight: bold; text-align: center; padding: 20px; font-size: 0.9rem; }
+        
+        /* Source Badge */
+        .source-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 4px; z-index: 10; }
+        .source-badge.screen { color: #8b5cf6; border: 1px solid #8b5cf6; }
+        .source-badge.camera { color: #3b82f6; border: 1px solid #3b82f6; }
+        
+        .vu-meter-container { width: 100%; height: 4px; background: #000; border-top: 1px solid #334; }
+        .vu-meter-bar { height: 100%; background: linear-gradient(90deg, #22c55e, #facc15, #ef4444); width: 0%; transition: width 0.1s; }
+        
+        .slot-controls-area { padding: 10px; display: flex; justify-content: space-between; align-items: center; background: #0f172a; gap: 10px; }
+        .tally-group { display: flex; gap: 5px; flex: 1; }
+        .t-btn { flex: 1; padding: 8px 0; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; border: 2px solid transparent; background: #1e293b; color: #94a3b8; text-align: center; transition: all 0.2s; text-transform: uppercase; }
+        .t-btn.active-idle { border-color: #64748b; color: white; }
+        .t-btn.active-prev { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; color: #22c55e; }
+        .t-btn.active-live { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #ef4444; }
+        
+        /* Director Preview (Return Feed) */
+        .director-preview { position: fixed; bottom: 20px; right: 20px; width: 240px; height: 135px; background: #000; border: 3px solid #3b82f6; border-radius: 8px; overflow: hidden; z-index: 1000; display: none; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .director-preview.active { display: block; }
+        .director-preview video { width: 100%; height: 100%; object-fit: cover; }
+        .director-preview-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(59, 130, 246, 0.9); color: white; text-align: center; font-size: 0.7rem; padding: 4px; font-weight: bold; }
+        
+        /* Guest/Presenter Layouts */
+        .guest-layout { width: 100vw; height: 100vh; position: relative; background: #000; overflow: hidden; }
+        .guest-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .guest-tally-border { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 15px solid transparent; pointer-events: none; z-index: 50; box-sizing: border-box; transition: all 0.3s; }
+        .tally-live .guest-tally-border { border-color: #ef4444; box-shadow: inset 0 0 50px rgba(239,68,68,0.8); }
+        .tally-prev .guest-tally-border { border-color: #22c55e; box-shadow: inset 0 0 50px rgba(34,197,94,0.8); }
+        
+        /* PIP for Return Feed */
+        .return-pip { position: absolute; background: #000; border: 3px solid #3b82f6; border-radius: 12px; overflow: hidden; z-index: 80; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); touch-action: none; aspect-ratio: 16/9; }
+        .return-pip.active { display: block; }
+        .return-pip video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .pip-drag-header { position: absolute; top: 0; left: 0; right: 0; height: 40px; background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.4) 60%, transparent); z-index: 10; cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center; }
+        .pip-drag-header:active { cursor: grabbing; }
+        .pip-drag-header::before { content: '•••'; color: rgba(255,255,255,0.6); font-size: 14px; letter-spacing: 4px; }
+        .pip-corner-resize { position: absolute; bottom: 0; right: 0; width: 35px; height: 35px; cursor: se-resize; z-index: 11; touch-action: none; }
+        .pip-corner-resize::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 12px; height: 12px; background: linear-gradient(135deg, transparent 40%, #3b82f6 40%); border-radius: 2px; }
+        
+        /* Presenter Specific UI */
+        .presenter-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); padding: 12px 20px; border-radius: 16px; display: flex; gap: 12px; z-index: 100; border: 1px solid rgba(139, 92, 246, 0.5); backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.5); align-items: center; }
+        .control-btn { width: 52px; height: 52px; border-radius: 12px; border: none; background: rgba(51, 65, 85, 0.8); color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .control-btn:hover { background: rgba(71, 85, 105, 1); transform: translateY(-2px); }
+        .control-btn:active { transform: scale(0.95); }
+        .control-btn.active { background: #8b5cf6; color: white; box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+        .control-btn.off { background: #ef4444; color: white; }
+        .control-btn.switch-btn { width: auto; padding: 0 20px; font-size: 0.9rem; font-weight: bold; gap: 8px; background: #3b82f6; }
+        .control-btn.switch-btn:hover { background: #2563eb; }
+        
+        /* Lobby Selection for Presenter */
+        .source-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .source-option { background: rgba(51, 65, 85, 0.5); border: 2px solid #334155; border-radius: 12px; padding: 30px 20px; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .source-option:hover { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); transform: translateY(-2px); }
+        .source-option.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
+        .source-icon { font-size: 2.5rem; margin-bottom: 10px; color: #94a3b8; }
+        .source-option.selected .source-icon { color: #8b5cf6; }
+        .source-label { font-weight: 600; font-size: 0.9rem; color: #cbd5e1; }
+        
+        .big-tally-text { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; font-weight: bold; padding: 8px 20px; border-radius: 8px; display: none; z-index: 100; background: rgba(0,0,0,0.8); pointer-events: none; letter-spacing: 2px; backdrop-filter: blur(10px); }
+        .tally-live .big-tally-text { display: block; background: #ef4444; color: white; }
+        .tally-prev .big-tally-text { display: block; background: #22c55e; color: black; }
+        
+        .obs-layout { width: 100vw; height: 100vh; position: relative; overflow: hidden; background: #000; }
+        .obs-video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+        .obs-status { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; font-size: 18px; font-weight: 500; text-align: center; background: rgba(0,0,0,0.9); padding: 30px 40px; border-radius: 16px; border: 2px solid #334155; }
+        
+        /* Quality Indicator */
+        .quality-badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; font-family: monospace; z-index: 10; border: 1px solid #22c55e; }
+        
+        /* Tabs for Director */
+        .slot-tabs { display: flex; gap: 10px; margin-bottom: 10px; padding: 0 12px; }
+        .tab { padding: 8px 16px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #94a3b8; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .tab.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+        .tab.presenter-tab.active { background: #8b5cf6; border-color: #8b5cf6; }
+        
+        /* Audio Mix Indicator */
+        .audio-mix-indicator { display: flex; gap: 4px; align-items: center; font-size: 0.7rem; color: #94a3b8; margin-top: 4px; }
+        .audio-dot { width: 6px; height: 6px; border-radius: 50%; background: #334155; }
+        .audio-dot.active { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // Configuración TURN Server
+        const PEER_CONFIG = { 
+            config: { 
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'turn:140.82.25.249:3478', username: 'reportero', credential: 'mundial2026' },
+                    { urls: 'turn:140.82.25.249:3478?transport=tcp', username: 'reportero', credential: 'mundial2026' }
+                ],
+                iceTransportPolicy: 'all',
+                iceCandidatePoolSize: 10
+            }
+        };
+        
+        const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+        
+        // Componente Video Reutilizable
+        const VideoPlayer = ({ stream, muted, className, style, onClick }) => {
+            const videoRef = useRef(null);
+            useEffect(() => {
+                if (videoRef.current && stream) {
+                    videoRef.current.srcObject = stream;
+                    const playPromise = videoRef.current.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            videoRef.current.muted = true;
+                            videoRef.current.play().catch(e2 => console.error("Play error:", e2));
+                        });
+                    }
+                }
+            }, [stream]);
+            return <video ref={videoRef} className={className} style={style} autoPlay playsInline muted={muted} onClick={onClick} />;
+        };
+
+        // VU Meter para Audio
+        const VUMeter = ({ stream, label }) => {
+            const barRef = useRef(null);
+            useEffect(() => {
+                if (!stream || stream.getAudioTracks().length === 0) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const ctx = new AudioContext();
+                    const analyser = ctx.createAnalyser();
+                    analyser.fftSize = 256;
+                    const source = ctx.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    const data = new Uint8Array(analyser.frequencyBinCount);
+                    
+                    let rafId;
+                    const tick = () => {
+                        analyser.getByteFrequencyData(data);
+                        let sum = 0;
+                        for(let i = 0; i < data.length; i++) sum += data[i];
+                        const level = Math.min((sum / data.length) * 3, 100);
+                        if (barRef.current) barRef.current.style.width = level + '%';
+                        rafId = requestAnimationFrame(tick);
+                    };
+                    tick();
+                    return () => cancelAnimationFrame(rafId);
+                } catch(e) {}
+            }, [stream]);
+            return (
+                <div className="vu-meter-container">
+                    <div ref={barRef} className="vu-meter-bar" style={{ width: '0%' }}></div>
+                </div>
+            );
+        };
+
+        // PIP Arrastrable (para retorno de director)
+        const DraggablePIP = ({ stream }) => {
+            const [pos, setPos] = useState({ x: 20, y: 20 });
+            const [size, setSize] = useState({ w: 320, h: 180 });
+            const isDragging = useRef(false);
+            const isResizing = useRef(false);
+            const startPos = useRef({ x: 0, y: 0 });
+            const startRect = useRef({ x: 0, y: 0, w: 0, h: 0 });
+
+            useEffect(() => {
+                const handleMove = (e) => {
+                    if (!isDragging.current && !isResizing.current) return;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    if (isDragging.current) {
+                        const newX = Math.max(0, Math.min(window.innerWidth - size.w, startRect.current.x + (clientX - startPos.current.x)));
+                        const newY = Math.max(0, Math.min(window.innerHeight - size.h - 100, startRect.current.y + (clientY - startPos.current.y)));
+                        setPos({ x: newX, y: newY });
+                    } else if (isResizing.current) {
+                        const newW = Math.max(200, Math.min(window.innerWidth - pos.x - 10, startRect.current.w + (clientX - startPos.current.x)));
+                        const newH = newW * 0.5625;
+                        setSize({ w: newW, h: newH });
+                    }
+                };
+                
+                const handleEnd = () => { isDragging.current = false; isResizing.current = false; };
+                
+                document.addEventListener('mousemove', handleMove, { passive: false });
+                document.addEventListener('mouseup', handleEnd);
+                document.addEventListener('touchmove', handleMove, { passive: false });
+                document.addEventListener('touchend', handleEnd);
+                
+                return () => {
+                    document.removeEventListener('mousemove', handleMove);
+                    document.removeEventListener('mouseup', handleEnd);
+                    document.removeEventListener('touchmove', handleMove);
+                    document.removeEventListener('touchend', handleEnd);
+                };
+            }, [pos.x, size.w]);
+
+            const startDrag = (e) => {
+                e.preventDefault();
+                isDragging.current = true;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startPos.current = { x: clientX, y: clientY };
+                startRect.current = { x: pos.x, y: pos.y, w: size.w, h: size.h };
+            };
+
+            const startResize = (e) => {
+                e.preventDefault();
+                isResizing.current = true;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startPos.current = { x: clientX, y: clientY };
+                startRect.current = { x: pos.x, y: pos.y, w: size.w, h: size.h };
+            };
+
+            if (!stream) return null;
+
+            return (
+                <div className="return-pip active" style={{ left: pos.x, top: pos.y, width: size.w, height: size.h }}>
+                    <div className="pip-drag-header" onMouseDown={startDrag} onTouchStart={startDrag} />
+                    <VideoPlayer stream={stream} muted={false} />
+                    <div className="pip-corner-resize" onMouseDown={startResize} onTouchStart={startResize} />
+                </div>
+            );
+        };
+
+        // ==========================================
+        // VISTA DIRECTOR (Actualizada para Corporate)
+        // ==========================================
+        const DirectorView = ({ roomName }) => {
+            // Slots 1-3: Móviles (Cámaras) | Slots 4-6: Presenters (Laptops/Pantalla)
+            const [slots, setSlots] = useState({ 
+                1: { connected: false, tally: 'idle', stream: null, type: 'mobile', quality: 'N/A' }, 
+                2: { connected: false, tally: 'idle', stream: null, type: 'mobile', quality: 'N/A' }, 
+                3: { connected: false, tally: 'idle', stream: null, type: 'mobile', quality: 'N/A' },
+                4: { connected: false, tally: 'idle', stream: null, type: 'presenter', quality: 'N/A', source: 'camera' },
+                5: { connected: false, tally: 'idle', stream: null, type: 'presenter', quality: 'N/A', source: 'camera' },
+                6: { connected: false, tally: 'idle', stream: null, type: 'presenter', quality: 'N/A', source: 'camera' }
+            });
+            const [activeTab, setActiveTab] = useState('all'); // 'all', 'cameras', 'presenters'
+            const [talkbackActive, setTalkbackActive] = useState(false);
+            const [localStream, setLocalStream] = useState(null);
+            
+            const peer = useRef(null);
+            const mqttClient = useRef(null);
+            const returnCallsRef = useRef({});
+
+            // Monitor de calidad de video
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setSlots(prev => {
+                        const newSlots = {...prev};
+                        Object.keys(newSlots).forEach(id => {
+                            if (newSlots[id].stream) {
+                                const videoTrack = newSlots[id].stream.getVideoTracks()[0];
+                                if (videoTrack) {
+                                    const settings = videoTrack.getSettings();
+                                    newSlots[id].quality = `${settings.width}x${settings.height}`;
+                                }
+                            }
+                        });
+                        return newSlots;
+                    });
+                }, 2000);
+                return () => clearInterval(interval);
+            }, []);
+
+            // Talkback (enviar retorno a todos)
+            useEffect(() => {
+                if (!talkbackActive || !localStream) return;
+                
+                [1,2,3,4,5,6].forEach(slotId => {
+                    if (slots[slotId].connected && !returnCallsRef.current[slotId]) {
+                        try {
+                            const targetId = slots[slotId].type === 'presenter' 
+                                ? `sc_presenter_${roomName}_${slotId}`
+                                : `sc_guest_${roomName}_${slotId}`;
+                            
+                            const returnCall = peer.current.call(targetId, localStream);
+                            returnCallsRef.current[slotId] = returnCall;
+                            
+                            returnCall.on('close', () => delete returnCallsRef.current[slotId]);
+                        } catch(e) {}
+                    }
+                });
+            }, [slots, talkbackActive, localStream, roomName]);
+
+            useEffect(() => {
+                mqttClient.current = mqtt.connect(MQTT_BROKER);
+                mqttClient.current.on('connect', () => {
+                    [1,2,3,4,5,6].forEach(id => mqttClient.current.subscribe(`sc_tally/${roomName}/${id}`));
+                });
+                
+                mqttClient.current.on('message', (t, msg) => {
+                    try {
+                        const data = JSON.parse(msg.toString());
+                        const match = t.match(/\/(\d+)$/);
+                        if (match) {
+                            const id = match[1];
+                            setSlots(prev => ({ 
+                                ...prev, 
+                                [id]: { ...prev[id], tally: data.state, source: data.source || prev[id].source } 
+                            }));
+                        }
+                    } catch(e) {}
+                });
+
+                peer.current = new Peer(`sc_dir_${roomName}`, PEER_CONFIG);
+                
+                peer.current.on('call', (call) => {
+                    // Determinar si es guest o presenter por el peer.id
+                    let match = call.peer.match(/sc_guest_${roomName}_(\d+)$/);
+                    let type = 'mobile';
+                    let slotId;
+                    
+                    if (match) {
+                        slotId = match[1];
+                    } else {
+                        match = call.peer.match(/sc_presenter_${roomName}_(\d+)$/);
+                        if (match) {
+                            slotId = match[1];
+                            type = 'presenter';
+                        }
+                    }
+                    
+                    if (slotId && slots[slotId]) {
+                        call.answer();
+                        call.on('stream', (stream) => {
+                            setSlots(prev => ({ 
+                                ...prev, 
+                                [slotId]: { ...prev[slotId], connected: true, stream: stream, type: type } 
+                            }));
+                        });
+                        call.on('close', () => {
+                            setSlots(prev => ({ 
+                                ...prev, 
+                                [slotId]: { ...prev[slotId], connected: false, stream: null } 
+                            }));
+                        });
+                    }
+                });
+
+                return () => { 
+                    peer.current?.destroy(); 
+                    mqttClient.current?.end(); 
+                    localStream?.getTracks().forEach(t => t.stop());
+                };
+            }, [roomName]);
+
+            const handleTally = (slotId, state) => {
+                const currentSlot = slots[slotId];
+                setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], tally: state } }));
+                mqttClient.current?.publish(`sc_tally/${roomName}/${slotId}`, JSON.stringify({ 
+                    state, 
+                    type: currentSlot.type,
+                    source: currentSlot.source 
+                }), { retain: true });
+            };
+
+            const toggleReturnAll = async () => {
+                if (talkbackActive) {
+                    Object.values(returnCallsRef.current).forEach(call => {
+                        try { call.close(); } catch(e) {}
+                    });
+                    returnCallsRef.current = {};
+                    localStream?.getTracks().forEach(t => t.stop());
+                    setLocalStream(null);
+                    setTalkbackActive(false);
+                } else {
+                    try {
+                        const s = await navigator.mediaDevices.getUserMedia({ 
+                            audio: true, 
+                            video: { width: 640, height: 360, aspectRatio: 16/9 }
+                        });
+                        setLocalStream(s);
+                        setTalkbackActive(true);
+                    } catch(e) { alert("Error accediendo a cámara: " + e.message); }
+                }
+            };
+
+            const copyLink = (mode, slotId) => {
+                let url;
+                if (mode === 'presenter') {
+                    url = `${window.location.href.split('?')[0]}?mode=presenter&room=${roomName}&slot=${slotId}`;
+                } else {
+                    url = `${window.location.href.split('?')[0]}?mode=obs&room=${roomName}&slot=${slotId}`;
+                }
+                navigator.clipboard.writeText(url);
+                alert(`Link copiado al portapapeles`);
+            };
+
+            const filteredSlots = Object.keys(slots).filter(id => {
+                if (activeTab === 'cameras') return slots[id].type === 'mobile';
+                if (activeTab === 'presenters') return slots[id].type === 'presenter';
+                return true;
+            });
+
+            return (
+                <div className="director-layout">
+                    <div className="director-header">
+                        <div>
+                            <h2 style={{color: '#3b82f6', margin: 0, fontSize: '1.3rem', fontWeight: 'bold'}}>
+                                <i className="fas fa-satellite-dish" style={{marginRight: '8px'}}></i>
+                                StreamCall Pro <span style={{color: '#8b5cf6'}}>| {roomName}</span>
+                            </h2>
+                            <span style={{color: '#64748b', fontSize: '0.75rem'}}>
+                                TURN Server Activo | Corporate Events Mode
+                            </span>
+                        </div>
+                        <div style={{display: 'flex', gap: '10px'}}>
+                            <button 
+                                className={talkbackActive ? 'btn btn-red' : 'btn'} 
+                                style={{width: 'auto', padding: '10px 20px', fontSize: '0.9rem'}}
+                                onClick={toggleReturnAll}
+                            >
+                                <i className={talkbackActive ? 'fas fa-stop' : 'fas fa-broadcast-tower'}></i>
+                                {talkbackActive ? ' CORTAR RETORNO' : ' ENVIAR RETORNO'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="slot-tabs">
+                        <button className={`tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
+                            Todos (6)
+                        </button>
+                        <button className={`tab ${activeTab === 'cameras' ? 'active' : ''}`} onClick={() => setActiveTab('cameras')}>
+                            <i className="fas fa-mobile-alt" style={{marginRight: '6px'}}></i>Cámaras (1-3)
+                        </button>
+                        <button className={`tab presenter-tab ${activeTab === 'presenters' ? 'active' : ''}`} onClick={() => setActiveTab('presenters')}>
+                            <i className="fas fa-laptop" style={{marginRight: '6px'}}></i>Presenters (4-6)
+                        </button>
+                    </div>
+
+                    <div className={`director-preview ${localStream ? 'active' : ''}`}>
+                        {localStream && <VideoPlayer stream={localStream} muted={true} />}
+                        <div className="director-preview-label">TU CÁMARA DE RETORNO</div>
+                    </div>
+
+                    <div className="grid-container">
+                        {filteredSlots.map(slotId => (
+                            <div key={slotId} 
+                                className={`slot-card ${slots[slotId].type === 'presenter' ? 'presenter-slot' : ''}`}
+                                style={{
+                                    borderColor: slots[slotId].tally === 'live' ? '#ef4444' : 
+                                                slots[slotId].tally === 'prev' ? '#22c55e' : 
+                                                slots[slotId].type === 'presenter' ? '#8b5cf6' : '#334155',
+                                    gridColumn: slots[slotId].type === 'presenter' ? 'span 1' : 'span 1'
+                                }}>
+                                
+                                <div className="slot-video-area">
+                                    {slots[slotId].stream ? (
+                                        <>
+                                            <div className={`source-badge ${slots[slotId].source === 'screen' ? 'screen' : 'camera'}`}>
+                                                <i className={slots[slotId].source === 'screen' ? 'fas fa-desktop' : 'fas fa-video'}></i>
+                                                {slots[slotId].source === 'screen' ? 'SCREEN' : 'CAMERA'}
+                                            </div>
+                                            <div className="quality-badge">{slots[slotId].quality}</div>
+                                            <VideoPlayer stream={slots[slotId].stream} muted={false} className="slot-video" />
+                                        </>
+                                    ) : (
+                                        <div className="slot-status">
+                                            <i className={slots[slotId].type === 'presenter' ? 'fas fa-laptop' : 'fas fa-mobile-alt'} 
+                                                style={{fontSize: '2rem', marginBottom: '10px', display: 'block', opacity: 0.5}}></i>
+                                            {slots[slotId].type === 'presenter' ? `PRESENTER ${slotId}` : `MÓVIL ${slotId}`}<br/>
+                                            <small>Esperando conexión...</small>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {slots[slotId].connected && <VUMeter stream={slots[slotId].stream} />}
+                                
+                                <div className="slot-controls-area">
+                                    <div style={{minWidth: '70px'}}>
+                                        <div style={{fontWeight: 'bold', fontSize: '0.9rem', color: slots[slotId].type === 'presenter' ? '#8b5cf6' : '#3b82f6'}}>
+                                            #{slotId} {slots[slotId].type === 'presenter' ? '(PC)' : '(MÓVIL)'}
+                                        </div>
+                                        <div style={{fontSize: '0.75rem', color: slots[slotId].connected ? '#22c55e' : '#64748b', fontWeight: '600'}}>
+                                            {slots[slotId].connected ? '● ONLINE' : '○ OFFLINE'}
+                                        </div>
+                                        {slots[slotId].connected && slots[slotId].stream && (
+                                            <div className="audio-mix-indicator">
+                                                <span className={`audio-dot ${slots[slotId].stream.getAudioTracks().some(t => t.enabled) ? 'active' : ''}`}></span>
+                                                <span>AUDIO</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="tally-group">
+                                        <button className={`t-btn ${slots[slotId].tally==='idle'?'active-idle':''}`} onClick={()=>handleTally(slotId, 'idle')}>SAFE</button>
+                                        <button className={`t-btn ${slots[slotId].tally==='prev'?'active-prev':''}`} onClick={()=>handleTally(slotId, 'prev')}>PREV</button>
+                                        <button className={`t-btn ${slots[slotId].tally==='live'?'active-live':''}`} onClick={()=>handleTally(slotId, 'live')}>LIVE</button>
+                                    </div>
+                                    
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '90px'}}>
+                                        <button className="btn btn-green" style={{fontSize: '0.65rem', padding: '6px'}} onClick={()=>copyLink('obs', slotId)}>
+                                            <i className="fas fa-copy" style={{marginRight: '4px'}}></i>COPY OBS
+                                        </button>
+                                        {slots[slotId].type === 'presenter' ? (
+                                            <button className="btn btn-purple" style={{fontSize: '0.65rem', padding: '6px'}} onClick={()=>copyLink('presenter', slotId)}>
+                                                <i className="fas fa-laptop" style={{marginRight: '4px'}}></i>COPY PC LINK
+                                            </button>
+                                        ) : (
+                                            <button className="btn" style={{fontSize: '0.65rem', padding: '6px', background: '#475569'}} onClick={()=>copyLink('guest', slotId)}>
+                                                <i className="fas fa-mobile-alt" style={{marginRight: '4px'}}></i>COPY MÓVIL
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // NUEVO: VISTA PRESENTER (Laptop/Desktop)
+        // Captura Pantalla + Audio del Sistema + Webcam
+        // ==========================================
+        const PresenterView = ({ roomName, slotId }) => {
+            const [step, setStep] = useState('lobby'); // lobby, preview, live
+            const [sourceType, setSourceType] = useState('camera'); // camera, screen
+            const [tally, setTally] = useState('idle');
+            const [micMuted, setMicMuted] = useState(false);
+            const [systemAudioActive, setSystemAudioActive] = useState(true);
+            const [returnStream, setReturnStream] = useState(null);
+            const [resolution, setResolution] = useState('1920x1080');
+            
+            const peer = useRef(null);
+            const mqttClient = useRef(null);
+            const localStream = useRef(null);
+            const screenStream = useRef(null);
+            const audioContext = useRef(null);
+            const obsCallRef = useRef(null);
+            const dirCallRef = useRef(null);
+
+            useEffect(() => {
+                if (step !== 'live') return;
+                
+                mqttClient.current = mqtt.connect(MQTT_BROKER);
+                mqttClient.current.on('connect', () => {
+                    mqttClient.current.subscribe(`sc_tally/${roomName}/${slotId}`);
+                });
+                mqttClient.current.on('message', (t, msg) => {
+                    try {
+                        const data = JSON.parse(msg.toString());
+                        if (data.state) setTally(data.state);
+                    } catch(e) {}
+                });
+                
+                return () => { 
+                    peer.current?.destroy(); 
+                    mqttClient.current?.end(); 
+                    cleanupStreams();
+                };
+            }, [step, roomName, slotId]);
+
+            const cleanupStreams = () => {
+                localStream.current?.getTracks().forEach(t => t.stop());
+                screenStream.current?.getTracks().forEach(t => t.stop());
+                if (audioContext.current) audioContext.current.close();
+            };
+
+            // Inicializar stream según fuente seleccionada
+            const initStream = async () => {
+                try {
+                    cleanupStreams();
+                    
+                    let finalStream;
+                    
+                    if (sourceType === 'screen') {
+                        // Captura de Pantalla con Audio del Sistema
+                        try {
+                            screenStream.current = await navigator.mediaDevices.getDisplayMedia({
+                                video: { 
+                                    cursor: "always",
+                                    displaySurface: "monitor" // "window", "browser", "monitor"
+                                },
+                                audio: true // Audio del sistema (si el navegador lo permite)
+                            });
+                            
+                            // Verificar si tenemos audio del sistema
+                            const hasSystemAudio = screenStream.current.getAudioTracks().length > 0;
+                            setSystemAudioActive(hasSystemAudio);
+                            
+                            // Si queremos mezclar micrófono + audio del sistema
+                            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            
+                            if (hasSystemAudio && micStream) {
+                                // Mezclar audio sistema + micrófono usando AudioContext
+                                audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+                                const dest = audioContext.current.createMediaStreamDestination();
+                                
+                                // Conectar audio del sistema
+                                const systemSource = audioContext.current.createMediaStreamSource(screenStream.current);
+                                systemSource.connect(dest);
+                                
+                                // Conectar micrófono
+                                const micSource = audioContext.current.createMediaStreamSource(micStream);
+                                const micGain = audioContext.current.createGain();
+                                micGain.gain.value = 0.8; // Ajustar volumen del micrófono
+                                micSource.connect(micGain);
+                                micGain.connect(dest);
+                                
+                                // Crear stream final: Video de pantalla + Audio mezclado
+                                finalStream = new MediaStream([
+                                    screenStream.current.getVideoTracks()[0],
+                                    ...dest.stream.getAudioTracks()
+                                ]);
+                                
+                                // Guardar referencia al track del micrófono original para mute
+                                finalStream.micTrack = micStream.getAudioTracks()[0];
+                            } else {
+                                // Solo pantalla (con su audio si existe) o solo pantalla sin audio
+                                finalStream = screenStream.current;
+                            }
+                            
+                            // Detectar cuando el usuario detiene el share (botón "Stop sharing")
+                            screenStream.current.getVideoTracks()[0].onended = () => {
+                                console.log("Screen share detenido por el usuario");
+                                // Auto-switch a cámara o mostrar mensaje
+                                alert("Compartición de pantalla detenida. Volviendo a la cámara web...");
+                                setSourceType('camera');
+                                initCamera();
+                            };
+                            
+                        } catch (err) {
+                            console.error("Error capturando pantalla:", err);
+                            alert("No se pudo capturar la pantalla. Asegúrate de permitir el acceso.");
+                            return;
+                        }
+                        
+                    } else {
+                        // Cámara Web estándar
+                        await initCamera();
+                        return;
+                    }
+                    
+                    localStream.current = finalStream;
+                    
+                    // Configurar PeerJS
+                    const myId = `sc_presenter_${roomName}_${slotId}`;
+                    peer.current = new Peer(myId, PEER_CONFIG);
+                    
+                    peer.current.on('open', () => {
+                        console.log('Presenter conectado:', myId);
+                        
+                        // Llamar al Director
+                        if (!dirCallRef.current) {
+                            dirCallRef.current = peer.current.call(`sc_dir_${roomName}`, localStream.current);
+                        }
+                        
+                        // Llamar a OBS (con reconexión automática)
+                        const connectToObs = () => {
+                            const obsId = `sc_obs_${roomName}_${slotId}`;
+                            const connections = peer.current.connections[obsId];
+                            const hasOpenCall = connections && connections.some(c => c.type === 'media' && c.open);
+                            
+                            if (!hasOpenCall) {
+                                console.log('Conectando a OBS...');
+                                obsCallRef.current = peer.current.call(obsId, localStream.current);
+                            }
+                        };
+                        
+                        connectToObs();
+                        const interval = setInterval(connectToObs, 3000);
+                        window.obsInterval = interval;
+                    });
+                    
+                    peer.current.on('call', (call) => {
+                        // Recibir retorno del director
+                        console.log('Retorno recibido del director');
+                        call.answer();
+                        call.on('stream', (remoteStream) => setReturnStream(remoteStream));
+                    });
+                    
+                    peer.current.on('error', (err) => console.error('Peer error:', err));
+                    
+                    // Notificar al director el tipo de fuente
+                    if (mqttClient.current) {
+                        mqttClient.current.publish(`sc_tally/${roomName}/${slotId}`, JSON.stringify({ 
+                            state: 'idle', 
+                            source: sourceType,
+                            type: 'presenter'
+                        }), { retain: true });
+                    }
+                    
+                } catch (e) {
+                    alert("Error de cámara/pantalla: " + e.message);
+                    console.error(e);
+                }
+            };
+
+            const initCamera = async () => {
+                const s = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 1920, height: 1080, aspectRatio: 16/9 }, 
+                    audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 }
+                });
+                localStream.current = s;
+                
+                const myId = `sc_presenter_${roomName}_${slotId}`;
+                peer.current = new Peer(myId, PEER_CONFIG);
+                
+                peer.current.on('open', () => {
+                    dirCallRef.current = peer.current.call(`sc_dir_${roomName}`, s);
+                    
+                    const connectToObs = () => {
+                        const obsId = `sc_obs_${roomName}_${slotId}`;
+                        const connections = peer.current.connections[obsId];
+                        if (!connections || !connections.some(c => c.type === 'media' && c.open)) {
+                            obsCallRef.current = peer.current.call(obsId, s);
+                        }
+                    };
+                    connectToObs();
+                    const interval = setInterval(connectToObs, 3000);
+                    window.obsInterval = interval;
+                });
+                
+                peer.current.on('call', (call) => {
+                    call.answer();
+                    call.on('stream', (remoteStream) => setReturnStream(remoteStream));
+                });
+            };
+
+            const toggleMic = () => {
+                if (localStream.current) {
+                    const audioTracks = localStream.current.getAudioTracks();
+                    audioTracks.forEach(track => {
+                        track.enabled = !track.enabled;
+                    });
+                    setMicMuted(!micMuted);
+                }
+            };
+
+            const switchSource = async (newSource) => {
+                setSourceType(newSource);
+                if (step === 'live') {
+                    // Si estamos en vivo, reiniciar stream
+                    await initStream();
+                }
+            };
+
+            if (step === 'lobby') {
+                return (
+                    <div className="lobby-container">
+                        <div className="glass-box" style={{maxWidth: '600px'}}>
+                            <div style={{marginBottom: '20px'}}>
+                                <i className="fas fa-laptop" style={{fontSize: '3rem', color: '#8b5cf6', marginBottom: '10px'}}></i>
+                                <h2 style={{color: 'white', margin: 0}}>Modo Presenter</h2>
+                                <p style={{color: '#94a3b8', marginTop: '5px'}}>Sala: {roomName} | Slot: {slotId}</p>
+                            </div>
+                            
+                            <p style={{color: '#cbd5e1', marginBottom: '15px', fontSize: '0.9rem'}}>
+                                Selecciona qué deseas compartir:
+                            </p>
+                            
+                            <div className="source-selector">
+                                <div 
+                                    className={`source-option ${sourceType === 'camera' ? 'selected' : ''}`}
+                                    onClick={() => setSourceType('camera')}
+                                >
+                                    <div className="source-icon"><i className="fas fa-video"></i></div>
+                                    <div className="source-label">Cámara Web</div>
+                                    <small style={{color: '#64748b', display: 'block', marginTop: '5px'}}>
+                                        Para presentador hablando a cámara
+                                    </small>
+                                </div>
+                                
+                                <div 
+                                    className={`source-option ${sourceType === 'screen' ? 'selected' : ''}`}
+                                    onClick={() => setSourceType('screen')}
+                                >
+                                    <div className="source-icon"><i className="fas fa-desktop"></i></div>
+                                    <div className="source-label">Compartir Pantalla</div>
+                                    <small style={{color: '#64748b', display: 'block', marginTop: '5px'}}>
+                                        PowerPoint, Demo, Video con audio
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div style={{background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', borderRadius: '8px', padding: '12px', marginBottom: '20px', textAlign: 'left'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+                                    <i className="fas fa-info-circle" style={{color: '#8b5cf6'}}></i>
+                                    <span style={{fontWeight: 'bold', color: '#8b5cf6', fontSize: '0.9rem'}}>Tips para eventos corporativos:</span>
+                                </div>
+                                <ul style={{margin: 0, paddingLeft: '20px', color: '#cbd5e1', fontSize: '0.85rem'}}>
+                                    <li>Chrome/Edge permiten compartir audio del sistema</li>
+                                    <li>Selecciona "Tab" si solo necesitas mostrar una pestaña</li>
+                                    <li>Resolución recomendada: 1920x1080 para texto nítido</li>
+                                </ul>
+                            </div>
+                            
+                            <button className="btn btn-purple" onClick={() => { setStep('live'); setTimeout(initStream, 100); }}>
+                                <i className="fas fa-play"></i>
+                                INICIAR TRANSMISIÓN ({sourceType === 'screen' ? 'PANTALLA' : 'CÁMARA'})
+                            </button>
+                            
+                            <button className="btn" style={{background: 'transparent', border: '1px solid #334155'}} onClick={() => window.location.href='./'}>
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className={`guest-layout ${tally === 'live' ? 'tally-live' : tally === 'prev' ? 'tally-prev' : ''}`}>
+                    <div className="guest-tally-border"></div>
+                    <div className="big-tally-text">
+                        {tally === 'live' ? '● EN VIVO - ON AIR' : tally === 'prev' ? 'PREPARADO (PREV)' : ''}
+                    </div>
+                    
+                    <DraggablePIP stream={returnStream} />
+                    
+                    {localStream.current && (
+                        <VideoPlayer 
+                            stream={localStream.current} 
+                            muted={true}
+                            className="guest-video" 
+                            style={{objectFit: sourceType === 'screen' ? 'contain' : 'cover'}} 
+                        />
+                    )}
+                    
+                    <div className="presenter-controls">
+                        <button 
+                            className={`control-btn ${micMuted ? 'off' : ''}`} 
+                            onClick={toggleMic}
+                            title={micMuted ? 'Micrófono silenciado' : 'Micrófono activo'}
+                        >
+                            <i className={micMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
+                        </button>
+                        
+                        <button 
+                            className={`control-btn ${sourceType === 'screen' ? 'active' : ''}`}
+                            onClick={() => switchSource(sourceType === 'screen' ? 'camera' : 'screen')}
+                            title="Cambiar entre Cámara y Pantalla"
+                        >
+                            <i className={sourceType === 'screen' ? 'fas fa-desktop' : 'fas fa-video'}></i>
+                        </button>
+                        
+                        <div style={{width: '1px', height: '30px', background: '#334155', margin: '0 5px'}}></div>
+                        
+                        <button className="control-btn switch-btn" onClick={() => switchSource(sourceType === 'screen' ? 'camera' : 'screen')}>
+                            <i className="fas fa-exchange-alt"></i>
+                            {sourceType === 'screen' ? 'CAMARA WEB' : 'COMPARTIR PANTALLA'}
+                        </button>
+                        
+                        <button 
+                            className="control-btn" 
+                            style={{background: '#ef4444'}}
+                            onClick={() => {
+                                if(confirm('¿Detener transmisión?')) {
+                                    cleanupStreams();
+                                    window.location.reload();
+                                }
+                            }}
+                            title="Desconectar"
+                        >
+                            <i className="fas fa-phone-slash"></i>
+                        </button>
+                    </div>
+                    
+                    {sourceType === 'screen' && (
+                        <div style={{
+                            position: 'absolute', 
+                            top: '20px', 
+                            left: '20px', 
+                            background: 'rgba(139, 92, 246, 0.9)', 
+                            padding: '8px 12px', 
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            zIndex: 90,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}>
+                            <i className="fas fa-desktop"></i>
+                            SCREEN SHARE MODE
+                            {systemAudioActive && <span style={{fontSize: '0.7rem', opacity: 0.9}}>(+AUDIO)</span>}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // VISTA MÓVIL (GuestView Original adaptado)
+        // ==========================================
+        const GuestView = ({ roomName, slotId }) => {
+            const [joined, setJoined] = useState(false);
+            const [tally, setTally] = useState('idle');
+            const [micMuted, setMicMuted] = useState(false);
+            const [camOff, setCamOff] = useState(false);
+            const [returnStream, setReturnStream] = useState(null);
+            const [facingMode, setFacingMode] = useState('environment');
+            
+            const peer = useRef(null);
+            const mqttClient = useRef(null);
+            const localStream = useRef(null);
+            const obsCallRef = useRef(null);
+            const dirCallRef = useRef(null);
+
+            useEffect(() => {
+                if (!joined) return;
+                
+                mqttClient.current = mqtt.connect(MQTT_BROKER);
+                mqttClient.current.on('connect', () => {
+                    mqttClient.current.subscribe(`sc_tally/${roomName}/${slotId}`);
+                });
+                mqttClient.current.on('message', (t, msg) => {
+                    try {
+                        const data = JSON.parse(msg.toString());
+                        if (data.state) setTally(data.state);
+                    } catch(e) {}
+                });
+                
+                const init = async () => {
+                    try {
+                        const s = await navigator.mediaDevices.getUserMedia({ 
+                            video: { width: 1280, height: 720, facingMode: facingMode, aspectRatio: 16/9 }, 
+                            audio: { echoCancellation: true, noiseSuppression: true }
+                        });
+                        localStream.current = s;
+                        
+                        const myId = `sc_guest_${roomName}_${slotId}`;
+                        peer.current = new Peer(myId, PEER_CONFIG);
+                        
+                        peer.current.on('call', (call) => {
+                            call.answer();
+                            call.on('stream', (remoteStream) => setReturnStream(remoteStream));
+                        });
+
+                        peer.current.on('open', () => {
+                            if (!dirCallRef.current) {
+                                dirCallRef.current = peer.current.call(`sc_dir_${roomName}`, s);
+                            }
+                            
+                            const ensureObsConnection = () => {
+                                const obsId = `sc_obs_${roomName}_${slotId}`;
+                                const connections = peer.current.connections[obsId];
+                                const hasOpenCall = connections && connections.some(c => c.type === 'media' && c.open);
+                                
+                                if (!hasOpenCall) {
+                                    obsCallRef.current = peer.current.call(obsId, s);
+                                }
+                            };
+                            
+                            ensureObsConnection();
+                            const interval = setInterval(ensureObsConnection, 3000);
+                            window.obsInterval = interval;
+                        });
+                        
+                    } catch (e) { alert("Error de cámara: " + e.message); }
+                };
+                init();
+                
+                return () => { 
+                    clearInterval(window.obsInterval);
+                    peer.current?.destroy(); 
+                    mqttClient.current?.end(); 
+                    localStream.current?.getTracks().forEach(t => t.stop());
+                };
+            }, [joined, roomName, slotId, facingMode]);
+
+            const switchCamera = async () => {
+                const next = facingMode === 'user' ? 'environment' : 'user';
+                try {
+                    const newStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: next, aspectRatio: 16/9 }, 
+                        audio: false
+                    });
+                    const newVideoTrack = newStream.getVideoTracks()[0];
+                    const oldVideoTrack = localStream.current.getVideoTracks()[0];
+                    
+                    if (peer.current) {
+                        Object.values(peer.current.connections).forEach(calls => {
+                            calls.forEach(call => {
+                                if (call.peerConnection && call.open) {
+                                    const senders = call.peerConnection.getSenders();
+                                    const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+                                    if (videoSender) videoSender.replaceTrack(newVideoTrack);
+                                }
+                            });
+                        });
+                    }
+                    
+                    localStream.current.removeTrack(oldVideoTrack);
+                    localStream.current.addTrack(newVideoTrack);
+                    oldVideoTrack.stop();
+                    setFacingMode(next);
+                } catch(e) { alert('Error al cambiar cámara: ' + e.message); }
+            };
+
+            if (!joined) return (
+                <div className="lobby-container">
+                    <div className="glass-box">
+                        <h2 style={{color: '#3b82f6', margin: '0 0 10px 0'}}><i className="fas fa-mobile-alt"></i> MÓVIL {slotId}</h2>
+                        <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.9rem'}}>Sala: {roomName}</p>
+                        <button className="btn" onClick={() => setJoined(true)}>INICIAR TRANSMISIÓN</button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className={`guest-layout ${tally === 'live' ? 'tally-live' : tally === 'prev' ? 'tally-prev' : ''}`}>
+                    <div className="guest-tally-border"></div>
+                    <div className="big-tally-text">{tally === 'live' ? '● EN VIVO' : tally === 'prev' ? 'PREPARADO' : ''}</div>
+                    <DraggablePIP stream={returnStream} />
+                    
+                    {localStream.current && (
+                        <VideoPlayer 
+                            stream={localStream.current} 
+                            muted={true}
+                            className="guest-video" 
+                            style={{transform: facingMode === 'user' ? 'scaleX(-1)' : 'none', opacity: camOff ? 0.2 : 1}} 
+                        />
+                    )}
+                    
+                    <div className="guest-overlay">
+                        <button className={`mic-btn ${micMuted ? 'off' : ''}`} onClick={() => {
+                            const t = localStream.current?.getAudioTracks()[0]; 
+                            if(t) {t.enabled = !t.enabled; setMicMuted(!t.enabled);}
+                        }}>{micMuted ? '🔇' : '🎤'}</button>
+                        <button className={`mic-btn ${camOff ? 'off' : ''}`} onClick={() => {
+                            const t = localStream.current?.getVideoTracks()[0]; 
+                            if(t) {t.enabled = !t.enabled; setCamOff(!t.enabled);}
+                        }}>{camOff ? '🚫' : '📷'}</button>
+                        <button className="mic-btn" onClick={switchCamera} style={{background: '#3b82f6'}}>↻</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // VISTA OBS (Receptor para vMix/OBS)
+        // ==========================================
+        const ObsView = ({ roomName, slotId }) => {
+            const [stream, setStream] = useState(null);
+            const [status, setStatus] = useState('Iniciando receptor...');
+            const [sourceInfo, setSourceInfo] = useState({type: 'desconocido', quality: '...'});
+            const peer = useRef(null);
+            const videoRef = useRef(null);
+            const hasReceivedStream = useRef(false);
+
+            useEffect(() => {
+                // Detectar si es presenter o guest
+                const tryConnect = (type) => {
+                    const myId = type === 'presenter' 
+                        ? `sc_obs_${roomName}_${slotId}` 
+                        : `sc_obs_${roomName}_${slotId}`;
+                    
+                    peer.current = new Peer(myId, PEER_CONFIG);
+                    
+                    peer.current.on('open', () => {
+                        setStatus(`Esperando señal ${type === 'presenter' ? '(PC)' : '(Móvil)'}...`);
+                    });
+                    
+                    peer.current.on('call', (call) => {
+                        call.answer();
+                        call.on('stream', (remoteStream) => {
+                            if (hasReceivedStream.current) return;
+                            
+                            const videoTracks = remoteStream.getVideoTracks();
+                            if (videoTracks.length > 0) {
+                                hasReceivedStream.current = true;
+                                setStream(remoteStream);
+                                setStatus('');
+                                setSourceInfo({
+                                    type: type,
+                                    quality: `${videoTracks[0].getSettings().width}x${videoTracks[0].getSettings().height}`
+                                });
+                            }
+                        });
+                        call.on('close', () => {
+                            hasReceivedStream.current = false;
+                            setStream(null);
+                            setStatus('Desconectado');
+                        });
+                    });
+
+                    peer.current.on('error', (err) => {
+                        if (err.type === 'unavailable-id') {
+                            // Intentar como guest si falló como presenter
+                            if (type === 'presenter') tryConnect('guest');
+                        } else {
+                            setStatus('Error de conexión');
+                        }
+                    });
+                };
+                
+                tryConnect('presenter'); // Intentar primero como presenter
+                
+                return () => peer.current?.destroy();
+            }, [roomName, slotId]);
+
+            useEffect(() => {
+                if (stream && videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    videoRef.current.play().catch(e => {
+                        videoRef.current.muted = true;
+                        videoRef.current.play().catch(e2 => console.error('Cannot play:', e2));
+                    });
+                }
+            }, [stream]);
+
+            return (
+                <div className="obs-layout">
+                    {stream ? (
+                        <>
+                            <video ref={videoRef} className="obs-video" autoPlay playsInline muted={false}></video>
+                            <div style={{
+                                position: 'absolute', 
+                                top: '10px', 
+                                right: '10px', 
+                                background: 'rgba(0,0,0,0.8)', 
+                                color: '#22c55e',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontFamily: 'monospace',
+                                border: '1px solid #22c55e'
+                            }}>
+                                {sourceInfo.quality} | {sourceInfo.type === 'presenter' ? 'PRESENTER' : 'CAMERA'}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="obs-status">
+                            <i className="fas fa-circle-notch fa-spin" style={{marginRight: '10px'}}></i>
+                            {status}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // APP PRINCIPAL
+        // ==========================================
+        const App = () => {
+            const [appState, setAppState] = useState({ mode: null, room: 'EVENTO1', slot: '1' });
+
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const m = params.get('mode'); 
+                const r = params.get('room');
+                const s = params.get('slot') || '1';
+                
+                if (m && r) { 
+                    if (m === 'obs') document.body.style.background = 'transparent';
+                    setAppState({ mode: m, room: r.toUpperCase(), slot: s });
+                } else {
+                    setAppState({ mode: 'lobby', room: 'EVENTO1', slot: '1' });
+                }
+            }, []);
+
+            if (appState.mode === 'director') return <DirectorView roomName={appState.room} />;
+            if (appState.mode === 'obs') return <ObsView roomName={appState.room} slotId={appState.slot} />;
+            if (appState.mode === 'guest') return <GuestView roomName={appState.room} slotId={appState.slot} />;
+            if (appState.mode === 'presenter') return <PresenterView roomName={appState.room} slotId={appState.slot} />;
+            
+            // LOBBY PRINCIPAL
+            return (
+                <div className="lobby-container">
+                    <div className="glass-box" style={{maxWidth: '500px'}}>
+                        <h1 style={{color: '#3b82f6', marginBottom: '10px', fontSize: '2rem'}}>
+                            <i className="fas fa-satellite-dish"></i> StreamCall Pro
+                        </h1>
+                        <p style={{color: '#64748b', marginBottom: '25px', fontSize: '0.9rem'}}>
+                            Solución profesional para eventos corporativos
+                        </p>
+                        
+                        <input 
+                            value={appState.room} 
+                            onChange={(e) => setAppState({...appState, room: e.target.value.toUpperCase()})} 
+                            placeholder="NOMBRE DE LA SALA (Ej: EVENTO2024)" 
+                        />
+                        
+                        <div style={{display: 'grid', gap: '10px'}}>
+                            <button className="btn" onClick={() => window.location.href=`?mode=director&room=${appState.room}`}>
+                                <i className="fas fa-th-large"></i> PANEL DE CONTROL (Director)
+                            </button>
+                            
+                            <div style={{height: '1px', background: '#334155', margin: '10px 0'}}></div>
+                            
+                            <button className="btn btn-purple" onClick={() => window.location.href=`?mode=presenter&room=${appState.room}&slot=4`}>
+                                <i className="fas fa-laptop"></i> CONECTAR LAPTOP (Slots 4-6)
+                            </button>
+                            
+                            <button className="btn btn-green" onClick={() => window.location.href=`?mode=guest&room=${appState.room}&slot=1`}>
+                                <i className="fas fa-mobile-alt"></i> CONECTAR MÓVIL (Slots 1-3)
+                            </button>
+                            
+                            <div style={{background: 'rgba(30,41,59,0.8)', padding: '15px', borderRadius: '8px', marginTop: '10px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'left'}}>
+                                <div style={{fontWeight: 'bold', color: '#e2e8f0', marginBottom: '5px'}}>Enlaces para OBS/vMix:</div>
+                                <div style={{display: 'flex', gap: '5px', flexWrap: 'wrap'}}>
+                                    {['1','2','3','4','5','6'].map(n => (
+                                        <button 
+                                            key={n} 
+                                            onClick={() => navigator.clipboard.writeText(`${window.location.href.split('?')[0]}?mode=obs&room=${appState.room}&slot=${n}`)}
+                                            style={{
+                                                background: n > '3' ? '#8b5cf6' : '#3b82f6',
+                                                border: 'none',
+                                                color: 'white',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.75rem'
+                                            }}
+                                        >
+                                            OBS Slot {n}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p style={{marginTop: '10px', marginBottom: 0, fontSize: '0.75rem'}}>
+                                    Slots 1-3: Cámaras móviles | Slots 4-6: Laptops/Presentaciones
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
