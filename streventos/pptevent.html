@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamCall - Clean</title>
+    <title>StreamCall - LAN Clean</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -21,38 +21,38 @@
         input { width: 100%; background: #000; border: 2px solid #334155; color: white; padding: 15px; border-radius: 8px; font-size: 1rem; margin-bottom: 15px; text-align: center; }
         .btn { width: 100%; padding: 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 1rem; margin-bottom: 10px; }
         .btn-purple { background: #8b5cf6; }
-        .btn-red { background: #ef4444; }
+        
+        .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 15px 0; padding: 15px; background: rgba(51, 65, 85, 0.5); border-radius: 8px; cursor: pointer; }
+        .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+        .checkbox-label { font-size: 0.9rem; color: #cbd5e1; }
         
         .director { display: flex; flex-direction: column; height: 100vh; background: #000; }
         .header { background: #0f172a; border-bottom: 1px solid #334155; padding: 15px; text-align: center; }
         .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 10px; padding: 10px; }
         
-        .slot { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
-        .slot.live { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.2); }
-        .slot.prev { border-color: #eab308; }
+        .slot { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .slot-header { position: absolute; top: 0; left: 0; right: 0; padding: 10px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
         
         .video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 250px; }
         .video { width: 100%; height: 100%; object-fit: contain; }
-        .badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid; z-index: 10; }
+        .badge { background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid; pointer-events: auto; }
         .badge.screen { color: #8b5cf6; border-color: #8b5cf6; }
         .badge.camera { color: #3b82f6; border-color: #3b82f6; }
         .status { position: absolute; color: #64748b; text-align: center; }
         
-        .controls { padding: 10px; display: flex; gap: 5px; background: #0f172a; }
-        .t-btn { flex: 1; padding: 10px; font-size: 0.8rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #1e293b; color: #94a3b8; }
-        .t-btn.idle { background: #334155; color: white; }
-        .t-btn.prev { background: rgba(234, 179, 8, 0.2); color: #eab308; }
-        .t-btn.live { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .copy-btn { position: absolute; bottom: 10px; right: 10px; background: #8b5cf6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 5px; }
+        .copy-btn:hover { background: #7c3aed; }
         
         .presenter { width: 100vw; height: 100vh; position: relative; background: #000; }
         .presenter-video { width: 100%; height: 100%; object-fit: contain; }
         
         .tally-border { position: absolute; inset: 0; border: 15px solid transparent; pointer-events: none; z-index: 50; transition: all 0.3s; }
         .tally-border.live { border-color: #ef4444; box-shadow: inset 0 0 50px rgba(239,68,68,0.5); }
-        .tally-border.prev { border-color: #eab308; box-shadow: inset 0 0 50px rgba(234,179,8,0.4); }
         
         .on-air { position: absolute; top: 20px; right: 20px; background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; display: none; z-index: 100; }
         .on-air.active { display: block; }
+        
+        .audio-indicator { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 100; }
         
         .p-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); padding: 15px; border-radius: 12px; display: flex; gap: 10px; z-index: 100; border: 1px solid #334155; }
         .p-btn { width: 50px; height: 50px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 1.2rem; cursor: pointer; }
@@ -77,12 +77,10 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         
+        // Config LAN pura
         const PEER_CONFIG = { 
             config: { 
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Opcional, para ayudar en LAN
             }
         };
         
@@ -98,13 +96,13 @@
         };
 
         // ==========================================
-        // DIRECTOR
+        // DIRECTOR - Simplificado (sin tally, solo video + copiar URL)
         // ==========================================
         const Director = ({ room }) => {
             const [slots, setSlots] = useState({ 
-                1: { stream: null, tally: 'idle', source: 'camera' }, 
-                2: { stream: null, tally: 'idle', source: 'camera' }, 
-                3: { stream: null, tally: 'idle', source: 'camera' }
+                1: { stream: null, source: 'camera' }, 
+                2: { stream: null, source: 'camera' }, 
+                3: { stream: null, source: 'camera' }
             });
             const peer = useRef(null);
 
@@ -130,41 +128,41 @@
                 return () => peer.current?.destroy();
             }, [room]);
 
-            const setTally = (id, state) => {
-                setSlots(s => ({...s, [id]: {...s[id], tally: state}}));
-                const conn = peer.current?.connections[Object.keys(peer.current.connections).find(k => k.includes(`pres_${room}_${id}_`))]?.[0];
-                conn?.send?.({ tally: state });
+            const copyObsUrl = (id) => {
+                const url = `${window.location.href.split('?')[0]}?mode=obs&room=${room}&slot=${id}`;
+                navigator.clipboard.writeText(url);
             };
 
             return (
                 <div className="director">
                     <div className="header">
-                        <h2 style={{color: '#8b5cf6'}}><i className="fas fa-th-large"></i> {room}</h2>
-                        <small style={{color: '#64748b'}}>3 Canales | 720p</small>
+                        <h2 style={{color: '#8b5cf6'}}><i className="fas fa-th-large"></i> Monitor | {room}</h2>
+                        <small style={{color: '#64748b'}}>Recepción LAN únicamente</small>
                     </div>
 
                     <div className="grid">
                         {[1,2,3].map(id => (
-                            <div key={id} className={`slot ${slots[id].tally}`}>
+                            <div key={id} className="slot">
                                 <div className="video-area">
                                     {slots[id].stream ? (
                                         <>
-                                            <div className={`badge ${slots[id].source}`}>
-                                                {slots[id].source === 'screen' ? '📺 PANTALLA' : '📹 CÁMARA'}
+                                            <div className="slot-header">
+                                                <div className={`badge ${slots[id].source}`}>
+                                                    {slots[id].source === 'screen' ? '📺 PANTALLA' : '📹 CÁMARA'}
+                                                </div>
                                             </div>
+                                            <button className="copy-btn" onClick={() => copyObsUrl(id)}>
+                                                <i className="fas fa-copy"></i> Link OBS
+                                            </button>
                                             <Video stream={slots[id].stream} muted={false} className="video" />
                                         </>
                                     ) : (
                                         <div className="status">
                                             <i className="fas fa-laptop" style={{fontSize: '2.5rem', marginBottom: '10px', opacity: 0.3}}></i>
                                             <div>SLOT {id}</div>
+                                            <small>Esperando señal...</small>
                                         </div>
                                     )}
-                                </div>
-                                <div className="controls">
-                                    <button className={`t-btn ${slots[id].tally === 'idle' ? 'idle' : ''}`} onClick={()=>setTally(id,'idle')}>SAFE</button>
-                                    <button className={`t-btn ${slots[id].tally === 'prev' ? 'prev' : ''}`} onClick={()=>setTally(id,'prev')}>PREV</button>
-                                    <button className={`t-btn ${slots[id].tally === 'live' ? 'live' : ''}`} onClick={()=>setTally(id,'live')}>LIVE</button>
                                 </div>
                             </div>
                         ))}
@@ -174,25 +172,25 @@
         };
 
         // ==========================================
-        // PRESENTER - Audio arreglado
+        // PRESENTER - Audio opcional arreglado
         // ==========================================
         const Presenter = ({ room, slot }) => {
             const [step, setStep] = useState('select');
             const [source, setSource] = useState('screen');
+            const [includeMic, setIncludeMic] = useState(false); // Por defecto NO incluir micrófono
             const [tally, setTally] = useState('idle');
             const [error, setError] = useState('');
             const [muted, setMuted] = useState(false);
             
             const peer = useRef(null);
             const streamRef = useRef(null);
-            const audioCtxRef = useRef(null); // Mantener referencia para no perder audio
+            const micTrackRef = useRef(null); // Referencia al track de mic para mutearlo independientemente
             const myId = `pres_${room}_${slot}_${Date.now()}`;
 
             useEffect(() => {
                 if (step === 'live') connect();
                 return () => {
                     streamRef.current?.getTracks().forEach(t => t.stop());
-                    audioCtxRef.current?.close();
                     peer.current?.destroy();
                 };
             }, [step]);
@@ -203,54 +201,52 @@
                     let stream;
                     
                     if (source === 'screen') {
-                        // Capturar pantalla CON audio del sistema
+                        // Capturar pantalla con audio del sistema (si el usuario lo permite en el diálogo)
                         const screenStream = await navigator.mediaDevices.getDisplayMedia({
                             video: true, 
-                            audio: true // Importante: pedir audio del sistema
+                            audio: true // Esto captura audio de la ventana/pantalla
                         });
                         
-                        // Siempre obtener micrófono por separado
-                        const micStream = await navigator.mediaDevices.getUserMedia({audio: true});
-                        
-                        // Crear contexto de audio y mantener referencia
-                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        audioCtxRef.current = audioCtx;
-                        const dest = audioCtx.createMediaStreamDestination();
-                        
-                        // Conectar audio del sistema SI existe
-                        if (screenStream.getAudioTracks().length > 0) {
-                            const sysSource = audioCtx.createMediaStreamSource(screenStream);
-                            sysSource.connect(dest);
-                            console.log('Audio del sistema conectado');
+                        // Verificar si el usuario quiere agregar micrófono
+                        if (includeMic) {
+                            try {
+                                const micStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                                micTrackRef.current = micStream.getAudioTracks()[0];
+                                
+                                // Crear nuevo stream combinando video de pantalla + audio de pantalla (si existe) + micrófono
+                                const tracks = [screenStream.getVideoTracks()[0]];
+                                
+                                // Si el screen share tiene audio, lo incluimos
+                                if (screenStream.getAudioTracks().length > 0) {
+                                    tracks.push(screenStream.getAudioTracks()[0]);
+                                }
+                                
+                                // Agregar micrófono como track separado (WebRTC mezcla automáticamente)
+                                tracks.push(micTrackRef.current);
+                                
+                                stream = new MediaStream(tracks);
+                                console.log('Stream creado con video + audio sistema (si existe) + micrófono');
+                            } catch (e) {
+                                // Si falla el mic, usar solo pantalla
+                                console.warn('No se pudo obtener micrófono:', e);
+                                stream = screenStream;
+                            }
+                        } else {
+                            // Solo pantalla (sin mezclar micrófono)
+                            stream = screenStream;
+                            console.log('Stream creado solo con pantalla (sin micrófono)');
                         }
-                        
-                        // Conectar micrófono SIEMPRE
-                        const micSource = audioCtx.createMediaStreamSource(micStream);
-                        const micGain = audioCtx.createGain();
-                        micGain.gain.value = 0.8; // Volumen del mic
-                        micSource.connect(micGain);
-                        micGain.connect(dest);
-                        console.log('Micrófono conectado');
-                        
-                        // Crear stream final: Video de pantalla + Audio mezclado
-                        stream = new MediaStream([
-                            screenStream.getVideoTracks()[0],
-                            ...dest.stream.getAudioTracks()
-                        ]);
-                        
-                        // Guardar tracks originales para control de mute
-                        stream.micTrack = micStream.getAudioTracks()[0];
-                        stream.screenAudioTrack = screenStream.getAudioTracks()[0];
                         
                         // Detectar cuando cierran el share
                         screenStream.getVideoTracks()[0].onended = () => window.location.reload();
                         
                     } else {
-                        // Solo cámara
+                        // Modo cámara: siempre con audio (micrófono)
                         stream = await navigator.mediaDevices.getUserMedia({
-                            video: { width: 1280, height: 720 },
+                            video: {width: 1280, height: 720}, 
                             audio: true
                         });
+                        micTrackRef.current = stream.getAudioTracks()[0];
                     }
                     
                     streamRef.current = stream;
@@ -259,39 +255,36 @@
                     peer.current = new Peer(myId, PEER_CONFIG);
                     
                     peer.current.on('open', () => {
-                        // Llamar a Director
+                        // Enviar a Director
                         peer.current.call(`dir_${room}`, stream);
                         
-                        // Conexión de datos para tally
+                        // Escuchar tally (aunque el director no tiene botones, por si acaso)
                         const conn = peer.current.connect(`dir_${room}`);
                         conn.on('data', (data) => {
                             if (data.tally) setTally(data.tally);
                         });
                         
-                        // Llamar a OBS después de 500ms
+                        // Enviar a OBS
                         setTimeout(() => {
                             peer.current.call(`obs_${room}_${slot}`, stream);
                         }, 500);
                     });
                     
                     peer.current.on('error', err => {
-                        if (err.type === 'peer-unavailable') setError('Director no encontrado. Ábrelo primero.');
-                        else setError('Error: ' + err.type);
+                        if (err.type === 'peer-unavailable') setError('Director no encontrado. Verifica la red.');
+                        else setError(err.type);
                     });
                     
                 } catch(e) {
-                    console.error(e);
                     setError(e.message);
                 }
             };
 
             const toggleMic = () => {
-                if (streamRef.current) {
-                    // Mute/unmute el track de audio mezclado
-                    streamRef.current.getAudioTracks().forEach(t => {
-                        t.enabled = !t.enabled;
-                    });
-                    setMuted(!muted);
+                // Solo funciona si tenemos referencia al track de mic
+                if (micTrackRef.current) {
+                    micTrackRef.current.enabled = !micTrackRef.current.enabled;
+                    setMuted(!micTrackRef.current.enabled);
                 }
             };
 
@@ -305,22 +298,33 @@
                                 <div className={`mode-card ${source === 'screen' ? 'selected' : ''}`} onClick={() => setSource('screen')}>
                                     <div className="mode-icon"><i className="fas fa-desktop"></i></div>
                                     <div>Presentación</div>
-                                    <small style={{color: '#94a3b8'}}>Con audio</small>
+                                    <small style={{color: '#94a3b8', fontSize: '0.75rem'}}>PowerPoint, PDF, etc.</small>
                                 </div>
                                 <div className={`mode-card ${source === 'camera' ? 'selected' : ''}`} onClick={() => setSource('camera')}>
                                     <div className="mode-icon"><i className="fas fa-video"></i></div>
-                                    <div>Cámara</div>
+                                    <div>Cámara Web</div>
+                                    <small style={{color: '#94a3b8', fontSize: '0.75rem'}}>Con audio</small>
                                 </div>
                             </div>
+                            
+                            {/* Checkbox para incluir micrófono - solo visible en modo pantalla */}
+                            {source === 'screen' && (
+                                <label className="checkbox-container" onClick={() => setIncludeMic(!includeMic)}>
+                                    <input type="checkbox" checked={includeMic} onChange={(e) => setIncludeMic(e.target.checked)} />
+                                    <span className="checkbox-label">Incluir mi voz (micrófono)</span>
+                                </label>
+                            )}
                             
                             {error && <div className="error">{error}</div>}
                             
                             <button className="btn btn-purple" onClick={() => setStep('live')}>
-                                <i className="fas fa-play"></i> Iniciar
+                                <i className="fas fa-play"></i> {source === 'screen' && !includeMic ? 'Compartir solo Pantalla' : 'Iniciar Transmisión'}
                             </button>
                             
-                            <div style={{marginTop: '15px', fontSize: '0.75rem', color: '#64748b'}}>
-                                Usa Chrome/Edge para capturar audio del sistema
+                            <div style={{marginTop: '15px', fontSize: '0.75rem', color: '#64748b', textAlign: 'center'}}>
+                                {source === 'screen' && !includeMic ? 
+                                    'Solo se transmitirá el audio del sistema (videos del PPT)' : 
+                                    'Se transmitirá audio del sistema + tu voz'}
                             </div>
                         </div>
                     </div>
@@ -341,19 +345,24 @@
                     <div className={`tally-border ${tally}`}></div>
                     <div className={`on-air ${tally === 'live' ? 'active' : ''}`}>● EN VIVO</div>
                     
-                    <div style={{position: 'absolute', top: '20px', left: '20px', background: 'rgba(0,0,0,0.7)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.75rem', zIndex: 100}}>
-                        {source === 'screen' ? '📺 PANTALLA' : '📹 CÁMARA'}
+                    <div className="audio-indicator">
+                        {source === 'screen' ? 
+                            (includeMic ? '🎤 Micrófono activo' : '🔇 Solo audio del sistema') : 
+                            '🎤 Cámara con audio'}
                     </div>
                     
                     <Video stream={streamRef.current} muted={true} className="presenter-video" 
                         style={{objectFit: source === 'screen' ? 'contain' : 'cover'}} />
                     
                     <div className="p-controls">
-                        <button className={`p-btn ${muted ? 'off' : ''}`} onClick={toggleMic}>
-                            <i className={muted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
-                        </button>
+                        {/* Solo mostrar botón de mute si tenemos micrófono activo */}
+                        {(includeMic || source === 'camera') && (
+                            <button className={`p-btn ${muted ? 'off' : ''}`} onClick={toggleMic}>
+                                <i className={muted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
+                            </button>
+                        )}
                         <button className="p-btn switch" onClick={() => window.location.reload()}>
-                            Cambiar
+                            Cambiar Modo
                         </button>
                         <button className="p-btn" style={{background: '#ef4444'}} onClick={() => window.location.href = './'}>
                             <i className="fas fa-sign-out-alt"></i>
@@ -364,7 +373,7 @@
         };
 
         // ==========================================
-        // OBS - LIMPIO (sin ICE status)
+        // OBS
         // ==========================================
         const Obs = ({ room, slot }) => {
             const [stream, setStream] = useState(null);
@@ -376,9 +385,7 @@
                 
                 peer.current.on('call', call => {
                     call.answer();
-                    call.on('stream', s => {
-                        setStream(s);
-                    });
+                    call.on('stream', s => setStream(s));
                 });
 
                 return () => peer.current?.destroy();
@@ -427,16 +434,12 @@
             return (
                 <div className="lobby">
                     <div className="glass">
-                        <h1 style={{color: '#8b5cf6', marginBottom: '20px', textAlign: 'center'}}><i className="fas fa-broadcast-tower"></i> StreamCall</h1>
-                        <input value={state.room} onChange={e => setState({...state, room: e.target.value.toUpperCase()})} placeholder="SALA" />
+                        <h1 style={{color: '#8b5cf6', marginBottom: '20px', textAlign: 'center'}}>
+                            <i className="fas fa-broadcast-tower"></i> StreamCall LAN
+                        </h1>
+                        <input value={state.room} onChange={e => setState({...state, room: e.target.value.toUpperCase()})} placeholder="NOMBRE SALA" />
                         <button className="btn" onClick={() => window.location.href=`?mode=director&room=${state.room}`}>Soy Director</button>
                         <button className="btn btn-purple" onClick={() => window.location.href=`?mode=presenter&room=${state.room}&slot=1`}>Soy Presentador</button>
-                        <div style={{marginTop: '15px', textAlign: 'center'}}>
-                            {[1,2,3].map(n => (
-                                <button key={n} onClick={() => navigator.clipboard.writeText(`${window.location.href.split('?')[0]}?mode=obs&room=${state.room}&slot=${n}`)}
-                                    style={{background: '#334155', border: 'none', color: 'white', padding: '5px 8px', margin: '2px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer'}}>OBS {n}</button>
-                            ))}
-                        </div>
                     </div>
                 </div>
             );
