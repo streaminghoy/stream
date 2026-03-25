@@ -58,6 +58,7 @@
         .audio-indicator { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 100; }
         .connection-indicator { position: absolute; top: 50px; left: 20px; font-size: 0.7rem; color: #64748b; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; z-index: 100; }
         .warning-box { position: absolute; top: 80px; left: 20px; background: rgba(245, 158, 11, 0.9); color: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 100; font-weight: bold; max-width: 300px; }
+        .success-box { position: absolute; top: 80px; left: 20px; background: rgba(34, 197, 94, 0.9); color: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 100; font-weight: bold; }
 
         .p-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); padding: 15px; border-radius: 12px; display: flex; gap: 10px; z-index: 100; border: 1px solid #334155; }
         .p-btn { width: 50px; height: 50px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 1.2rem; cursor: pointer; }
@@ -74,6 +75,7 @@
         .obs { width: 100vw; height: 100vh; background: #000; position: relative; overflow: hidden; }
         .obs-video { width: 100%; height: 100%; object-fit: contain; display: block; }
         .obs-wait { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; text-align: center; }
+        .obs-debug { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; color: #94a3b8; z-index: 100; }
     </style>
 <base target="_blank">
 </head>
@@ -83,7 +85,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Config LAN pura con STUN opcional para ayudar en redes locales complejas
+        // Config LAN pura
         const PEER_CONFIG = { 
             config: { 
                 iceServers: [
@@ -104,7 +106,7 @@
         };
 
         // ==========================================
-        // DIRECTOR - Ahora muestra conexión LAN
+        // DIRECTOR
         // ==========================================
         const Director = ({ room }) => {
             const [slots, setSlots] = useState({ 
@@ -192,24 +194,23 @@
         };
 
         // ==========================================
-        // PRESENTER - CORREGIDO: Video local inmediato + reintentos
+        // PRESENTER - Con reintentos a OBS
         // ==========================================
         const Presenter = ({ room, slot }) => {
             const [step, setStep] = useState('select');
             const [source, setSource] = useState('screen');
             const [includeMic, setIncludeMic] = useState(false);
-            const [localStream, setLocalStream] = useState(null); // Estado para mostrar video local
+            const [localStream, setLocalStream] = useState(null);
             const [tally, setTally] = useState('idle');
             const [error, setError] = useState('');
             const [muted, setMuted] = useState(false);
-            const [connStatus, setConnStatus] = useState({ type: 'connecting', msg: 'Conectando...' });
+            const [connStatus, setConnStatus] = useState({ director: 'waiting', obs: 'waiting' });
 
             const peer = useRef(null);
             const micTrackRef = useRef(null);
             const retryInterval = useRef(null);
             const myId = `pres_${room}_${slot}_${Date.now()}`;
 
-            // PASO 1: Obtener stream local INMEDIATAMENTE (no esperar a nadie)
             const startLocalStream = async () => {
                 try {
                     setError('');
@@ -250,81 +251,115 @@
                         micTrackRef.current = stream.getAudioTracks()[0];
                     }
 
-                    // MOSTRAR INMEDIATAMENTE - no esperar al Director
                     setLocalStream(stream);
                     setStep('live');
-                    setConnStatus({ type: 'waiting', msg: 'Buscando Director...' });
 
-                    // Intentar conectar en segundo plano
+                    // Iniciar conexiones con reintentos
                     connectToDirector(stream);
+                    connectToObs(stream);
 
                 } catch(e) {
                     setError(e.message);
                 }
             };
 
-            // PASO 2: Conectar con reintentos automáticos
+            // Conexión al Director con reintentos
             const connectToDirector = (stream) => {
-                if (peer.current) peer.current.destroy();
+                const tryDirector = () => {
+                    if (!peer.current) return;
+                    try {
+                        const dirCall = peer.current.call(`dir_${room}`, stream);
+                        if (dirCall) {
+                            dirCall.on('stream', () => {
+                                setConnStatus(s => ({...s, director: 'connected'}));
+                            });
 
-                peer.current = new Peer(myId, PEER_CONFIG);
-
-                peer.current.on('open', () => {
-                    // Intentar llamar al Director
-                    attemptCall(stream);
-
-                    // Configurar reintentos cada 3 segundos si falla
-                    retryInterval.current = setInterval(() => {
-                        if (connStatus.type !== 'connected') {
-                            attemptCall(stream);
+                            // Conexión de datos para tally
+                            const conn = peer.current.connect(`dir_${room}`);
+                            conn.on('data', (data) => {
+                                if (data.tally) setTally(data.tally);
+                            });
                         }
-                    }, 3000);
-                });
+                    } catch(e) {}
+                };
 
-                peer.current.on('error', err => {
-                    if (err.type === 'peer-unavailable') {
-                        setConnStatus({ type: 'waiting', msg: 'Director offline - Reintentando...' });
-                    } else {
-                        console.error('Peer error:', err);
-                    }
-                });
+                // Intentar inmediato y cada 3 segundos
+                tryDirector();
+                setInterval(tryDirector, 3000);
             };
 
-            const attemptCall = (stream) => {
-                if (!peer.current) return;
+            // Conexión a OBS con reintentos (NUEVO)
+            const connectToObs = (stream) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 5 minutos de reintentos (50 * 6 segundos)
 
-                try {
-                    const dirCall = peer.current.call(`dir_${room}`, stream);
+                const tryObs = () => {
+                    if (!peer.current || attempts >= maxAttempts) return;
+                    attempts++;
 
-                    if (dirCall) {
-                        dirCall.on('stream', () => {
-                            setConnStatus({ type: 'connected', msg: 'Conectado a Director (LAN)' });
-                            if (retryInterval.current) {
-                                clearInterval(retryInterval.current);
-                                retryInterval.current = null;
-                            }
-                        });
+                    try {
+                        console.log(`Intentando conectar a OBS (intento ${attempts})...`);
+                        const obsCall = peer.current.call(`obs_${room}_${slot}`, stream);
 
-                        dirCall.on('error', () => {
-                            setConnStatus({ type: 'waiting', msg: 'Error de conexión - Reintentando...' });
-                        });
+                        if (obsCall) {
+                            // Verificar si la llamada se estableció
+                            obsCall.on('stream', () => {
+                                console.log('✅ OBS conectado exitosamente');
+                                setConnStatus(s => ({...s, obs: 'connected'}));
+                                attempts = maxAttempts; // Detener reintentos
+                            });
+
+                            obsCall.on('error', (err) => {
+                                console.log('Error llamada OBS:', err);
+                            });
+
+                            // Timeout para verificar estado
+                            setTimeout(() => {
+                                if (obsCall.peerConnection) {
+                                    const state = obsCall.peerConnection.connectionState;
+                                    if (state === 'connected' || state === 'completed') {
+                                        console.log('✅ OBS conectado (verificación estado)');
+                                        setConnStatus(s => ({...s, obs: 'connected'}));
+                                        attempts = maxAttempts;
+                                    }
+                                }
+                            }, 2000);
+                        }
+                    } catch(e) {
+                        console.error('Error al llamar OBS:', e);
                     }
+                };
 
-                    // Conexión de datos para tally
-                    const conn = peer.current.connect(`dir_${room}`);
-                    conn.on('data', (data) => {
-                        if (data.tally) setTally(data.tally);
+                // Primer intento después de 2 segundos (dar tiempo a que OBS se registre)
+                setTimeout(tryObs, 2000);
+
+                // Reintentos cada 6 segundos (más lento que Director para no saturar)
+                const interval = setInterval(tryObs, 6000);
+
+                // Detener después de 5 minutos
+                setTimeout(() => clearInterval(interval), 300000);
+            };
+
+            useEffect(() => {
+                if (step === 'live' && !peer.current) {
+                    peer.current = new Peer(myId, PEER_CONFIG);
+
+                    peer.current.on('open', () => {
+                        console.log('Presenter Peer listo:', myId);
                     });
 
-                    // Llamar a OBS también
-                    setTimeout(() => {
-                        peer.current?.call(`obs_${room}_${slot}`, stream);
-                    }, 1000);
-
-                } catch(e) {
-                    console.error('Error en llamada:', e);
+                    peer.current.on('error', err => {
+                        if (err.type !== 'peer-unavailable') {
+                            console.error('Peer error:', err);
+                        }
+                    });
                 }
-            };
+
+                return () => {
+                    localStream?.getTracks().forEach(t => t.stop());
+                    peer.current?.destroy();
+                };
+            }, [step]);
 
             const toggleMic = () => {
                 if (micTrackRef.current) {
@@ -332,15 +367,6 @@
                     setMuted(!micTrackRef.current.enabled);
                 }
             };
-
-            // Limpieza
-            useEffect(() => {
-                return () => {
-                    if (retryInterval.current) clearInterval(retryInterval.current);
-                    localStream?.getTracks().forEach(t => t.stop());
-                    peer.current?.destroy();
-                };
-            }, []);
 
             if (step === 'select') {
                 return (
@@ -375,7 +401,7 @@
                             </button>
 
                             <div style={{marginTop: '15px', fontSize: '0.75rem', color: '#64748b', textAlign: 'center'}}>
-                                Abre el Director primero en otra pestaña/PC
+                                Abre primero OBS y luego clic en Iniciar
                             </div>
                         </div>
                     </div>
@@ -393,18 +419,22 @@
                             '🎤 Cámara con audio'}
                     </div>
 
-                    <div className="connection-indicator" style={{
-                        color: connStatus.type === 'connected' ? '#22c55e' : 
-                               connStatus.type === 'waiting' ? '#f59e0b' : '#64748b'
-                    }}>
-                        <i className="fas fa-network-wired"></i> {connStatus.msg}
+                    <div className="connection-indicator" style={{color: '#64748b'}}>
+                        <i className="fas fa-network-wired"></i> 
+                        Director: {connStatus.director === 'connected' ? '🟢' : '🟡'} | 
+                        OBS: {connStatus.obs === 'connected' ? '🟢' : '🟡'}
                     </div>
 
-                    {connStatus.type === 'waiting' && (
+                    {connStatus.obs === 'waiting' && (
                         <div className="warning-box">
-                            <i className="fas fa-exclamation-triangle"></i> 
-                            Director no encontrado. Verifica que esté en la misma red WiFi/LAN.
-                            Reintentando automáticamente...
+                            <i className="fas fa-spinner fa-spin"></i> 
+                            Conectando a OBS... (asegúrate de que OBS esté abierto en esta URL)
+                        </div>
+                    )}
+
+                    {connStatus.obs === 'connected' && (
+                        <div className="success-box">
+                            <i className="fas fa-check"></i> OBS conectado correctamente
                         </div>
                     )}
 
@@ -435,28 +465,69 @@
         };
 
         // ==========================================
-        // OBS
+        // OBS - Versión mejorada con debug
         // ==========================================
         const Obs = ({ room, slot }) => {
             const [stream, setStream] = useState(null);
+            const [debugInfo, setDebugInfo] = useState('Iniciando...');
             const peer = useRef(null);
             const videoRef = useRef(null);
+            const callsRef = useRef([]);
 
             useEffect(() => {
-                peer.current = new Peer(`obs_${room}_${slot}`, PEER_CONFIG);
+                const obsId = `obs_${room}_${slot}`;
+                setDebugInfo(`Registrando ${obsId}...`);
 
-                peer.current.on('call', call => {
-                    call.answer();
-                    call.on('stream', s => setStream(s));
+                peer.current = new Peer(obsId, PEER_CONFIG);
+
+                peer.current.on('open', (id) => {
+                    console.log('✅ OBS registrado exitosamente:', id);
+                    setDebugInfo(`Listo: ${id}`);
                 });
 
-                return () => peer.current?.destroy();
+                peer.current.on('call', call => {
+                    console.log('📞 Llamada recibida de:', call.peer);
+                    setDebugInfo(`Llamada de: ${call.peer}`);
+
+                    call.answer();
+
+                    call.on('stream', s => {
+                        console.log('📺 Stream recibido');
+                        setDebugInfo('Stream activo');
+                        setStream(s);
+                        callsRef.current.push(call);
+                    });
+
+                    call.on('close', () => {
+                        console.log('❌ Llamada cerrada');
+                        setDebugInfo('Llamada cerrada - esperando...');
+                        setStream(null);
+                    });
+
+                    call.on('error', (err) => {
+                        console.error('Error en llamada:', err);
+                        setDebugInfo(`Error: ${err.type}`);
+                    });
+                });
+
+                peer.current.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    setDebugInfo(`Error: ${err.type}`);
+                });
+
+                return () => {
+                    callsRef.current.forEach(c => c.close());
+                    peer.current?.destroy();
+                };
             }, [room, slot]);
 
             useEffect(() => {
                 if (stream && videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(() => {});
+                    videoRef.current.play().catch((e) => {
+                        console.error('Error reproduciendo:', e);
+                        setDebugInfo('Error reproducción');
+                    });
                 }
             }, [stream]);
 
@@ -468,8 +539,14 @@
                         <div className="obs-wait">
                             <i className="fas fa-circle-notch fa-spin" style={{fontSize: '2rem', marginBottom: '10px'}}></i>
                             <div>Esperando señal...</div>
+                            <small style={{color: '#475569', marginTop: '10px', display: 'block'}}>
+                                ID: obs_{room}_{slot}
+                            </small>
                         </div>
                     )}
+                    <div className="obs-debug">
+                        {debugInfo}
+                    </div>
                 </div>
             );
         };
