@@ -1,2 +1,5 @@
 URl OBS: https://streaminghoy.github.io/stream/streventos/pptevent.html?mode=obs&room=EVENTO&slot=1
 solo cambiar el caodgo 1 x 2 o x 3
+
+URl OBS: https://streaminghoy.github.io/stream/streventos/pptturn.html?mode=obs&room=EVENTO&slot=1
+solo cambiar el caodgo 1 x 2 o x 3
