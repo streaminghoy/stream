@@ -4,86 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamCall - LAN Clean</title>
-    
+
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; height: 100vh; overflow: hidden; }
-        
+
         .lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #0f172a; padding: 20px; }
         .glass { background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 16px; width: 100%; max-width: 450px; border: 1px solid #334155; }
         input { width: 100%; background: #000; border: 2px solid #334155; color: white; padding: 15px; border-radius: 8px; font-size: 1rem; margin-bottom: 15px; text-align: center; }
         .btn { width: 100%; padding: 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 1rem; margin-bottom: 10px; }
         .btn-purple { background: #8b5cf6; }
-        
+
         .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 15px 0; padding: 15px; background: rgba(51, 65, 85, 0.5); border-radius: 8px; cursor: pointer; }
         .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
         .checkbox-label { font-size: 0.9rem; color: #cbd5e1; }
-        
+
         .director { display: flex; flex-direction: column; height: 100vh; background: #000; }
         .header { background: #0f172a; border-bottom: 1px solid #334155; padding: 15px; text-align: center; }
         .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 10px; padding: 10px; }
-        
+
         .slot { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .slot-header { position: absolute; top: 0; left: 0; right: 0; padding: 10px; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
-        
+
         .video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 250px; }
         .video { width: 100%; height: 100%; object-fit: contain; }
         .badge { background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid; pointer-events: auto; }
         .badge.screen { color: #8b5cf6; border-color: #8b5cf6; }
         .badge.camera { color: #3b82f6; border-color: #3b82f6; }
+        .badge.connection { position: absolute; top: 10px; right: 10px; font-size: 0.65rem; color: #22c55e; border-color: #22c55e; background: rgba(0,0,0,0.8); }
+        .badge.connection.error { color: #ef4444; border-color: #ef4444; }
+        .badge.connection.waiting { color: #f59e0b; border-color: #f59e0b; }
         .status { position: absolute; color: #64748b; text-align: center; }
-        
+
         .copy-btn { position: absolute; bottom: 10px; right: 10px; background: #8b5cf6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 5px; }
         .copy-btn:hover { background: #7c3aed; }
-        
+
         .presenter { width: 100vw; height: 100vh; position: relative; background: #000; }
         .presenter-video { width: 100%; height: 100%; object-fit: contain; }
-        
+
         .tally-border { position: absolute; inset: 0; border: 15px solid transparent; pointer-events: none; z-index: 50; transition: all 0.3s; }
         .tally-border.live { border-color: #ef4444; box-shadow: inset 0 0 50px rgba(239,68,68,0.5); }
-        
+
         .on-air { position: absolute; top: 20px; right: 20px; background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; display: none; z-index: 100; }
         .on-air.active { display: block; }
-        
+
         .audio-indicator { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 100; }
-        
+        .connection-indicator { position: absolute; top: 50px; left: 20px; font-size: 0.7rem; color: #64748b; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; z-index: 100; }
+        .warning-box { position: absolute; top: 80px; left: 20px; background: rgba(245, 158, 11, 0.9); color: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; z-index: 100; font-weight: bold; max-width: 300px; }
+
         .p-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); padding: 15px; border-radius: 12px; display: flex; gap: 10px; z-index: 100; border: 1px solid #334155; }
         .p-btn { width: 50px; height: 50px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 1.2rem; cursor: pointer; }
         .p-btn.off { background: #ef4444; }
         .p-btn.switch { width: auto; padding: 0 15px; font-size: 0.8rem; font-weight: bold; }
-        
+
         .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .mode-card { background: rgba(51, 65, 85, 0.5); border: 2px solid #334155; border-radius: 8px; padding: 20px; cursor: pointer; text-align: center; }
         .mode-card.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
         .mode-icon { font-size: 2rem; margin-bottom: 8px; color: #8b5cf6; }
-        
+
         .error { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.8rem; }
-        
+
         .obs { width: 100vw; height: 100vh; background: #000; position: relative; overflow: hidden; }
         .obs-video { width: 100%; height: 100%; object-fit: contain; display: block; }
         .obs-wait { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; text-align: center; }
     </style>
+<base target="_blank">
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        
-        // Config LAN pura
+
+        // Config LAN pura con STUN opcional para ayudar en redes locales complejas
         const PEER_CONFIG = { 
             config: { 
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Opcional, para ayudar en LAN
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }
+                ]
             }
         };
-        
+
         const Video = ({ stream, ...props }) => {
             const ref = useRef(null);
             useEffect(() => {
@@ -96,32 +104,41 @@
         };
 
         // ==========================================
-        // DIRECTOR - Simplificado (sin tally, solo video + copiar URL)
+        // DIRECTOR - Ahora muestra conexión LAN
         // ==========================================
         const Director = ({ room }) => {
             const [slots, setSlots] = useState({ 
-                1: { stream: null, source: 'camera' }, 
-                2: { stream: null, source: 'camera' }, 
-                3: { stream: null, source: 'camera' }
+                1: { stream: null, source: 'camera', status: 'waiting' }, 
+                2: { stream: null, source: 'camera', status: 'waiting' }, 
+                3: { stream: null, source: 'camera', status: 'waiting' }
             });
             const peer = useRef(null);
 
             useEffect(() => {
                 peer.current = new Peer(`dir_${room}`, PEER_CONFIG);
-                
+
+                peer.current.on('open', (id) => {
+                    console.log('Director listo:', id);
+                });
+
                 peer.current.on('call', call => {
                     const match = call.peer.match(/pres_${room}_(\d+)_/);
                     if (!match) return;
-                    
+
                     const id = match[1];
+
                     call.answer();
-                    
+
                     call.on('stream', stream => {
-                        setSlots(s => ({...s, [id]: {...s[id], stream}}));
+                        setSlots(s => ({...s, [id]: {...s[id], stream, status: 'connected'}}));
                     });
-                    
+
                     call.on('close', () => {
-                        setSlots(s => ({...s, [id]: {...s[id], stream: null}}));
+                        setSlots(s => ({...s, [id]: {...s[id], stream: null, status: 'waiting'}}));
+                    });
+
+                    call.on('error', () => {
+                        setSlots(s => ({...s, [id]: {...s[id], status: 'error'}}));
                     });
                 });
 
@@ -150,6 +167,9 @@
                                                 <div className={`badge ${slots[id].source}`}>
                                                     {slots[id].source === 'screen' ? '📺 PANTALLA' : '📹 CÁMARA'}
                                                 </div>
+                                                <div className={`badge connection ${slots[id].status === 'error' ? 'error' : ''}`}>
+                                                    {slots[id].status === 'connected' ? '🟢 LAN' : '⚠️ '}
+                                                </div>
                                             </div>
                                             <button className="copy-btn" onClick={() => copyObsUrl(id)}>
                                                 <i className="fas fa-copy"></i> Link OBS
@@ -172,128 +192,162 @@
         };
 
         // ==========================================
-        // PRESENTER - Audio opcional arreglado
+        // PRESENTER - CORREGIDO: Video local inmediato + reintentos
         // ==========================================
         const Presenter = ({ room, slot }) => {
             const [step, setStep] = useState('select');
             const [source, setSource] = useState('screen');
-            const [includeMic, setIncludeMic] = useState(false); // Por defecto NO incluir micrófono
+            const [includeMic, setIncludeMic] = useState(false);
+            const [localStream, setLocalStream] = useState(null); // Estado para mostrar video local
             const [tally, setTally] = useState('idle');
             const [error, setError] = useState('');
             const [muted, setMuted] = useState(false);
-            
+            const [connStatus, setConnStatus] = useState({ type: 'connecting', msg: 'Conectando...' });
+
             const peer = useRef(null);
-            const streamRef = useRef(null);
-            const micTrackRef = useRef(null); // Referencia al track de mic para mutearlo independientemente
+            const micTrackRef = useRef(null);
+            const retryInterval = useRef(null);
             const myId = `pres_${room}_${slot}_${Date.now()}`;
 
-            useEffect(() => {
-                if (step === 'live') connect();
-                return () => {
-                    streamRef.current?.getTracks().forEach(t => t.stop());
-                    peer.current?.destroy();
-                };
-            }, [step]);
-
-            const connect = async () => {
+            // PASO 1: Obtener stream local INMEDIATAMENTE (no esperar a nadie)
+            const startLocalStream = async () => {
                 try {
                     setError('');
                     let stream;
-                    
+
                     if (source === 'screen') {
-                        // Capturar pantalla con audio del sistema (si el usuario lo permite en el diálogo)
                         const screenStream = await navigator.mediaDevices.getDisplayMedia({
                             video: true, 
-                            audio: true // Esto captura audio de la ventana/pantalla
+                            audio: true
                         });
-                        
-                        // Verificar si el usuario quiere agregar micrófono
+
                         if (includeMic) {
                             try {
                                 const micStream = await navigator.mediaDevices.getUserMedia({audio: true});
                                 micTrackRef.current = micStream.getAudioTracks()[0];
-                                
-                                // Crear nuevo stream combinando video de pantalla + audio de pantalla (si existe) + micrófono
-                                const tracks = [screenStream.getVideoTracks()[0]];
-                                
-                                // Si el screen share tiene audio, lo incluimos
-                                if (screenStream.getAudioTracks().length > 0) {
-                                    tracks.push(screenStream.getAudioTracks()[0]);
-                                }
-                                
-                                // Agregar micrófono como track separado (WebRTC mezcla automáticamente)
-                                tracks.push(micTrackRef.current);
-                                
+
+                                const tracks = [
+                                    screenStream.getVideoTracks()[0],
+                                    ...(screenStream.getAudioTracks()),
+                                    micTrackRef.current
+                                ];
+
                                 stream = new MediaStream(tracks);
-                                console.log('Stream creado con video + audio sistema (si existe) + micrófono');
                             } catch (e) {
-                                // Si falla el mic, usar solo pantalla
-                                console.warn('No se pudo obtener micrófono:', e);
                                 stream = screenStream;
                             }
                         } else {
-                            // Solo pantalla (sin mezclar micrófono)
                             stream = screenStream;
-                            console.log('Stream creado solo con pantalla (sin micrófono)');
                         }
-                        
-                        // Detectar cuando cierran el share
+
                         screenStream.getVideoTracks()[0].onended = () => window.location.reload();
-                        
+
                     } else {
-                        // Modo cámara: siempre con audio (micrófono)
                         stream = await navigator.mediaDevices.getUserMedia({
                             video: {width: 1280, height: 720}, 
                             audio: true
                         });
                         micTrackRef.current = stream.getAudioTracks()[0];
                     }
-                    
-                    streamRef.current = stream;
-                    
-                    // Conectar PeerJS
-                    peer.current = new Peer(myId, PEER_CONFIG);
-                    
-                    peer.current.on('open', () => {
-                        // Enviar a Director
-                        peer.current.call(`dir_${room}`, stream);
-                        
-                        // Escuchar tally (aunque el director no tiene botones, por si acaso)
-                        const conn = peer.current.connect(`dir_${room}`);
-                        conn.on('data', (data) => {
-                            if (data.tally) setTally(data.tally);
-                        });
-                        
-                        // Enviar a OBS
-                        setTimeout(() => {
-                            peer.current.call(`obs_${room}_${slot}`, stream);
-                        }, 500);
-                    });
-                    
-                    peer.current.on('error', err => {
-                        if (err.type === 'peer-unavailable') setError('Director no encontrado. Verifica la red.');
-                        else setError(err.type);
-                    });
-                    
+
+                    // MOSTRAR INMEDIATAMENTE - no esperar al Director
+                    setLocalStream(stream);
+                    setStep('live');
+                    setConnStatus({ type: 'waiting', msg: 'Buscando Director...' });
+
+                    // Intentar conectar en segundo plano
+                    connectToDirector(stream);
+
                 } catch(e) {
                     setError(e.message);
                 }
             };
 
+            // PASO 2: Conectar con reintentos automáticos
+            const connectToDirector = (stream) => {
+                if (peer.current) peer.current.destroy();
+
+                peer.current = new Peer(myId, PEER_CONFIG);
+
+                peer.current.on('open', () => {
+                    // Intentar llamar al Director
+                    attemptCall(stream);
+
+                    // Configurar reintentos cada 3 segundos si falla
+                    retryInterval.current = setInterval(() => {
+                        if (connStatus.type !== 'connected') {
+                            attemptCall(stream);
+                        }
+                    }, 3000);
+                });
+
+                peer.current.on('error', err => {
+                    if (err.type === 'peer-unavailable') {
+                        setConnStatus({ type: 'waiting', msg: 'Director offline - Reintentando...' });
+                    } else {
+                        console.error('Peer error:', err);
+                    }
+                });
+            };
+
+            const attemptCall = (stream) => {
+                if (!peer.current) return;
+
+                try {
+                    const dirCall = peer.current.call(`dir_${room}`, stream);
+
+                    if (dirCall) {
+                        dirCall.on('stream', () => {
+                            setConnStatus({ type: 'connected', msg: 'Conectado a Director (LAN)' });
+                            if (retryInterval.current) {
+                                clearInterval(retryInterval.current);
+                                retryInterval.current = null;
+                            }
+                        });
+
+                        dirCall.on('error', () => {
+                            setConnStatus({ type: 'waiting', msg: 'Error de conexión - Reintentando...' });
+                        });
+                    }
+
+                    // Conexión de datos para tally
+                    const conn = peer.current.connect(`dir_${room}`);
+                    conn.on('data', (data) => {
+                        if (data.tally) setTally(data.tally);
+                    });
+
+                    // Llamar a OBS también
+                    setTimeout(() => {
+                        peer.current?.call(`obs_${room}_${slot}`, stream);
+                    }, 1000);
+
+                } catch(e) {
+                    console.error('Error en llamada:', e);
+                }
+            };
+
             const toggleMic = () => {
-                // Solo funciona si tenemos referencia al track de mic
                 if (micTrackRef.current) {
                     micTrackRef.current.enabled = !micTrackRef.current.enabled;
                     setMuted(!micTrackRef.current.enabled);
                 }
             };
 
+            // Limpieza
+            useEffect(() => {
+                return () => {
+                    if (retryInterval.current) clearInterval(retryInterval.current);
+                    localStream?.getTracks().forEach(t => t.stop());
+                    peer.current?.destroy();
+                };
+            }, []);
+
             if (step === 'select') {
                 return (
                     <div className="lobby">
                         <div className="glass">
                             <h2 style={{color: '#8b5cf6', marginBottom: '20px'}}><i className="fas fa-laptop"></i> Laptop {slot}</h2>
-                            
+
                             <div className="mode-grid">
                                 <div className={`mode-card ${source === 'screen' ? 'selected' : ''}`} onClick={() => setSource('screen')}>
                                     <div className="mode-icon"><i className="fas fa-desktop"></i></div>
@@ -306,63 +360,71 @@
                                     <small style={{color: '#94a3b8', fontSize: '0.75rem'}}>Con audio</small>
                                 </div>
                             </div>
-                            
-                            {/* Checkbox para incluir micrófono - solo visible en modo pantalla */}
+
                             {source === 'screen' && (
                                 <label className="checkbox-container" onClick={() => setIncludeMic(!includeMic)}>
                                     <input type="checkbox" checked={includeMic} onChange={(e) => setIncludeMic(e.target.checked)} />
                                     <span className="checkbox-label">Incluir mi voz (micrófono)</span>
                                 </label>
                             )}
-                            
+
                             {error && <div className="error">{error}</div>}
-                            
-                            <button className="btn btn-purple" onClick={() => setStep('live')}>
-                                <i className="fas fa-play"></i> {source === 'screen' && !includeMic ? 'Compartir solo Pantalla' : 'Iniciar Transmisión'}
+
+                            <button className="btn btn-purple" onClick={startLocalStream}>
+                                <i className="fas fa-play"></i> Iniciar
                             </button>
-                            
+
                             <div style={{marginTop: '15px', fontSize: '0.75rem', color: '#64748b', textAlign: 'center'}}>
-                                {source === 'screen' && !includeMic ? 
-                                    'Solo se transmitirá el audio del sistema (videos del PPT)' : 
-                                    'Se transmitirá audio del sistema + tu voz'}
+                                Abre el Director primero en otra pestaña/PC
                             </div>
                         </div>
                     </div>
                 );
             }
 
-            if (error) return (
-                <div className="lobby">
-                    <div className="glass">
-                        <div className="error" style={{marginBottom: '20px'}}>{error}</div>
-                        <button className="btn" onClick={() => window.location.reload()}>Reintentar</button>
-                    </div>
-                </div>
-            );
-
             return (
                 <div className="presenter">
                     <div className={`tally-border ${tally}`}></div>
                     <div className={`on-air ${tally === 'live' ? 'active' : ''}`}>● EN VIVO</div>
-                    
+
                     <div className="audio-indicator">
                         {source === 'screen' ? 
                             (includeMic ? '🎤 Micrófono activo' : '🔇 Solo audio del sistema') : 
                             '🎤 Cámara con audio'}
                     </div>
-                    
-                    <Video stream={streamRef.current} muted={true} className="presenter-video" 
-                        style={{objectFit: source === 'screen' ? 'contain' : 'cover'}} />
-                    
+
+                    <div className="connection-indicator" style={{
+                        color: connStatus.type === 'connected' ? '#22c55e' : 
+                               connStatus.type === 'waiting' ? '#f59e0b' : '#64748b'
+                    }}>
+                        <i className="fas fa-network-wired"></i> {connStatus.msg}
+                    </div>
+
+                    {connStatus.type === 'waiting' && (
+                        <div className="warning-box">
+                            <i className="fas fa-exclamation-triangle"></i> 
+                            Director no encontrado. Verifica que esté en la misma red WiFi/LAN.
+                            Reintentando automáticamente...
+                        </div>
+                    )}
+
+                    {localStream && (
+                        <Video 
+                            stream={localStream} 
+                            muted={true} 
+                            className="presenter-video" 
+                            style={{objectFit: source === 'screen' ? 'contain' : 'cover'}} 
+                        />
+                    )}
+
                     <div className="p-controls">
-                        {/* Solo mostrar botón de mute si tenemos micrófono activo */}
                         {(includeMic || source === 'camera') && (
                             <button className={`p-btn ${muted ? 'off' : ''}`} onClick={toggleMic}>
                                 <i className={muted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
                             </button>
                         )}
                         <button className="p-btn switch" onClick={() => window.location.reload()}>
-                            Cambiar Modo
+                            Cambiar
                         </button>
                         <button className="p-btn" style={{background: '#ef4444'}} onClick={() => window.location.href = './'}>
                             <i className="fas fa-sign-out-alt"></i>
@@ -382,7 +444,7 @@
 
             useEffect(() => {
                 peer.current = new Peer(`obs_${room}_${slot}`, PEER_CONFIG);
-                
+
                 peer.current.on('call', call => {
                     call.answer();
                     call.on('stream', s => setStream(s));
@@ -430,7 +492,7 @@
             if (state.mode === 'director') return <Director room={state.room} />;
             if (state.mode === 'obs') return <Obs room={state.room} slot={state.slot} />;
             if (state.mode === 'presenter') return <Presenter room={state.room} slot={state.slot} />;
-            
+
             return (
                 <div className="lobby">
                     <div className="glass">
@@ -444,7 +506,7 @@
                 </div>
             );
         };
-        
+
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
