@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamCall - Simple</title>
+    <title>StreamCall - Final</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -13,69 +13,62 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     
     <style>
-        * { box-sizing: border-box; }
-        body { background-color: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #000; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; height: 100vh; overflow: hidden; }
         
-        .lobby-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #0f172a; padding: 20px; text-align: center; }
-        .glass-box { background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 16px; max-width: 450px; width: 100%; border: 1px solid #334155; }
+        .lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #0f172a; padding: 20px; }
+        .glass { background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 16px; width: 100%; max-width: 450px; border: 1px solid #334155; }
         input { width: 100%; background: #000; border: 2px solid #334155; color: white; padding: 15px; border-radius: 8px; font-size: 1rem; margin-bottom: 15px; text-align: center; }
-        .btn { width: 100%; padding: 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 1rem; margin-bottom: 10px; transition: all 0.2s; }
-        .btn:hover { transform: translateY(-1px); }
+        .btn { width: 100%; padding: 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 1rem; margin-bottom: 10px; }
         .btn-purple { background: #8b5cf6; }
-        .btn-red { background: #ef4444; }
         
-        .director-layout { display: flex; flex-direction: column; height: 100vh; background: #000; }
-        .director-header { background: #0f172a; border-bottom: 1px solid #334155; padding: 15px; text-align: center; }
-        .grid-container { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 10px; padding: 10px; overflow-y: auto; }
+        .director { display: flex; flex-direction: column; height: 100vh; background: #000; }
+        .header { background: #0f172a; border-bottom: 1px solid #334155; padding: 15px; text-align: center; }
+        .grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 10px; padding: 10px; }
         
-        .slot-card { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
-        .slot-card.live { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.3); }
-        .slot-card.prev { border-color: #eab308; }
+        .slot { background: #1e293b; border: 2px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .slot.live { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.2); }
+        .slot.prev { border-color: #eab308; }
         
-        .slot-video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 250px; }
-        .slot-video { width: 100%; height: 100%; object-fit: contain; }
-        .slot-status { position: absolute; color: #64748b; text-align: center; }
+        .video-area { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; min-height: 250px; }
+        .video { width: 100%; height: 100%; object-fit: contain; }
         
-        .source-badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; z-index: 10; border: 1px solid; }
-        .source-badge.screen { color: #8b5cf6; border-color: #8b5cf6; }
-        .source-badge.camera { color: #3b82f6; border-color: #3b82f6; }
+        .badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid; z-index: 10; }
+        .badge.screen { color: #8b5cf6; border-color: #8b5cf6; }
+        .badge.camera { color: #3b82f6; border-color: #3b82f6; }
+        
+        .status { position: absolute; color: #64748b; text-align: center; }
         
         .controls { padding: 10px; display: flex; gap: 5px; background: #0f172a; }
         .t-btn { flex: 1; padding: 10px; font-size: 0.8rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #1e293b; color: #94a3b8; }
-        .t-btn:hover { background: #334155; }
-        .t-btn.idle { color: white; border: 1px solid #64748b; }
-        .t-btn.prev { background: rgba(234, 179, 8, 0.2); color: #eab308; border: 1px solid #eab308; }
-        .t-btn.live { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+        .t-btn.idle { background: #334155; color: white; }
+        .t-btn.prev { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .t-btn.live { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         
-        .presenter-layout { width: 100vw; height: 100vh; position: relative; background: #000; overflow: hidden; }
+        .presenter { width: 100vw; height: 100vh; position: relative; background: #000; }
         .presenter-video { width: 100%; height: 100%; object-fit: contain; }
         
-        .tally-border { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 15px solid transparent; pointer-events: none; z-index: 50; box-sizing: border-box; transition: all 0.3s; }
+        .tally-border { position: absolute; inset: 0; border: 15px solid transparent; pointer-events: none; z-index: 50; transition: all 0.3s; }
         .tally-border.live { border-color: #ef4444; box-shadow: inset 0 0 50px rgba(239,68,68,0.5); }
-        .tally-border.prev { border-color: #eab308; box-shadow: inset 0 0 50px rgba(234,179,8,0.5); }
+        .tally-border.prev { border-color: #eab308; box-shadow: inset 0 0 50px rgba(234,179,8,0.4); }
         
-        .status-badge { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; z-index: 100; }
-        .status-badge.live { background: #ef4444; color: white; }
-        .status-badge.prev { background: #eab308; color: black; }
+        .on-air { position: absolute; top: 20px; right: 20px; background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; z-index: 100; display: none; }
+        .on-air.active { display: block; }
         
-        .presenter-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); padding: 15px; border-radius: 12px; display: flex; gap: 10px; z-index: 100; border: 1px solid #334155; }
-        .control-btn { width: 50px; height: 50px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 1.2rem; cursor: pointer; }
-        .control-btn:active { transform: scale(0.95); }
-        .control-btn.off { background: #ef4444; }
-        .control-btn.switch { width: auto; padding: 0 15px; font-size: 0.85rem; font-weight: bold; }
+        .p-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); padding: 15px; border-radius: 12px; display: flex; gap: 10px; z-index: 100; border: 1px solid #334155; }
+        .p-btn { width: 50px; height: 50px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 1.2rem; cursor: pointer; }
+        .p-btn.off { background: #ef4444; }
+        .p-btn.switch { width: auto; padding: 0 15px; font-size: 0.8rem; font-weight: bold; }
         
-        .obs-layout { width: 100vw; height: 100vh; background: #000; position: relative; }
+        .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .mode-card { background: rgba(51, 65, 85, 0.5); border: 2px solid #334155; border-radius: 8px; padding: 20px; cursor: pointer; text-align: center; }
+        .mode-card.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
+        
+        .obs { width: 100vw; height: 100vh; background: #000; position: relative; }
         .obs-video { width: 100%; height: 100%; object-fit: contain; }
-        .obs-waiting { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; font-size: 1.2rem; text-align: center; }
+        .obs-wait { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #64748b; text-align: center; }
         
-        .mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .mode-btn { background: rgba(51, 65, 85, 0.5); border: 2px solid #334155; border-radius: 8px; padding: 20px; cursor: pointer; text-align: center; }
-        .mode-btn:hover { border-color: #8b5cf6; }
-        .mode-btn.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
-        .mode-icon { font-size: 2rem; margin-bottom: 8px; color: #8b5cf6; }
-        
-        .error-box { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.8rem; }
-        .success-box { background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #22c55e; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.8rem; }
+        .error { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -93,7 +86,7 @@
             }
         };
         
-        const Video = ({ stream, muted, className }) => {
+        const Video = ({ stream, ...props }) => {
             const ref = useRef(null);
             useEffect(() => {
                 if (ref.current && stream) {
@@ -101,110 +94,75 @@
                     ref.current.play().catch(() => {});
                 }
             }, [stream]);
-            return <video ref={ref} className={className} autoPlay playsInline muted={muted} />;
+            return <video ref={ref} autoPlay playsInline {...props} />;
         };
 
         // ==========================================
-        // DIRECTOR - Solo recibe, sin retorno
+        // DIRECTOR (Solo recibe, sin preview)
         // ==========================================
-        const DirectorView = ({ roomName }) => {
+        const Director = ({ room }) => {
             const [slots, setSlots] = useState({ 
                 1: { stream: null, tally: 'idle', source: 'camera' }, 
                 2: { stream: null, tally: 'idle', source: 'camera' }, 
                 3: { stream: null, tally: 'idle', source: 'camera' }
             });
-            
             const peer = useRef(null);
 
             useEffect(() => {
-                const myId = `dir_${roomName}`;
-                console.log('Director ID:', myId);
+                peer.current = new Peer(`dir_${room}`, PEER_CONFIG);
                 
-                peer.current = new Peer(myId, PEER_CONFIG);
-                
-                peer.current.on('open', () => {
-                    console.log('✅ Director listo');
-                });
-                
-                peer.current.on('error', (err) => {
-                    console.error('Error:', err.type);
-                    if (err.type === 'unavailable-id') {
-                        alert('Error: ID ocupado. Recarga la página.');
-                    }
-                });
-                
-                // Escuchar llamadas entrantes
                 peer.current.on('call', call => {
-                    const peerId = call.peer;
-                    console.log('Llamada de:', peerId);
+                    const match = call.peer.match(/pres_${room}_(\d+)_/);
+                    if (!match) return;
                     
-                    // Extraer slot del ID (pres_EVENTO_1_12345 -> slot 1)
-                    const match = peerId.match(/pres_${roomName}_(\d+)_/);
-                    if (!match) {
-                        console.log('ID no reconocido:', peerId);
-                        return;
-                    }
-                    
-                    const slotId = match[1];
-                    
-                    call.answer(); // Aceptar sin enviar nada (solo recibir)
+                    const id = match[1];
+                    call.answer();
                     
                     call.on('stream', stream => {
-                        console.log(`✅ Slot ${slotId} conectado`);
-                        setSlots(prev => ({
-                            ...prev, 
-                            [slotId]: { ...prev[slotId], stream }
-                        }));
+                        setSlots(s => ({...s, [id]: {...s[id], stream}}));
                     });
                     
                     call.on('close', () => {
-                        console.log(`❌ Slot ${slotId} desconectado`);
-                        setSlots(prev => ({
-                            ...prev, 
-                            [slotId]: { ...prev[slotId], stream: null }
-                        }));
+                        setSlots(s => ({...s, [id]: {...s[id], stream: null}}));
                     });
                 });
 
                 return () => peer.current?.destroy();
-            }, [roomName]);
+            }, [room]);
 
             const setTally = (id, state) => {
-                setSlots(prev => ({...prev, [id]: {...prev[id], tally: state}}));
-                // Notificar al presentador (usando peer.connect para datos simples)
-                const conn = peer.current?.connections[`pres_${roomName}_${id}`]?.[0];
-                if (conn && conn.send) {
-                    conn.send({ tally: state });
-                }
+                setSlots(s => ({...s, [id]: {...s[id], tally: state}}));
+                // Notificar al presentador
+                const conn = peer.current?.connections[Object.keys(peer.current.connections).find(k => k.includes(`pres_${room}_${id}_`))]?.[0];
+                conn?.send?.({ tally: state });
             };
 
             return (
-                <div className="director-layout">
-                    <div className="director-header">
-                        <h2 style={{color: '#8b5cf6', margin: 0}}><i className="fas fa-th-large"></i> {roomName}</h2>
-                        <small style={{color: '#64748b'}}>Esperando laptops...</small>
+                <div className="director">
+                    <div className="header">
+                        <h2 style={{color: '#8b5cf6'}}><i className="fas fa-th-large"></i> {room}</h2>
+                        <small style={{color: '#64748b'}}>Solo Recepción | 3 Canales</small>
                     </div>
 
-                    <div className="grid-container">
+                    <div className="grid">
                         {[1,2,3].map(id => (
-                            <div key={id} className={`slot-card ${slots[id].tally}`}>
-                                <div className="slot-video-area">
+                            <div key={id} className={`slot ${slots[id].tally}`}>
+                                <div className="video-area">
                                     {slots[id].stream ? (
                                         <>
-                                            <div className={`source-badge ${slots[id].source}`}>
+                                            <div className={`badge ${slots[id].source}`}>
                                                 {slots[id].source === 'screen' ? '📺 PANTALLA' : '📹 CÁMARA'}
                                             </div>
-                                            <Video stream={slots[id].stream} muted={false} className="slot-video" />
+                                            <Video stream={slots[id].stream} muted={false} className="video" />
                                         </>
                                     ) : (
-                                        <div className="slot-status">
-                                            <i className="fas fa-laptop" style={{fontSize: '3rem', marginBottom: '10px', opacity: 0.3}}></i>
+                                        <div className="status">
+                                            <i className="fas fa-laptop" style={{fontSize: '2.5rem', marginBottom: '10px', opacity: 0.3}}></i>
                                             <div>SLOT {id}</div>
-                                            <small style={{fontSize: '0.7rem'}}>Esperando pres_{roomName}_{id}_...</small>
+                                            <small>Esperando...</small>
                                         </div>
                                     )}
                                 </div>
-                                
                                 <div className="controls">
                                     <button className={`t-btn ${slots[id].tally === 'idle' ? 'idle' : ''}`} onClick={()=>setTally(id,'idle')}>SAFE</button>
                                     <button className={`t-btn ${slots[id].tally === 'prev' ? 'prev' : ''}`} onClick={()=>setTally(id,'prev')}>PREV</button>
@@ -218,48 +176,40 @@
         };
 
         // ==========================================
-        // PRESENTER - Con ID único (evita unavailable-id)
+        // PRESENTER (Envía solo, recibe Tally)
         // ==========================================
-        const PresenterView = ({ roomName, slotId }) => {
-            const [step, setStep] = useState('select'); // select, connecting, live, error
-            const [sourceType, setSourceType] = useState('screen');
+        const Presenter = ({ room, slot }) => {
+            const [step, setStep] = useState('select');
+            const [source, setSource] = useState('screen');
             const [tally, setTally] = useState('idle');
             const [error, setError] = useState('');
-            const [micMuted, setMicMuted] = useState(false);
+            const [muted, setMuted] = useState(false);
             
             const peer = useRef(null);
-            const localStream = useRef(null);
-            const connRef = useRef(null);
-
-            // Generar ID único con timestamp para evitar "unavailable-id"
-            const myId = `pres_${roomName}_${slotId}_${Date.now()}`;
+            const streamRef = useRef(null);
+            const myId = `pres_${room}_${slot}_${Date.now()}`;
 
             useEffect(() => {
-                if (step === 'live') {
-                    startConnection();
-                }
+                if (step === 'live') connect();
                 return () => {
-                    localStream.current?.getTracks().forEach(t => t.stop());
+                    streamRef.current?.getTracks().forEach(t => t.stop());
                     peer.current?.destroy();
                 };
             }, [step]);
 
-            const startConnection = async () => {
+            const connect = async () => {
                 try {
-                    setError('');
-                    
-                    // 1. Obtener stream
                     let stream;
-                    if (sourceType === 'screen') {
-                        const screenStream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
-                        // Mezclar con micrófono
+                    if (source === 'screen') {
+                        const screen = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true});
                         const mic = await navigator.mediaDevices.getUserMedia({audio: true});
-                        const ctx = new AudioContext();
+                        
+                        // Mezclar audio
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
                         const dest = ctx.createMediaStreamDestination();
                         
-                        if (screenStream.getAudioTracks().length > 0) {
-                            const sys = ctx.createMediaStreamSource(screenStream);
-                            sys.connect(dest);
+                        if (screen.getAudioTracks().length) {
+                            ctx.createMediaStreamSource(screen).connect(dest);
                         }
                         
                         const m = ctx.createMediaStreamSource(mic);
@@ -268,156 +218,94 @@
                         m.connect(g);
                         g.connect(dest);
                         
-                        stream = new MediaStream([
-                            screenStream.getVideoTracks()[0],
-                            ...dest.stream.getAudioTracks()
-                        ]);
-                        
-                        screenStream.getVideoTracks()[0].onended = () => {
-                            setSourceType('camera');
-                            startConnection(); // Reiniciar con cámara
-                        };
+                        stream = new MediaStream([screen.getVideoTracks()[0], ...dest.stream.getAudioTracks()]);
+                        screen.getVideoTracks()[0].onended = () => window.location.reload();
                     } else {
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            video: { width: 1280, height: 720 },
-                            audio: true
-                        });
+                        stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}, audio: true});
                     }
                     
-                    localStream.current = stream;
-                    
-                    // 2. Conectar PeerJS
-                    const dirId = `dir_${roomName}`;
+                    streamRef.current = stream;
                     
                     peer.current = new Peer(myId, PEER_CONFIG);
-                    
                     peer.current.on('open', () => {
-                        console.log('Conectado como:', myId);
+                        // Llamar Director
+                        const call = peer.current.call(`dir_${room}`, stream);
+                        if (!call) throw new Error('Director no encontrado');
                         
-                        // Llamar al Director
-                        const call = peer.current.call(dirId, stream);
-                        if (!call) {
-                            setError('No se pudo llamar al Director. ¿Está abierto?');
-                            return;
-                        }
+                        // Datos para Tally
+                        const conn = peer.current.connect(`dir_${room}`);
+                        conn.on('data', (data) => data.tally && setTally(data.tally));
                         
-                        // También conectar datos para tally
-                        const conn = peer.current.connect(dirId);
-                        conn.on('data', (data) => {
-                            if (data.tally) setTally(data.tally);
-                        });
-                        
-                        // Llamar a OBS (si existe)
-                        setTimeout(() => {
-                            const obsId = `obs_${roomName}_${slotId}`;
-                            peer.current.call(obsId, stream);
-                        }, 500);
+                        // Llamar OBS
+                        setTimeout(() => peer.current.call(`obs_${room}_${slot}`, stream), 500);
                     });
                     
-                    peer.current.on('error', (err) => {
-                        console.error(err);
-                        if (err.type === 'unavailable-id') {
-                            setError('ID ocupado. Recarga e intenta de nuevo.');
-                        } else if (err.type === 'peer-unavailable') {
-                            setError('Director no encontrado. Abre el Director primero.');
-                        } else {
-                            setError('Error de red: ' + err.type);
-                        }
+                    peer.current.on('error', err => {
+                        if (err.type === 'peer-unavailable') setError('Abre el Director primero');
+                        else setError(err.type);
                     });
                     
                 } catch(e) {
-                    console.error(e);
-                    setError('Error: ' + e.message);
-                }
-            };
-
-            const toggleMic = () => {
-                if (localStream.current) {
-                    localStream.current.getAudioTracks().forEach(t => t.enabled = !t.enabled);
-                    setMicMuted(!micMuted);
+                    setError(e.message);
                 }
             };
 
             if (step === 'select') {
                 return (
-                    <div className="lobby-container">
-                        <div className="glass-box">
-                            <h2 style={{color: '#8b5cf6'}}><i className="fas fa-laptop"></i> Laptop {slotId}</h2>
-                            <p style={{color: '#64748b', fontSize: '0.8rem', marginBottom: '20px'}}>
-                                ID: {myId}
-                            </p>
+                    <div className="lobby">
+                        <div className="glass">
+                            <h2 style={{color: '#8b5cf6', marginBottom: '20px'}}><i className="fas fa-laptop"></i> Laptop {slot}</h2>
                             
-                            <div className="mode-selector">
-                                <div className={`mode-btn ${sourceType === 'screen' ? 'selected' : ''}`} onClick={() => setSourceType('screen')}>
-                                    <div className="mode-icon"><i className="fas fa-desktop"></i></div>
+                            <div className="mode-grid">
+                                <div className={`mode-card ${source === 'screen' ? 'selected' : ''}`} onClick={() => setSource('screen')}>
+                                    <div style={{fontSize: '2rem', color: '#8b5cf6', marginBottom: '5px'}}><i className="fas fa-desktop"></i></div>
                                     <div>Presentación</div>
                                 </div>
-                                <div className={`mode-btn ${sourceType === 'camera' ? 'selected' : ''}`} onClick={() => setSourceType('camera')}>
-                                    <div className="mode-icon"><i className="fas fa-video"></i></div>
+                                <div className={`mode-card ${source === 'camera' ? 'selected' : ''}`} onClick={() => setSource('camera')}>
+                                    <div style={{fontSize: '2rem', color: '#8b5cf6', marginBottom: '5px'}}><i className="fas fa-video"></i></div>
                                     <div>Cámara Web</div>
                                 </div>
                             </div>
                             
-                            {error && <div className="error-box"><i className="fas fa-exclamation-circle"></i> {error}</div>}
+                            {error && <div className="error">{error}</div>}
                             
                             <button className="btn btn-purple" onClick={() => setStep('live')}>
-                                <i className="fas fa-play"></i> Conectar Ahora
+                                <i className="fas fa-play"></i> Conectar
                             </button>
-                            
-                            <div style={{marginTop: '15px', fontSize: '0.75rem', color: '#64748b'}}>
-                                Abre primero el Director en otra ventana<br/>
-                                Luego presiona "Conectar"
-                            </div>
                         </div>
                     </div>
                 );
             }
 
-            if (error) {
-                return (
-                    <div className="lobby-container">
-                        <div className="glass-box">
-                            <div className="error-box" style={{marginBottom: '20px'}}>
-                                <i className="fas fa-exclamation-triangle"></i> {error}
-                            </div>
-                            <button className="btn" onClick={() => window.location.reload()}>
-                                <i className="fas fa-redo"></i> Reintentar
-                            </button>
-                        </div>
+            if (error) return (
+                <div className="lobby">
+                    <div className="glass">
+                        <div className="error" style={{marginBottom: '20px'}}>{error}</div>
+                        <button className="btn" onClick={() => window.location.reload()}>Reintentar</button>
                     </div>
-                );
-            }
+                </div>
+            );
 
             return (
-                <div className="presenter-layout">
+                <div className="presenter">
                     <div className={`tally-border ${tally}`}></div>
-                    
-                    {tally !== 'idle' && (
-                        <div className={`status-badge ${tally}`}>
-                            {tally === 'live' ? '● EN VIVO' : '◐ PREV'}
-                        </div>
-                    )}
+                    <div className={`on-air ${tally === 'live' ? 'active' : ''}`}>● EN VIVO</div>
                     
                     <div style={{position: 'absolute', top: '20px', left: '20px', background: 'rgba(0,0,0,0.7)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.75rem', zIndex: 100}}>
-                        <i className={sourceType === 'screen' ? 'fas fa-desktop' : 'fas fa-video'} style={{marginRight: '5px'}}></i>
-                        {sourceType === 'screen' ? 'PANTALLA' : 'CÁMARA WEB'}
+                        {source === 'screen' ? '📺 PANTALLA' : '📹 CÁMARA WEB'}
                     </div>
                     
-                    {localStream.current && (
-                        <Video stream={localStream.current} muted={true} className="presenter-video" 
-                            style={{objectFit: sourceType === 'screen' ? 'contain' : 'cover'}} />
-                    )}
+                    <Video stream={streamRef.current} muted={true} className="presenter-video" 
+                        style={{objectFit: source === 'screen' ? 'contain' : 'cover'}} />
                     
-                    <div className="presenter-controls">
-                        <button className={`control-btn ${micMuted ? 'off' : ''}`} onClick={toggleMic}>
-                            <i className={micMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
+                    <div className="p-controls">
+                        <button className={`p-btn ${muted ? 'off' : ''}`} onClick={() => {setMuted(!muted); streamRef.current?.getAudioTracks().forEach(t => t.enabled = !muted);}}>
+                            <i className={muted ? 'fas fa-microphone-slash' : 'fas fa-microphone'}></i>
                         </button>
-                        
-                        <button className="control-btn switch" onClick={() => window.location.reload()}>
-                            <i className="fas fa-exchange-alt"></i> Cambiar Modo
+                        <button className="p-btn switch" onClick={() => window.location.reload()}>
+                            <i className="fas fa-exchange-alt"></i> Cambiar
                         </button>
-                        
-                        <button className="control-btn" style={{background: '#ef4444'}} onClick={() => window.location.href = './'}>
+                        <button className="p-btn" style={{background: '#ef4444'}} onClick={() => window.location.href = './'}>
                             <i className="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
@@ -426,58 +314,38 @@
         };
 
         // ==========================================
-        // OBS - Simplificado
+        // OBS
         // ==========================================
-        const ObsView = ({ roomName, slotId }) => {
+        const Obs = ({ room, slot }) => {
             const [stream, setStream] = useState(null);
-            const [status, setStatus] = useState('Esperando...');
             const peer = useRef(null);
             const videoRef = useRef(null);
 
             useEffect(() => {
-                const myId = `obs_${roomName}_${slotId}`;
-                
-                peer.current = new Peer(myId, PEER_CONFIG);
-                
-                peer.current.on('open', () => {
-                    setStatus('Listo - Esperando laptop...');
-                });
-                
+                peer.current = new Peer(`obs_${room}_${slot}`, PEER_CONFIG);
                 peer.current.on('call', call => {
-                    console.log('OBS recibiendo de:', call.peer);
                     call.answer();
-                    call.on('stream', s => {
-                        setStream(s);
-                        setStatus('Recibiendo');
-                    });
-                    call.on('close', () => {
-                        setStream(null);
-                        setStatus('Desconectado');
-                    });
+                    call.on('stream', s => setStream(s));
                 });
-
                 return () => peer.current?.destroy();
-            }, [roomName, slotId]);
+            }, [room, slot]);
 
             useEffect(() => {
                 if (stream && videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(() => {
-                        videoRef.current.muted = true;
-                        videoRef.current.play();
-                    });
+                    videoRef.current.play().catch(() => {});
                 }
             }, [stream]);
 
             return (
-                <div className="obs-layout">
+                <div className="obs">
                     {stream ? (
                         <video ref={videoRef} className="obs-video" autoPlay playsInline muted={false}></video>
                     ) : (
-                        <div className="obs-waiting">
-                            <i className="fas fa-circle-notch fa-spin" style={{fontSize: '2rem', marginBottom: '10px', display: 'block'}}></i>
-                            {status}<br/>
-                            <small style={{opacity: 0.5}}>ID: obs_{roomName}_{slotId}</small>
+                        <div className="obs-wait">
+                            <i className="fas fa-circle-notch fa-spin" style={{fontSize: '2rem', marginBottom: '10px'}}></i>
+                            <div>Esperando señal...</div>
+                            <small style={{opacity: 0.5}}>obs_{room}_{slot}</small>
                         </div>
                     )}
                 </div>
@@ -496,40 +364,25 @@
                 if (m && r) {
                     if (m === 'obs') document.body.style.background = 'transparent';
                     setState({mode: m, room: r.toUpperCase(), slot: s});
-                } else {
-                    setState({mode: 'lobby', room: 'EVENTO', slot: '1'});
                 }
             }, []);
 
-            if (state.mode === 'director') return <DirectorView roomName={state.room} />;
-            if (state.mode === 'obs') return <ObsView roomName={state.room} slotId={state.slot} />;
-            if (state.mode === 'presenter') return <PresenterView roomName={state.room} slotId={state.slot} />;
+            if (state.mode === 'director') return <Director room={state.room} />;
+            if (state.mode === 'obs') return <Obs room={state.room} slot={state.slot} />;
+            if (state.mode === 'presenter') return <Presenter room={state.room} slot={state.slot} />;
             
             return (
-                <div className="lobby-container">
-                    <div className="glass-box">
-                        <h1 style={{color: '#8b5cf6', marginBottom: '20px'}}><i className="fas fa-broadcast-tower"></i> StreamCall</h1>
-                        
-                        <input value={state.room} onChange={e => setState({...state, room: e.target.value.toUpperCase()})} placeholder="NOMBRE SALA" />
-                        
-                        <button className="btn" onClick={() => window.location.href=`?mode=director&room=${state.room}`}>
-                            <i className="fas fa-th-large"></i> Soy Director (Panel)
-                        </button>
-                        
-                        <button className="btn btn-purple" onClick={() => window.location.href=`?mode=presenter&room=${state.room}&slot=1`}>
-                            <i className="fas fa-laptop"></i> Soy Presentador
-                        </button>
-                        
-                        <div style={{marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px'}}>
-                            <div style={{fontSize: '0.7rem', color: '#94a3b8', marginBottom: '8px'}}>Links para OBS:</div>
-                            <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
-                                {[1,2,3].map(n => (
-                                    <button key={n} onClick={() => navigator.clipboard.writeText(`${window.location.href.split('?')[0]}?mode=obs&room=${state.room}&slot=${n}`)}
-                                        style={{background: '#334155', border: 'none', color: 'white', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem'}}>
-                                        Slot {n}
-                                    </button>
-                                ))}
-                            </div>
+                <div className="lobby">
+                    <div className="glass">
+                        <h1 style={{color: '#8b5cf6', marginBottom: '20px', textAlign: 'center'}}><i className="fas fa-broadcast-tower"></i> StreamCall</h1>
+                        <input value={state.room} onChange={e => setState({...state, room: e.target.value.toUpperCase()})} placeholder="SALA" />
+                        <button className="btn" onClick={() => window.location.href=`?mode=director&room=${state.room}`}>Soy Director</button>
+                        <button className="btn btn-purple" onClick={() => window.location.href=`?mode=presenter&room=${state.room}&slot=1`}>Soy Presentador</button>
+                        <div style={{marginTop: '15px', textAlign: 'center'}}>
+                            {[1,2,3].map(n => (
+                                <button key={n} onClick={() => navigator.clipboard.writeText(`${window.location.href.split('?')[0]}?mode=obs&room=${state.room}&slot=${n}`)}
+                                    style={{background: '#334155', border: 'none', color: 'white', padding: '5px 8px', margin: '2px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer'}}>OBS {n}</button>
+                            ))}
                         </div>
                     </div>
                 </div>
