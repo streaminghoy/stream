@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticker OBS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent; /* Transparencia para OBS/vMix */
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #qr-container {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #qr-text {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        #ticker-container {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #ff0000; /* Color por defecto, se pisa con JS */
+            color: white;
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .ticker-text {
+            display: inline-block;
+            padding-left: 100%; /* Empieza fuera de pantalla a la derecha */
+            animation: ticker 20s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="qr-container">
+        <div id="qr-text">¡Enviá tu mensaje!</div>
+        <div id="qrcode"></div>
+    </div>
+
+    <div id="ticker-container">
+        <div class="ticker-text" id="ticker-content">Esperando mensajes...</div>
+    </div>
+
+    <script>
+        // Cambiá esto por la URL real donde subas el sistema
+        const submitUrl = window.location.href.replace('index.html', '') + 'submit.html';
+        
+        // Generar QR
+        new QRCode(document.getElementById("qrcode"), {
+            text: submitUrl,
+            width: 128,
+            height: 128
+        });
+
+        // Actualizar datos del ticker
+        function updateTicker() {
+            fetch('api.php?action=get')
+                .then(response => response.json())
+                .then(data => {
+                    // Actualizar color
+                    document.getElementById('ticker-container').style.backgroundColor = data.settings.color;
+                    
+                    // Actualizar mensajes
+                    if (data.messages.length > 0) {
+                        const allMessages = data.messages.map(m => m.text).join(' &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; ');
+                        document.getElementById('ticker-content').innerHTML = allMessages;
+                    } else {
+                        document.getElementById('ticker-content').innerHTML = "Esperando mensajes...";
+                    }
+                });
+        }
+
+        // Consultar cada 5 segundos
+        setInterval(updateTicker, 5000);
+        updateTicker();
+    </script>
+</body>
+</html>
