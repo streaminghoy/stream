@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Control - Ticker</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #222; color: white; }
+        .card { background: #333; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+        .msg-item { display: flex; justify-content: space-between; background: #444; padding: 10px; margin-bottom: 5px; border-radius: 4px; }
+        button { cursor: pointer; padding: 5px 15px; border: none; border-radius: 4px; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; padding: 10px 20px; font-weight: bold; }
+        .btn-success { background: #28a745; color: white; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Control del Ticker</h1>
+
+    <div class="card">
+        <h3>Ajustes</h3>
+        <label>Color del Ticker: </label>
+        <input type="color" id="colorPicker">
+        <br><br>
+        <label>
+            <input type="checkbox" id="autoDelete"> Borrar mensajes automáticamente a las 24hs
+        </label>
+        <br><br>
+        <button class="btn-success" onclick="saveSettings()">Guardar Ajustes</button>
+    </div>
+
+    <div class="card">
+        <h3>Mensajes Activos <button class="btn-warning" style="float: right;" onclick="deleteAll()">Borrar TODOS</button></h3>
+        <div id="messagesList"></div>
+    </div>
+
+    <script>
+        function loadAdmin() {
+            fetch('api.php?action=get')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('colorPicker').value = data.settings.color;
+                    document.getElementById('autoDelete').checked = data.settings.auto_delete;
+                    
+                    const list = document.getElementById('messagesList');
+                    list.innerHTML = '';
+                    data.messages.forEach(msg => {
+                        list.innerHTML += `
+                            <div class="msg-item">
+                                <span>${msg.text}</span>
+                                <button class="btn-danger" onclick="deleteMsg('${msg.id}')">Borrar</button>
+                            </div>
+                        `;
+                    });
+                });
+        }
+
+        function deleteMsg(id) {
+            const fd = new FormData(); fd.append('id', id);
+            fetch('api.php?action=delete', { method: 'POST', body: fd }).then(loadAdmin);
+        }
+
+        function deleteAll() {
+            if(confirm('¿Seguro que querés vaciar el ticker?')) {
+                fetch('api.php?action=delete_all').then(loadAdmin);
+            }
+        }
+
+        function saveSettings() {
+            const fd = new FormData();
+            fd.append('color', document.getElementById('colorPicker').value);
+            fd.append('auto_delete', document.getElementById('autoDelete').checked);
+            fetch('api.php?action=update_settings', { method: 'POST', body: fd })
+                .then(() => alert('Ajustes guardados'));
+        }
+
+        setInterval(loadAdmin, 5000); // Refresca la lista cada 5 segundos
+        loadAdmin();
+    </script>
+</body>
+</html>
