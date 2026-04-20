@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Compartir a OBS - iPad</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; color: #00d4ff; }
+        .subtitle { color: #888; margin-bottom: 30px; font-size: 0.95rem; }
+        
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .sala-code {
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #00ff88;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .url-box {
+            background: #000;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.85rem;
+            color: #aaa;
+            word-break: break-all;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        .btn-primary {
+            background: #00d4ff;
+            color: #000;
+        }
+        .btn-primary:active { transform: scale(0.98); background: #00b8e6; }
+        .btn-primary:disabled { background: #334; color: #666; cursor: not-allowed; }
+        
+        .btn-copy {
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .status.waiting { background: #332900; color: #ffcc00; }
+        .status.live { background: #003311; color: #00ff88; }
+        .status.error { background: #330000; color: #ff4444; }
+        
+        .hint {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        video {
+            width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 15px;
+            background: #000;
+            display: none;
+        }
+        video.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📡 Compartir a OBS</h1>
+        <p class="subtitle">Desde tu iPad directo al estudio</p>
+        
+        <div class="card">
+            <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Tu código de sala</div>
+            <div class="sala-code" id="salaCode">----</div>
+            
+            <div style="font-size: 0.85rem; color: #888; margin: 15px 0 5px;">URL para OBS (Navegador):</div>
+            <div class="url-box" id="urlBox">Generando...</div>
+            <button class="btn btn-copy" onclick="copiarUrl()">📋 Copiar URL</button>
+        </div>
+
+        <button class="btn btn-primary" id="btnCompartir" onclick="iniciarCompartir()">
+            🖥️ Compartir Pantalla y Audio
+        </button>
+        
+        <div id="status" class="status waiting" style="display: none;"></div>
+        <video id="localVideo" autoplay playsinline muted></video>
+        
+        <div class="hint">
+            <strong>Importante:</strong><br>
+            • Usá Brave o Chrome en la iPad<br>
+            • En Brave, desactivá los "Shields" para este sitio<br>
+            • Cuando pida permiso, elegí <strong>"Pantalla completa"</strong><br>
+            • El audio del sistema en iPad puede estar limitado por iOS
+        </div>
+    </div>
+
+    <script>
+        // Generar sala aleatoria
+        const sala = Math.random().toString(36).substring(2, 8).toUpperCase();
+        document.getElementById('salaCode').textContent = sala;
+        
+        // Generar URL del receptor
+        const currentUrl = window.location.href;
+        const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+        const obsUrl = `${baseUrl}obs.html?sala=${sala}`;
+        document.getElementById('urlBox').textContent = obsUrl;
+        
+        // Config PeerJS (servidor público gratuito)
+        const peerConfig = {
+            host: '0.peerjs.com',
+            port: 443,
+            path: '/',
+            secure: true,
+            debug: 1
+        };
+        
+        const peerId = `emit-${sala}`;
+        const peer = new Peer(peerId, peerConfig);
+        let streamActivo = null;
+        let llamadaActiva = null;
+        
+        peer.on('open', () => {
+            console.log('Emisor conectado:', peerId);
+        });
+        
+        peer.on('error', (err) => {
+            console.error('Peer error:', err);
+            mostrarEstado('Error de conexión. Reintentá recargando.', 'error');
+        });
+        
+        function mostrarEstado(msg, tipo) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = `status ${tipo}`;
+            el.style.display = 'block';
+        }
+        
+        function copiarUrl() {
+            navigator.clipboard.writeText(obsUrl).then(() => {
+                const btn = document.querySelector('.btn-copy');
+                const original = btn.textContent;
+                btn.textContent = '✅ Copiado';
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        }
+        
+        async function iniciarCompartir() {
+            const btn = document.getElementById('btnCompartir');
+            btn.disabled = true;
+            mostrarEstado('Solicitando permisos...', 'waiting');
+            
+            try {
+                // Intentar capturar pantalla + audio
+                // Nota: iPad a veces no permite audio de sistema, solo de app
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { 
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            frameRate: { ideal: 30 }
+                        },
+                        audio: true
+                    });
+                } catch (e) {
+                    // Si falla con audio, intentar sin audio
+                    console.warn('Audio no disponible, intentando solo video:', e);
+                    stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { 
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            frameRate: { ideal: 30 }
+                        },
+                        audio: false
+                    });
+                    mostrarEstado('⚠️ Compartiendo solo video (audio no disponible en este dispositivo)', 'waiting');
+                }
+                
+                streamActivo = stream;
+                const video = document.getElementById('localVideo');
+                video.srcObject = stream;
+                video.classList.add('active');
+                
+                // Mostrar preview local
+                mostrarEstado('Conectando con OBS...', 'waiting');
+                
+                // Llamar al receptor
+                const receptorId = `rec-${sala}`;
+                const call = peer.call(receptorId, stream);
+                llamadaActiva = call;
+                
+                if (call) {
+                    call.on('stream', (remoteStream) => {
+                        // No necesitamos el stream remoto en el emisor
+                    });
+                    call.on('close', () => {
+                        mostrarEstado('OBS se desconectó', 'error');
+                        btn.disabled = false;
+                    });
+                    call.on('error', (err) => {
+                        console.error('Call error:', err);
+                    });
+                    
+                    mostrarEstado('🔴 TRANSMITIENDO a OBS', 'live');
+                    btn.textContent = '✅ En vivo';
+                } else {
+                    // Si el receptor aún no está, reintentar cada 3 segundos
+                    mostrarEstado('Esperando que OBS se conecte...', 'waiting');
+                    const intervalo = setInterval(() => {
+                        if (!streamActivo || streamActivo.getTracks().some(t => t.readyState === 'ended')) {
+                            clearInterval(intervalo);
+                            return;
+                        }
+                        const retry = peer.call(receptorId, stream);
+                        if (retry) {
+                            clearInterval(intervalo);
+                            llamadaActiva = retry;
+                            mostrarEstado('🔴 TRANSMITIENDO a OBS', 'live');
+                            btn.textContent = '✅ En vivo';
+                        }
+                    }, 3000);
+                    
+                    // Detener reintentos después de 30 segundos
+                    setTimeout(() => clearInterval(intervalo), 30000);
+                }
+                
+                // Detectar cuando el usuario detiene compartir desde el menú nativo
+                stream.getVideoTracks()[0].onended = () => {
+                    detenerTransmision();
+                };
+                
+            } catch (err) {
+                console.error('Error:', err);
+                mostrarEstado('Error: ' + err.message, 'error');
+                btn.disabled = false;
+            }
+        }
+        
+        function detenerTransmision() {
+            if (streamActivo) {
+                streamActivo.getTracks().forEach(t => t.stop());
+                streamActivo = null;
+            }
+            if (llamadaActiva) {
+                llamadaActiva.close();
+            }
+            document.getElementById('localVideo').classList.remove('active');
+            document.getElementById('btnCompartir').disabled = false;
+            document.getElementById('btnCompartir').textContent = '🖥️ Compartir Pantalla y Audio';
+            mostrarEstado('Transmisión finalizada', 'waiting');
+        }
+    </script>
+</body>
+</html>
