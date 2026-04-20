@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receptor OBS</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+        video {
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            background: #000;
+            display: none;
+        }
+        video.active { display: block; }
+        
+        #estado {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            z-index: 10;
+        }
+        .sala-info {
+            color: #00ff88;
+            font-size: 1.5rem;
+            margin-top: 10px;
+        }
+        .error { color: #ff4444; }
+        .waiting { color: #ffcc00; }
+    </style>
+</head>
+<body>
+    <div id="estado">
+        <div id="msg">Conectando...</div>
+        <div class="sala-info" id="salaInfo"></div>
+    </div>
+    <video id="remoteVideo" autoplay playsinline></video>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const sala = params.get('sala');
+        const estadoMsg = document.getElementById('msg');
+        const salaInfo = document.getElementById('salaInfo');
+        const video = document.getElementById('remoteVideo');
+        
+        if (!sala) {
+            estadoMsg.innerHTML = '<span class="error">❌ Falta parámetro ?sala= en la URL</span>';
+            throw new Error('Sala no especificada');
+        }
+        
+        salaInfo.textContent = `Sala: ${sala}`;
+        
+        const peerConfig = {
+            host: '0.peerjs.com',
+            port: 443,
+            path: '/',
+            secure: true,
+            debug: 1
+        };
+        
+        const receptorId = `rec-${sala}`;
+        const peer = new Peer(receptorId, peerConfig);
+        
+        peer.on('open', () => {
+            estadoMsg.innerHTML = '<span class="waiting">⏳ Esperando señal del iPad...</span>';
+            console.log('Receptor listo:', receptorId);
+        });
+        
+        peer.on('call', (call) => {
+            estadoMsg.style.display = 'none';
+            salaInfo.style.display = 'none';
+            
+            // Responder sin enviar stream propio
+            call.answer(null);
+            
+            call.on('stream', (remoteStream) => {
+                video.srcObject = remoteStream;
+                video.classList.add('active');
+                console.log('Stream recibido');
+            });
+            
+            call.on('close', () => {
+                video.classList.remove('active');
+                estadoMsg.style.display = 'block';
+                estadoMsg.innerHTML = '<span class="error">🔌 Conexión cerrada</span>';
+            });
+            
+            call.on('error', (err) => {
+                console.error('Error en llamada:', err);
+            });
+        });
+        
+        peer.on('error', (err) => {
+            console.error('Peer error:', err);
+            if (err.type === 'unavailable-id') {
+                estadoMsg.innerHTML = '<span class="error">⚠️ Sala ocupada. Cerrá otras pestañas de OBS con esta URL.</span>';
+            } else {
+                estadoMsg.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
+            }
+        });
+        
+        // Reconexión automática si se cae
+        peer.on('disconnected', () => {
+            estadoMsg.style.display = 'block';
+            estadoMsg.innerHTML = '<span class="waiting">🔄 Reconectando...</span>';
+            video.classList.remove('active');
+            peer.reconnect();
+        });
+    </script>
+</body>
+</html>
